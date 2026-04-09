@@ -2,19 +2,25 @@ extends CharacterBase
 
 # red_knight.gd — playable Red Knight character.
 #
-# INPUT ACTIONS (add these in Project > Project Settings > Input Map):
-#   "move_right"    → D key
-#   "move_left"     → A key
-#   "move_up"       → W key  (switch to back lane)
-#   "move_down"     → S key  (switch to forward lane)
-#   "slash"         → J key
-#   "thrust"        → K key
+# INPUT ACTIONS (Project > Project Settings > Input Map):
+#   "move_right" → D     "move_left" → A
+#   "move_up"    → W     "move_down" → S
+#   "slash"      → J     "thrust"    → K
 #
-# ANIMATIONS (set up in the AnimatedSprite2D SpriteFrames resource):
-#   "idle"    — loops
-#   "running" — loops
-#   "slash"   — no loop; pause triggers at frame SLASH_PAUSE_FRAME (2)
-#   "thrust"  — no loop; pause triggers at frame THRUST_PAUSE_FRAME (3)
+# ANIMATIONS (AnimatedSprite2D SpriteFrames):
+#   "idle"    — loop ON
+#   "running" — loop ON
+#   "slash"   — loop OFF
+#   "thrust"  — loop OFF
+#
+# SCENE STRUCTURE:
+#   CharacterBody2D  (this script)
+#   ├── AnimatedSprite2D
+#   ├── CollisionShape2D
+#   ├── SlashHitbox   (Area2D — wide rectangle, positioned at sword reach)
+#   │   └── CollisionShape2D
+#   └── ThrustHitbox  (Area2D — tall narrow rectangle, positioned forward)
+#       └── CollisionShape2D
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -22,13 +28,18 @@ const SLASH_PAUSE_FRAME: int = 2
 const THRUST_PAUSE_FRAME: int = 3
 const ATTACK_MOVE_MULT: float = 0.3
 
+# Slash hitbox active on frames 3 and 5.
+const SLASH_HITBOX_FRAMES: Array[int] = [3, 5]
+# Thrust hitbox active on frames 5 and 6.
+const THRUST_HITBOX_FRAMES: Array[int] = [5, 6]
+
 # ── Attack state machine ───────────────────────────────────────────────────────
 
 enum AttackState {
 	NONE,
-	SLASH_WINDUP,   # animation playing toward pause frame
-	SLASH_PAUSED,   # frozen at pause frame, waiting for second J
-	SLASH_FINISH,   # playing out the rest of the animation
+	SLASH_WINDUP,
+	SLASH_PAUSED,
+	SLASH_FINISH,
 	THRUST_WINDUP,
 	THRUST_PAUSED,
 	THRUST_FINISH,
@@ -36,63 +47,73 @@ enum AttackState {
 
 var attack_state: AttackState = AttackState.NONE
 
-# ── Level bounds (set these to match your level's walkable X range) ────────────
+# ── Movement bounds (pixels — set to match your level art) ────────────────────
 
-@export var lane_x_min: float = -480.0
-@export var lane_x_max: float = 480.0
+@export var x_min: float = -1000.0
+@export var x_max: float = 1000.0
+@export var y_min: float = -270.0
+@export var y_max: float = 270.0
+
+# ── Hitbox nodes ──────────────────────────────────────────────────────────────
+
+@onready var slash_hitbox: Area2D = $SlashHitbox
+@onready var thrust_hitbox: Area2D = $ThrustHitbox
 
 
 func _ready() -> void:
 	super()
+	if animated_sprite == null:
+		return
 	animated_sprite.animation_finished.connect(_on_animation_finished)
 	animated_sprite.frame_changed.connect(_on_frame_changed)
 	animated_sprite.play("idle")
+	_set_hitbox(slash_hitbox, false)
+	_set_hitbox(thrust_hitbox, false)
 
 
 # ── Movement ───────────────────────────────────────────────────────────────────
 
 func _handle_movement() -> void:
-	var in_pause: bool = attack_state == AttackState.SLASH_PAUSED \
-						or attack_state == AttackState.THRUST_PAUSED
+	var in_pause: bool = (attack_state == AttackState.SLASH_PAUSED
+						or attack_state == AttackState.THRUST_PAUSED)
+	var in_finish: bool = (attack_state == AttackState.SLASH_FINISH
+						or attack_state == AttackState.THRUST_FINISH)
+
+	# Locked out entirely during the finish animation.
+	if in_finish:
+		velocity = Vector2.ZERO
+		_handle_attack_input()
+		return
 
 	var speed_mult: float = ATTACK_MOVE_MULT if in_pause else 1.0
 
-	# Horizontal movement
 	var dir_x: float = Input.get_axis("move_left", "move_right")
+	var dir_y: float = Input.get_axis("move_up", "move_down")
+
 	velocity.x = dir_x * move_speed * speed_mult
+	velocity.y = dir_y * move_speed * speed_mult
 
-	# Lane switching — only when not in an attack pause
-	if not in_pause:
-		if Input.is_action_just_pressed("move_up"):
-			change_lane(-1)
-		elif Input.is_action_just_pressed("move_down"):
-			change_lane(1)
-
-	# Clamp horizontal position to the lane bounds
-	position.x = clampf(position.x + velocity.x * get_physics_process_delta_time(),
-						lane_x_min, lane_x_max)
-	# Zero out X so move_and_slide doesn't double-apply it after the clamp
-	# (we applied it manually above)
-	velocity.x = 0.0
-
-	# Facing direction — only update outside of attack pauses
+	# Facing direction — follow horizontal travel unless in attack pause
 	if not in_pause and dir_x != 0.0:
 		animated_sprite.flip_h = dir_x < 0.0
 
-	_update_animation(dir_x)
+	_update_animation(dir_x, dir_y)
 	_handle_attack_input()
 
 
-func _update_animation(dir_x: float) -> void:
-	# Attack animations own the sprite; don't touch them here.
+func _physics_process(delta: float) -> void:
+	super(delta)
+	# Clamp to walkable area after move_and_slide.
+	position.x = clampf(position.x, x_min, x_max)
+	position.y = clampf(position.y, y_min, y_max)
+
+
+func _update_animation(dir_x: float, dir_y: float) -> void:
+	# Attack animations own the sprite — hands off.
 	if attack_state != AttackState.NONE:
 		return
 
-	var moving: bool = dir_x != 0.0 \
-		or Input.is_action_pressed("move_up") \
-		or Input.is_action_pressed("move_down")
-
-	if moving:
+	if dir_x != 0.0 or dir_y != 0.0:
 		if animated_sprite.animation != "running":
 			animated_sprite.play("running")
 	else:
@@ -138,20 +159,47 @@ func _finish_attack(anim_name: String, resume_frame: int, next_state: AttackStat
 # ── AnimatedSprite2D signal handlers ──────────────────────────────────────────
 
 func _on_frame_changed() -> void:
+	var f: int = animated_sprite.frame
 	match attack_state:
 		AttackState.SLASH_WINDUP:
-			if animated_sprite.frame >= SLASH_PAUSE_FRAME:
+			_set_hitbox(slash_hitbox, f in SLASH_HITBOX_FRAMES)
+			if f >= SLASH_PAUSE_FRAME:
 				animated_sprite.pause()
 				attack_state = AttackState.SLASH_PAUSED
 
+		AttackState.SLASH_PAUSED:
+			_set_hitbox(slash_hitbox, f in SLASH_HITBOX_FRAMES)
+
+		AttackState.SLASH_FINISH:
+			_set_hitbox(slash_hitbox, f in SLASH_HITBOX_FRAMES)
+
 		AttackState.THRUST_WINDUP:
-			if animated_sprite.frame >= THRUST_PAUSE_FRAME:
+			_set_hitbox(thrust_hitbox, f in THRUST_HITBOX_FRAMES)
+			if f >= THRUST_PAUSE_FRAME:
 				animated_sprite.pause()
 				attack_state = AttackState.THRUST_PAUSED
+
+		AttackState.THRUST_PAUSED:
+			_set_hitbox(thrust_hitbox, f in THRUST_HITBOX_FRAMES)
+
+		AttackState.THRUST_FINISH:
+			_set_hitbox(thrust_hitbox, f in THRUST_HITBOX_FRAMES)
 
 
 func _on_animation_finished() -> void:
 	match attack_state:
 		AttackState.SLASH_FINISH, AttackState.THRUST_FINISH:
 			attack_state = AttackState.NONE
+			_set_hitbox(slash_hitbox, false)
+			_set_hitbox(thrust_hitbox, false)
 			animated_sprite.play("idle")
+
+
+## Enable or disable an Area2D hitbox.
+func _set_hitbox(box: Area2D, enabled: bool) -> void:
+	if box == null:
+		return
+	box.monitoring = enabled
+	box.monitorable = enabled
+	# Mirror the hitbox horizontally to always face the direction the sprite faces.
+	box.scale.x = -1.0 if animated_sprite.flip_h else 1.0
