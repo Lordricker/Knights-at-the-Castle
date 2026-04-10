@@ -6,116 +6,141 @@ extends EnemyBase
 #   CharacterBody2D  (this script)
 #   ├── AnimatedSprite2D  (animations: "running", "slash")
 #   ├── CollisionShape2D
-#   └── SlashHitbox  (Area2D)
-#       └── CollisionShape2D
+#   ├── SlashHitbox   (Area2D — weapon hitbox, enabled on attack frames)
+#   │   └── CollisionShape2D
+#   └── DetectionZone (Area2D — triggers attack when player walks into it)
+#       └── CollisionShape2D  (set width to represent attack range)
 
 # ── Inspector-configurable stats ──────────────────────────────────────────────
 
 @export_group("Movement")
 ## Horizontal walk speed in pixels per second.
 @export var walk_speed: float = 80.0
-## How far above and below the start Y the knight bounces (0 = no bounce).
-@export var y_oscillation_range: float = 60.0
-## How many full bounces per second.
-@export var y_oscillation_speed: float = 0.5
 
 @export_group("Combat")
 ## Damage dealt per slash hit.
 @export var slash_damage: float = 20.0
-## Which frames of the slash animation activate the hitbox.
+## Which frames of the slash animation activate the weapon hitbox.
 @export var slash_hitbox_frames: Array[int] = [2, 6]
-## Pause the slash animation on this frame, waiting for the next phase.
-@export var slash_pause_frame: int = 4
+## How hard the black knight's slash knocks the player back.
+@export var knockback_force: float = 300.0
 
 @export_group("Health")
 ## Starting hit points.
 @export var starting_hp: float = 150.0
 
+@export_group("Debug")
+## Enable to show all collision shapes in-game (works in editor/debug builds only).
+@export var debug_show_collisions: bool = false
+
 # ── Internal state ─────────────────────────────────────────────────────────────
 
-enum SlashState { NONE, WINDUP, PAUSED, FINISH }
+enum SlashState { NONE, ATTACKING }
 
 var slash_state: SlashState = SlashState.NONE
-var _start_y: float = 0.0
-var _time: float = 0.0
-## Direction of travel: 1 = right, -1 = left.
-var _dir: float = -1.0
+
+## 1.0 = facing right, -1.0 = facing left.
+var facing: float = 1.0
 
 @onready var slash_hitbox: Area2D = $SlashHitbox
+@onready var detection_zone: Area2D = $DetectionZone
 
 
 func _ready() -> void:
 	max_health = starting_hp
 	attack_damage = slash_damage
 	super()
-	_start_y = position.y
+	if debug_show_collisions:
+		get_tree().debug_collisions_hint = true
 	animated_sprite.animation_finished.connect(_on_animation_finished)
 	animated_sprite.frame_changed.connect(_on_frame_changed)
+	# Ensure detection zone is always active regardless of inspector state.
+	detection_zone.monitoring = true
+	scale.x = 1.0  # never flip the CharacterBody2D root
 	_set_hitbox(slash_hitbox, false)
+	if slash_hitbox != null:
+		slash_hitbox.body_entered.connect(_on_hit_body)
 	animated_sprite.play("running")
 
 
 # ── AI ─────────────────────────────────────────────────────────────────────────
 
-func _handle_ai(delta: float) -> void:
-	if slash_state == SlashState.FINISH or slash_state == SlashState.PAUSED:
+func _handle_ai(_delta: float) -> void:
+	# Poll the detection zone directly every frame — more reliable than signals.
+	var bodies := detection_zone.get_overlapping_bodies()
+	var in_range := bodies.size() > 0
+
+	if in_range:
+		target = bodies[0]
+
+	# Player left while attacking — stop and resume walking.
+	if not in_range and slash_state == SlashState.ATTACKING:
+		_stop_attack()
+		return
+
+	# Locked during attack animation.
+	if slash_state == SlashState.ATTACKING:
 		velocity = Vector2.ZERO
 		return
 
-	_time += delta
-
-	# Horizontal walk — bounce off x bounds (reuse EnemyBase attack_range as patrol bounds).
-	velocity.x = walk_speed * _dir
-
-	# Y oscillation using a sine wave.
-	if y_oscillation_range > 0.0:
-		var target_y: float = _start_y + sin(_time * y_oscillation_speed * TAU) * y_oscillation_range
-		# Drive Y by setting velocity so move_and_slide handles it.
-		velocity.y = (target_y - position.y) / delta
-
-	# Face direction of travel.
-	animated_sprite.flip_h = _dir < 0.0
-
-	# Reverse direction at level bounds (use parent attack_range export as half-width patrol).
-	if position.x <= -attack_range and _dir < 0.0:
-		_dir = 1.0
-	elif position.x >= attack_range and _dir > 0.0:
-		_dir = -1.0
-
-	# Periodically trigger a slash (every ~3 seconds).
-	if fmod(_time, 3.0) < delta and slash_state == SlashState.NONE:
+	# Player is in detection zone — stop and attack.
+	if in_range:
+		velocity = Vector2.ZERO
 		_begin_slash()
+		return
+
+	# Walk toward world x = 0.
+	target = null
+	var dist: float = global_position.x
+	if absf(dist) < 4.0:
+		velocity.x = 0.0
+	else:
+		var dir: float = -signf(dist)
+		velocity.x = walk_speed * dir
+		# Face toward x = 0 (the direction we're walking).
+		_set_facing(1.0 if dir > 0.0 else -1.0)
+
+	# Y is handled by _constrain_to_path() in EnemyBase._physics_process.
+	velocity.y = 0.0
+
+
+func _physics_process(delta: float) -> void:
+	super(delta)
 
 
 func _begin_slash() -> void:
-	slash_state = SlashState.WINDUP
+	slash_state = SlashState.ATTACKING
+	animated_sprite.stop()  # interrupt walk animation immediately
 	animated_sprite.play("slash")
-	animated_sprite.frame = 0
+	# Face toward the detected player.
+	if target != null:
+		if target.global_position.x > global_position.x:
+			_set_facing(1.0)
+		else:
+			_set_facing(-1.0)
+
+
+func _stop_attack() -> void:
+	slash_state = SlashState.NONE
+	_set_hitbox(slash_hitbox, false)
+	animated_sprite.stop()
+	animated_sprite.play("running")
 
 
 # ── Frame / animation signals ──────────────────────────────────────────────────
 
 func _on_frame_changed() -> void:
-	var f: int = animated_sprite.frame
-	match slash_state:
-		SlashState.WINDUP:
-			_set_hitbox(slash_hitbox, f in slash_hitbox_frames)
-			if f >= slash_pause_frame:
-				animated_sprite.pause()
-				slash_state = SlashState.PAUSED
-
-		SlashState.PAUSED:
-			_set_hitbox(slash_hitbox, f in slash_hitbox_frames)
-
-		SlashState.FINISH:
-			_set_hitbox(slash_hitbox, f in slash_hitbox_frames)
+	if slash_state == SlashState.ATTACKING:
+		_set_hitbox(slash_hitbox, animated_sprite.frame in slash_hitbox_frames)
 
 
 func _on_animation_finished() -> void:
-	if slash_state == SlashState.FINISH:
-		slash_state = SlashState.NONE
-		_set_hitbox(slash_hitbox, false)
-		animated_sprite.play("running")
+	if slash_state == SlashState.ATTACKING:
+		# Poll again at animation end to decide whether to loop or stop.
+		if detection_zone.get_overlapping_bodies().size() > 0:
+			_begin_slash()
+		else:
+			_stop_attack()
 
 
 # ── Hitbox helper ──────────────────────────────────────────────────────────────
@@ -125,4 +150,28 @@ func _set_hitbox(box: Area2D, enabled: bool) -> void:
 		return
 	box.monitoring = enabled
 	box.monitorable = enabled
-	box.scale.x = -1.0 if animated_sprite.flip_h else 1.0
+
+
+## Called when the slash hitbox touches the player body.
+func _on_hit_body(body: Node2D) -> void:
+	if body.has_method("apply_knockback"):
+		body.apply_knockback(global_position, knockback_force)
+
+
+## Apply the facing variable to the sprite and all hitbox/detection positions.
+func _apply_facing() -> void:
+	if animated_sprite == null:
+		return
+	animated_sprite.flip_h = facing < 0.0
+	if slash_hitbox != null:
+		slash_hitbox.position.x = -slash_hitbox.position.x
+	if detection_zone != null:
+		detection_zone.position.x = -detection_zone.position.x
+
+
+## Only flip when direction actually changes to avoid double-negation.
+func _set_facing(new_facing: float) -> void:
+	if new_facing == facing:
+		return
+	facing = new_facing
+	_apply_facing()

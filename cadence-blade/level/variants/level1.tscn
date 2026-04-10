@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://ceawxap1jbjew"]
 
 [ext_resource type="Texture2D" uid="uid://c0y45wgfs1phi" path="res://level/Map.png" id="1_0eib5"]
-[ext_resource type="PackedScene" uid="uid://6jstl80togbw" path="res://characters/red_knight/RedKnight.tscn" id="2_x3hxn"]
+[ext_resource type="PackedScene" uid="uid://dbk1qvdllygxo" path="res://characters/red_knight/RedKnight.tscn" id="3_kocss"]
 [ext_resource type="PackedScene" uid="uid://1brrmdyvuppp" path="res://characters/enemies/elites/blackKnight.tscn" id="3_x3hxn"]
 
 [sub_resource type="Curve2D" id="Curve2D_0eib5"]
@@ -16,11 +16,11 @@ point_count = 9
 position = Vector2(0, 50)
 texture = ExtResource("1_0eib5")
 
-[node name="Node2D" parent="." unique_id=967251549 instance=ExtResource("2_x3hxn")]
-position = Vector2(10, -18)
-
 [node name="Path2D" type="Path2D" parent="." unique_id=2068834957 groups=["walk_path"]]
 curve = SubResource("Curve2D_0eib5")
 
-[node name="BlackKnight" parent="." unique_id=1417772890 instance=ExtResource("3_x3hxn")]
-position = Vector2(-978, 146)
+[node name="Node2D2" parent="." unique_id=1417772890 instance=ExtResource("3_x3hxn")]
+position = Vector2(-821, 152)
+
+[node name="RedKnight2" parent="." unique_id=306271988 instance=ExtResource("3_kocss")]
+position = Vector2(-671, 178)

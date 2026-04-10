@@ -47,6 +47,9 @@ enum AttackState {
 
 var attack_state: AttackState = AttackState.NONE
 
+## 1.0 = facing right, -1.0 = facing left.
+var facing: float = 1.0
+
 # ── Movement bounds (pixels — set to match your level art) ────────────────────
 
 @export var x_min: float = -1000.0
@@ -56,12 +59,16 @@ var attack_state: AttackState = AttackState.NONE
 
 # ── Hitbox nodes ──────────────────────────────────────────────────────────────
 
+## How hard the player's attacks knock enemies back.
+@export var knockback_force: float = 400.0
+
 @onready var slash_hitbox: Area2D = $SlashHitbox
 @onready var thrust_hitbox: Area2D = $ThrustHitbox
 
 
 func _ready() -> void:
 	super()
+	scale.x = 1.0  # never flip the CharacterBody2D root
 	if animated_sprite == null:
 		return
 	animated_sprite.animation_finished.connect(_on_animation_finished)
@@ -69,6 +76,10 @@ func _ready() -> void:
 	animated_sprite.play("idle")
 	_set_hitbox(slash_hitbox, false)
 	_set_hitbox(thrust_hitbox, false)
+	if slash_hitbox != null:
+		slash_hitbox.body_entered.connect(_on_hit_body)
+	if thrust_hitbox != null:
+		thrust_hitbox.body_entered.connect(_on_hit_body)
 
 
 # ── Movement ───────────────────────────────────────────────────────────────────
@@ -93,9 +104,13 @@ func _handle_movement() -> void:
 	velocity.x = dir_x * move_speed * speed_mult
 	velocity.y = dir_y * move_speed * speed_mult
 
-	# Facing direction — follow horizontal travel unless in attack pause
-	if not in_pause and dir_x != 0.0:
-		animated_sprite.flip_h = dir_x < 0.0
+	# Facing: driven purely by input direction.
+	# Shift held = lock facing. Otherwise, pressing left/right sets direction.
+	if not Input.is_action_pressed("face_lock"):
+		if dir_x > 0.0:
+			_set_facing(1.0)
+		elif dir_x < 0.0:
+			_set_facing(-1.0)
 
 	_update_animation(dir_x, dir_y)
 	_handle_attack_input()
@@ -195,11 +210,34 @@ func _on_animation_finished() -> void:
 			animated_sprite.play("idle")
 
 
+## Called when any active hitbox touches an enemy body.
+func _on_hit_body(body: Node2D) -> void:
+	if body.has_method("apply_knockback"):
+		body.apply_knockback(global_position, knockback_force)
+
+
 ## Enable or disable an Area2D hitbox.
 func _set_hitbox(box: Area2D, enabled: bool) -> void:
 	if box == null:
 		return
 	box.monitoring = enabled
 	box.monitorable = enabled
-	# Mirror the hitbox horizontally to always face the direction the sprite faces.
-	box.scale.x = -1.0 if animated_sprite.flip_h else 1.0
+
+
+## Apply the facing variable to the sprite and all hitbox positions.
+func _apply_facing() -> void:
+	if animated_sprite == null:
+		return
+	animated_sprite.flip_h = facing < 0.0
+	if slash_hitbox != null:
+		slash_hitbox.position.x = -slash_hitbox.position.x
+	if thrust_hitbox != null:
+		thrust_hitbox.position.x = -thrust_hitbox.position.x
+
+
+## Only flip when direction actually changes to avoid double-negation.
+func _set_facing(new_facing: float) -> void:
+	if new_facing == facing:
+		return
+	facing = new_facing
+	_apply_facing()
