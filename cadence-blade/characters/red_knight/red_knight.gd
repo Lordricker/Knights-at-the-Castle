@@ -29,9 +29,12 @@ const THRUST_PAUSE_FRAME: int = 3
 const ATTACK_MOVE_MULT: float = 0.3
 
 # Slash hitbox active on frames 3 and 5.
-const SLASH_HITBOX_FRAMES: Array[int] = [3, 5]
+const SLASH_HITBOX_FRAMES: Array[int] = [4, 8]
 # Thrust hitbox active on frames 5 and 6.
 const THRUST_HITBOX_FRAMES: Array[int] = [5, 6]
+# Lunge is active during frames 5–7 of the thrust finish animation.
+const THRUST_LUNGE_START_FRAME: int = 5
+const THRUST_LUNGE_END_FRAME: int = 7
 
 # ── Attack state machine ───────────────────────────────────────────────────────
 
@@ -46,6 +49,7 @@ enum AttackState {
 }
 
 var attack_state: AttackState = AttackState.NONE
+var lunge_active: bool = false
 
 ## 1.0 = facing right, -1.0 = facing left.
 var facing: float = 1.0
@@ -61,6 +65,8 @@ var facing: float = 1.0
 
 ## How hard the player's attacks knock enemies back.
 @export var knockback_force: float = 400.0
+## Pixels per second the Red Knight lunges forward during thrust frames 5–7.
+@export var thrust_lunge_speed: float = 80.0
 
 @onready var slash_hitbox: Area2D = $SlashHitbox
 @onready var thrust_hitbox: Area2D = $ThrustHitbox
@@ -118,9 +124,12 @@ func _handle_movement() -> void:
 
 func _physics_process(delta: float) -> void:
 	super(delta)
-	# Clamp to walkable area after move_and_slide.
-	position.x = clampf(position.x, x_min, x_max)
-	position.y = clampf(position.y, y_min, y_max)
+	# Clamp to walkable area after move_and_slide (world space).
+	global_position.x = clampf(global_position.x, x_min, x_max)
+	global_position.y = clampf(global_position.y, y_min, y_max)
+	# Smooth lunge: applied every physics frame while lunge is active.
+	if lunge_active:
+		global_position.x += facing * thrust_lunge_speed * delta
 
 
 func _update_animation(dir_x: float, dir_y: float) -> void:
@@ -199,12 +208,17 @@ func _on_frame_changed() -> void:
 
 		AttackState.THRUST_FINISH:
 			_set_hitbox(thrust_hitbox, f in THRUST_HITBOX_FRAMES)
+			if f == THRUST_LUNGE_START_FRAME:
+				lunge_active = true
+			elif f > THRUST_LUNGE_END_FRAME:
+				lunge_active = false
 
 
 func _on_animation_finished() -> void:
 	match attack_state:
 		AttackState.SLASH_FINISH, AttackState.THRUST_FINISH:
 			attack_state = AttackState.NONE
+			lunge_active = false
 			_set_hitbox(slash_hitbox, false)
 			_set_hitbox(thrust_hitbox, false)
 			animated_sprite.play("idle")

@@ -115,7 +115,7 @@ animations = [{
 }]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_xsjc2"]
-size = Vector2(20, 18)
+size = Vector2(20, 30)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ptajg"]
 size = Vector2(24, 22)
@@ -129,6 +129,7 @@ size = Vector2(43, 22)
 position = Vector2(0, -11)
 collision_layer = 2
 script = ExtResource("1_xsjc2")
+knockback_force = 150.0
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="CharacterBody2D" unique_id=1220205241]
 sprite_frames = SubResource("SpriteFrames_ma6qb")
@@ -137,7 +138,7 @@ frame = 7
 frame_progress = 1.0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D" unique_id=1533444482]
-position = Vector2(0, 10)
+position = Vector2(0, 4)
 shape = SubResource("RectangleShape2D_xsjc2")
 
 [node name="SlashHitbox" type="Area2D" parent="CharacterBody2D" unique_id=1169559059]

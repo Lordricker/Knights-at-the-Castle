@@ -73,11 +73,6 @@ func _handle_ai(_delta: float) -> void:
 	if in_range:
 		target = bodies[0]
 
-	# Player left while attacking — stop and resume walking.
-	if not in_range and slash_state == SlashState.ATTACKING:
-		_stop_attack()
-		return
-
 	# Locked during attack animation.
 	if slash_state == SlashState.ATTACKING:
 		velocity = Vector2.ZERO
