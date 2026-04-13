@@ -20,6 +20,11 @@ config/icon="res://icon.svg"
 GameManager="*res://core/game_manager.gd"
 AudioManager="*res://core/audio_manager.gd"
 
+[display]
+
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+
 [input]
 
 move_left={

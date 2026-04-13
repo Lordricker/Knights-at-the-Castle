@@ -1,8 +1,10 @@
 [gd_scene format=3 uid="uid://ceawxap1jbjew"]
 
-[ext_resource type="Texture2D" uid="uid://c0y45wgfs1phi" path="res://level/Map.png" id="1_0eib5"]
+[ext_resource type="Texture2D" uid="uid://c0y45wgfs1phi" path="res://level/backgroundSprites/Map.png" id="1_0eib5"]
 [ext_resource type="PackedScene" uid="uid://dbk1qvdllygxo" path="res://characters/red_knight/RedKnight.tscn" id="3_kocss"]
 [ext_resource type="PackedScene" uid="uid://1brrmdyvuppp" path="res://characters/enemies/elites/blackKnight.tscn" id="3_x3hxn"]
+[ext_resource type="Texture2D" uid="uid://c665lghwlbqwj" path="res://level/backgroundSprites/Tower.png" id="4_4v7nf"]
+[ext_resource type="PackedScene" uid="uid://vqn6c6fo34d1" path="res://characters/castle.tscn" id="5_4v7nf"]
 
 [sub_resource type="Curve2D" id="Curve2D_0eib5"]
 _data = {
@@ -12,9 +14,21 @@ point_count = 9
 
 [node name="Level1" type="Node2D" unique_id=1633003567]
 
-[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1181522976]
+[node name="DirtRoad" type="Sprite2D" parent="." unique_id=1181522976]
 position = Vector2(0, 50)
 texture = ExtResource("1_0eib5")
+
+[node name="Tower" type="Sprite2D" parent="." unique_id=1940326821]
+position = Vector2(-156, -131)
+texture = ExtResource("4_4v7nf")
+
+[node name="Tower2" type="Sprite2D" parent="." unique_id=1200231326]
+position = Vector2(159, -132)
+texture = ExtResource("4_4v7nf")
+
+[node name="Polygon2D" type="Polygon2D" parent="." unique_id=749098682 groups=["walk_area"]]
+color = Color(1, 1, 1, 0)
+polygon = PackedVector2Array(-2, 3, 109, -1, 139, -39, 167, -37, 259, 0, 463, 59, 498, 74, 559, 74, 681, 77, 999, 82, 999, 224, 766, 220, 537, 206, 355, 160, 218, 117, 64, 73, 0, 69, -57, 71, -165, 104, -273, 134, -415, 186, -519, 194, -602, 206, -663, 220, -820, 224, -1000, 224, -1000, 108, -800, 107, -750, 110, -688, 97, -604, 82, -547, 63, -492, 56, -433, 45, -388, 38, -361, 24, -235, -16, -160, -37, -138, -32, -126, -7, -100, 2, -59, 2)
 
 [node name="Path2D" type="Path2D" parent="." unique_id=2068834957 groups=["walk_path"]]
 curve = SubResource("Curve2D_0eib5")
@@ -24,3 +38,6 @@ position = Vector2(-821, 152)
 
 [node name="RedKnight2" parent="." unique_id=306271988 instance=ExtResource("3_kocss")]
 position = Vector2(-671, 178)
+
+[node name="Node2DCastle" parent="." unique_id=1618038282 instance=ExtResource("5_4v7nf")]
+position = Vector2(1, -96)

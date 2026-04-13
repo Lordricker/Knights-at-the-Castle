@@ -103,6 +103,10 @@ func _physics_process(delta: float) -> void:
 	super(delta)
 
 
+func _is_attacking() -> bool:
+	return slash_state == SlashState.ATTACKING
+
+
 func _begin_slash() -> void:
 	slash_state = SlashState.ATTACKING
 	animated_sprite.stop()  # interrupt walk animation immediately

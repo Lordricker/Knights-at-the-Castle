@@ -121,7 +121,7 @@ size = Vector2(20, 30)
 size = Vector2(24, 22)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_0412h"]
-size = Vector2(43, 22)
+size = Vector2(53, 31)
 
 [node name="Node2D" type="Node2D" unique_id=1417772890]
 
@@ -129,7 +129,8 @@ size = Vector2(43, 22)
 position = Vector2(0, -11)
 collision_layer = 2
 script = ExtResource("1_xsjc2")
-knockback_force = 150.0
+oscillate = true
+oscillate_speed = 0.2
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="CharacterBody2D" unique_id=1220205241]
 sprite_frames = SubResource("SpriteFrames_ma6qb")
@@ -156,6 +157,6 @@ position = Vector2(7, 0)
 monitorable = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D/DetectionZone" unique_id=1099174522]
-position = Vector2(0, 1)
+position = Vector2(-0.5, 1.5)
 shape = SubResource("RectangleShape2D_0412h")
 debug_color = Color(0.6837786, 0.5034512, 0, 0.41960785)

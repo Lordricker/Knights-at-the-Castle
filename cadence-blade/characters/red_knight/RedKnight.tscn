@@ -300,7 +300,7 @@ animations = [{
 }]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_vh32c"]
-size = Vector2(20, 32.5)
+size = Vector2(20, 28)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_6xwxy"]
 size = Vector2(45.75808, 60)
@@ -310,10 +310,11 @@ size = Vector2(60, 18)
 
 [node name="RedKnight" type="Node2D" unique_id=306271988]
 
-[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=1552212822]
+[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=1552212822 node_paths=PackedStringArray("body_box")]
 script = ExtResource("1_6xwxy")
 knockback_force = 200.0
-thrust_lunge_speed = 200.0
+thrust_lunge_speed = 300.0
+body_box = NodePath("bodyBox")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="CharacterBody2D" unique_id=1262161212]
 sprite_frames = SubResource("SpriteFrames_rvc6b")
@@ -321,8 +322,8 @@ animation = &"thrust"
 frame = 13
 frame_progress = 1.0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D" unique_id=1370339960]
-position = Vector2(0, 11.25)
+[node name="bodyBox" type="CollisionShape2D" parent="CharacterBody2D" unique_id=1370339960]
+position = Vector2(0, 14)
 shape = SubResource("RectangleShape2D_vh32c")
 
 [node name="Camera2D" type="Camera2D" parent="CharacterBody2D" unique_id=924440947]

@@ -1,0 +1,28 @@
+[gd_scene format=3 uid="uid://vqn6c6fo34d1"]
+
+[ext_resource type="Texture2D" uid="uid://cvy0sb28lvp2t" path="res://level/backgroundSprites/Castle.png" id="1_qracd"]
+[ext_resource type="Script" uid="uid://c26whhsyt1cn2" path="res://characters/character_base.gd" id="2_e2x2k"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_r4c5i"]
+size = Vector2(37, 357)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_qracd"]
+
+[node name="Node2DCastle" type="Node2D" unique_id=1618038282]
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=789417120]
+texture = ExtResource("1_qracd")
+
+[node name="CharacterBase" type="CharacterBody2D" parent="." unique_id=1961746737]
+slide_on_ceiling = false
+floor_stop_on_slope = false
+floor_block_on_wall = false
+script = ExtResource("2_e2x2k")
+metadata/_custom_type_script = "uid://c26whhsyt1cn2"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBase" unique_id=851144320]
+position = Vector2(0, 49.5)
+shape = SubResource("RectangleShape2D_r4c5i")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="CharacterBase" unique_id=594700901]
+sprite_frames = SubResource("SpriteFrames_qracd")
