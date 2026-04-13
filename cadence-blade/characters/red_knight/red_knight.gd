@@ -19,8 +19,10 @@ extends CharacterBase
 #   ├── CollisionShape2D
 #   ├── SlashHitbox   (Area2D — wide rectangle, positioned at sword reach)
 #   │   └── CollisionShape2D
-#   └── ThrustHitbox  (Area2D — tall narrow rectangle, positioned forward)
-#       └── CollisionShape2D
+#   ├── ThrustHitbox  (Area2D — tall narrow rectangle, positioned forward)
+#   │   └── CollisionShape2D
+#   ├── HealthBar     (Node2D — attach ui/hud/vertical_health_bar.gd)
+#   └── FlowBar       (Node2D — attach ui/hud/flow_timing_bar.gd)
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -50,9 +52,17 @@ enum AttackState {
 
 var attack_state: AttackState = AttackState.NONE
 var lunge_active: bool = false
+var _slash_effect_pending_hide: bool = false
 
-## 1.0 = facing right, -1.0 = facing left.
-var facing: float = 1.0
+
+# ── Damage ────────────────────────────────────────────────────────────────────
+
+@export_group("Combat Damage")
+## Base damage dealt by a slash attack.
+@export var slash_damage: float = 35.0
+## Base damage dealt by a thrust attack.
+@export var thrust_damage: float = 45.0
+
 
 # ── Movement bounds (pixels — set to match your level art) ────────────────────
 
@@ -68,13 +78,24 @@ var facing: float = 1.0
 ## Pixels per second the Red Knight lunges forward during thrust frames 5–7.
 @export var thrust_lunge_speed: float = 80.0
 
-@onready var slash_hitbox: Area2D = $SlashHitbox
-@onready var thrust_hitbox: Area2D = $ThrustHitbox
+## Drag the FlowBar Node2D (with flow_timing_bar.gd) here in the Inspector.
+## (Inherited from CharacterBase — assign in the Inspector.)
+
+@onready var slash_hitbox: Area2D = find_child("SlashHitbox") as Area2D
+@onready var thrust_hitbox: Area2D = find_child("ThrustHitbox") as Area2D
+@onready var slash_effect_root: Node2D = _find_slash_effect_root()
+@onready var slash_effect_sprite: Sprite2D = _find_slash_effect_sprite()
+@onready var slash_effect_particles_down: CPUParticles2D = _find_slash_effect_particles("ParticalsDown")
+@onready var slash_effect_particles_up: CPUParticles2D = _find_slash_effect_particles("ParticalsUp")
+
+var _slash_hitbox_right_pos: Vector2 = Vector2.ZERO
+var _thrust_hitbox_right_pos: Vector2 = Vector2.ZERO
+
+var _current_attack_damage_multiplier: float = 1.0
 
 
 func _ready() -> void:
 	super()
-	scale.x = 1.0  # never flip the CharacterBody2D root
 	if animated_sprite == null:
 		return
 	animated_sprite.animation_finished.connect(_on_animation_finished)
@@ -82,10 +103,11 @@ func _ready() -> void:
 	animated_sprite.play("idle")
 	_set_hitbox(slash_hitbox, false)
 	_set_hitbox(thrust_hitbox, false)
+	_initialize_slash_effect()
 	if slash_hitbox != null:
-		slash_hitbox.body_entered.connect(_on_hit_body)
+		slash_hitbox.body_entered.connect(_on_slash_hit_body)
 	if thrust_hitbox != null:
-		thrust_hitbox.body_entered.connect(_on_hit_body)
+		thrust_hitbox.body_entered.connect(_on_thrust_hit_body)
 
 
 # ── Movement ───────────────────────────────────────────────────────────────────
@@ -96,13 +118,7 @@ func _handle_movement() -> void:
 	var in_finish: bool = (attack_state == AttackState.SLASH_FINISH
 						or attack_state == AttackState.THRUST_FINISH)
 
-	# Locked out entirely during the finish animation.
-	if in_finish:
-		velocity = Vector2.ZERO
-		_handle_attack_input()
-		return
-
-	var speed_mult: float = ATTACK_MOVE_MULT if in_pause else 1.0
+	var speed_mult: float = ATTACK_MOVE_MULT if (in_pause or in_finish) else 1.0
 
 	var dir_x: float = Input.get_axis("move_left", "move_right")
 	var dir_y: float = Input.get_axis("move_up", "move_down")
@@ -156,16 +172,16 @@ func _handle_attack_input() -> void:
 				_begin_attack("thrust", AttackState.THRUST_WINDUP)
 
 		AttackState.SLASH_PAUSED:
-			if Input.is_action_just_pressed("slash"):
-				_finish_attack("slash", SLASH_PAUSE_FRAME, AttackState.SLASH_FINISH)
+			_handle_flow_attempt(&"slash")
 
 		AttackState.THRUST_PAUSED:
-			if Input.is_action_just_pressed("thrust"):
-				_finish_attack("thrust", THRUST_PAUSE_FRAME, AttackState.THRUST_FINISH)
+			_handle_flow_attempt(&"thrust")
 
 
 func _begin_attack(anim_name: String, next_state: AttackState) -> void:
 	attack_state = next_state
+	_current_attack_damage_multiplier = 1.0
+	_stop_flow()
 	animated_sprite.play(anim_name)
 	animated_sprite.frame = 0
 
@@ -187,21 +203,30 @@ func _on_frame_changed() -> void:
 	match attack_state:
 		AttackState.SLASH_WINDUP:
 			_set_hitbox(slash_hitbox, f in SLASH_HITBOX_FRAMES)
+			_flush_slash_effect_sprite()
 			if f >= SLASH_PAUSE_FRAME:
 				animated_sprite.pause()
 				attack_state = AttackState.SLASH_PAUSED
+				_start_flow(&"slash", func(mult: float):
+					_current_attack_damage_multiplier = mult
+					_finish_attack("slash", SLASH_PAUSE_FRAME, AttackState.SLASH_FINISH))
 
 		AttackState.SLASH_PAUSED:
 			_set_hitbox(slash_hitbox, f in SLASH_HITBOX_FRAMES)
+			_flush_slash_effect_sprite()
 
 		AttackState.SLASH_FINISH:
 			_set_hitbox(slash_hitbox, f in SLASH_HITBOX_FRAMES)
+			_flush_slash_effect_sprite()
 
 		AttackState.THRUST_WINDUP:
 			_set_hitbox(thrust_hitbox, f in THRUST_HITBOX_FRAMES)
 			if f >= THRUST_PAUSE_FRAME:
 				animated_sprite.pause()
 				attack_state = AttackState.THRUST_PAUSED
+				_start_flow(&"thrust", func(mult: float):
+					_current_attack_damage_multiplier = mult
+					_finish_attack("thrust", THRUST_PAUSE_FRAME, AttackState.THRUST_FINISH))
 
 		AttackState.THRUST_PAUSED:
 			_set_hitbox(thrust_hitbox, f in THRUST_HITBOX_FRAMES)
@@ -219,13 +244,32 @@ func _on_animation_finished() -> void:
 		AttackState.SLASH_FINISH, AttackState.THRUST_FINISH:
 			attack_state = AttackState.NONE
 			lunge_active = false
+			_current_attack_damage_multiplier = 1.0
+			_stop_flow()
 			_set_hitbox(slash_hitbox, false)
 			_set_hitbox(thrust_hitbox, false)
+			_slash_effect_pending_hide = false
+			_set_slash_effect_sprite(false)
 			animated_sprite.play("idle")
 
 
 ## Called when any active hitbox touches an enemy body.
-func _on_hit_body(body: Node2D) -> void:
+func _on_slash_hit_body(body: Node2D) -> void:
+	_apply_hit_body(body)
+	_sync_slash_effect_facing()
+	_set_slash_effect_sprite(true)
+	_slash_effect_pending_hide = true
+	_restart_slash_particles(slash_effect_particles_down)
+	_restart_slash_particles(slash_effect_particles_up)
+
+
+func _on_thrust_hit_body(body: Node2D) -> void:
+	_apply_hit_body(body)
+
+
+func _apply_hit_body(body: Node2D) -> void:
+	if body.has_method("take_damage"):
+		body.take_damage(_get_current_attack_damage())
 	if body.has_method("apply_knockback"):
 		body.apply_knockback(global_position, knockback_force)
 
@@ -238,20 +282,108 @@ func _set_hitbox(box: Area2D, enabled: bool) -> void:
 	box.monitorable = enabled
 
 
+func _initialize_slash_effect() -> void:
+	_sync_slash_effect_facing()
+	if slash_effect_sprite != null:
+		slash_effect_sprite.z_as_relative = false
+		slash_effect_sprite.z_index = 100
+		slash_effect_sprite.hide()
+	if slash_effect_particles_down != null:
+		slash_effect_particles_down.emitting = false
+	if slash_effect_particles_up != null:
+		slash_effect_particles_up.emitting = false
+
+
+func _set_slash_effect_sprite(show_it: bool) -> void:
+	if slash_effect_sprite != null:
+		slash_effect_sprite.visible = show_it
+
+
+## Called each animation frame tick during a slash. Hides the sprite one
+## animation frame after contact was made, keeping it at animation speed.
+func _flush_slash_effect_sprite() -> void:
+	if _slash_effect_pending_hide:
+		_slash_effect_pending_hide = false
+		_set_slash_effect_sprite(false)
+
+
+func _restart_slash_particles(particles: CPUParticles2D) -> void:
+	if particles == null:
+		return
+	particles.emitting = false
+	particles.restart()
+	particles.emitting = true
+
+
+func _find_slash_effect_root() -> Node2D:
+	var effect: Node = get_node_or_null("slashEffect")
+	if effect == null:
+		effect = get_node_or_null("../slashEffect")
+	if effect == null:
+		effect = find_child("slashEffect", true, false)
+	return effect as Node2D
+
+
+func _find_slash_effect_sprite() -> Sprite2D:
+	if slash_effect_root == null:
+		return null
+	return slash_effect_root.get_node_or_null("SlashEffect") as Sprite2D
+
+
+func _find_slash_effect_particles(node_name: String) -> CPUParticles2D:
+	if slash_effect_root == null:
+		return null
+	return slash_effect_root.get_node_or_null(node_name) as CPUParticles2D
+
+
+func _capture_right_facing_transforms() -> void:
+	super()
+	if slash_hitbox != null:
+		_slash_hitbox_right_pos = slash_hitbox.position
+	if thrust_hitbox != null:
+		_thrust_hitbox_right_pos = thrust_hitbox.position
+
+
+# ── Flow timing ────────────────────────────────────────────────────────────────
+# _start_flow, _stop_flow, _update_flow, _handle_flow_attempt are all
+# inherited from CharacterBase. Each _start_flow call passes a Callable that
+# captures the attack-specific resume logic.
+
+
+## Returns the correct base damage for the current attack scaled by the timing multiplier.
+func _get_current_attack_damage() -> float:
+	var base: float
+	match attack_state:
+		AttackState.SLASH_WINDUP, AttackState.SLASH_PAUSED, AttackState.SLASH_FINISH:
+			base = slash_damage
+		AttackState.THRUST_WINDUP, AttackState.THRUST_PAUSED, AttackState.THRUST_FINISH:
+			base = thrust_damage
+		_:
+			base = slash_damage
+	return base * _current_attack_damage_multiplier
+
+
+func _sync_slash_effect_facing() -> void:
+	if slash_effect_root == null:
+		return
+	if facing_pivot != null and facing_pivot.is_ancestor_of(slash_effect_root):
+		return
+	var effect_scale: Vector2 = slash_effect_root.scale
+	effect_scale.x = absf(effect_scale.x) * facing
+	slash_effect_root.scale = effect_scale
+
+
 ## Apply the facing variable to the sprite and all hitbox positions.
 func _apply_facing() -> void:
 	if animated_sprite == null:
 		return
-	animated_sprite.flip_h = facing < 0.0
-	if slash_hitbox != null:
-		slash_hitbox.position.x = -slash_hitbox.position.x
-	if thrust_hitbox != null:
-		thrust_hitbox.position.x = -thrust_hitbox.position.x
-
-
-## Only flip when direction actually changes to avoid double-negation.
-func _set_facing(new_facing: float) -> void:
-	if new_facing == facing:
+	super()  # handles pivot scale or sprite flip_h + health_bar mirroring
+	if facing_pivot != null:
+		_sync_slash_effect_facing()
 		return
-	facing = new_facing
-	_apply_facing()
+	# No pivot: additionally mirror knight-specific nodes.
+	if slash_hitbox != null:
+		slash_hitbox.position = Vector2(_slash_hitbox_right_pos.x * facing, _slash_hitbox_right_pos.y)
+	if thrust_hitbox != null:
+		thrust_hitbox.position = Vector2(_thrust_hitbox_right_pos.x * facing, _thrust_hitbox_right_pos.y)
+	_sync_slash_effect_facing()

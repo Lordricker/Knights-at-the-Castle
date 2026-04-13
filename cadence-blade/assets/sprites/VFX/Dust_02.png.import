@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b1nyqs5s41pot"
-path="res://.godot/imported/blackWarrior.png-91420424e70c02634d6234742946e5cc.ctex"
+uid="uid://byuqv8ihenwph"
+path="res://.godot/imported/Dust_02.png-adda8f0c3d900b4a347b5da0e8fe3991.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/enemies/warrior/blackWarrior.png"
-dest_files=["res://.godot/imported/blackWarrior.png-91420424e70c02634d6234742946e5cc.ctex"]
+source_file="res://assets/sprites/VFX/Dust_02.png"
+dest_files=["res://.godot/imported/Dust_02.png-adda8f0c3d900b4a347b5da0e8fe3991.ctex"]
 
 [params]
 

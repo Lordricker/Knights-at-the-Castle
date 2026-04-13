@@ -9,8 +9,21 @@ extends CharacterBody2D
 @export var attack_damage: float = 10.0
 @export var attack_range: float = 60.0
 
-@onready var animated_sprite: AnimatedSprite2D = $AnimatedSprite2D
+@onready var animated_sprite: AnimatedSprite2D = find_child("AnimatedSprite2D") as AnimatedSprite2D
 
+# ── Facing / bars ─────────────────────────────────────────────────────────────
+## 1.0 = facing right, -1.0 = facing left.
+var facing: float = 1.0
+
+## Optional: assign a child Node2D whose X scale is flipped to mirror all children.
+@export var facing_pivot: Node2D
+## Drag the HealthBar Node2D (vertical_health_bar.gd) here in the Inspector.
+@export var health_bar: Node2D
+
+var _health_bar_api: Node = null
+var _health_bar_right_pos: Vector2 = Vector2.ZERO
+
+# ── Movement / physics ─────────────────────────────────────────────────────────
 var health: float = max_health
 var is_dead: bool = false
 var target: Node2D = null
@@ -37,7 +50,14 @@ signal health_changed(new_health: float, max_hp: float)
 func _ready() -> void:
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
 	set_collision_mask(0)
+	scale.x = 1.0  # never flip the CharacterBody2D root
 	health = max_health
+	_capture_right_facing_transforms()
+	_health_bar_api = _resolve_bar_api(health_bar, &"set_health")
+	health_changed.connect(_on_health_changed)
+	_on_health_changed(health, max_health)
+	_apply_facing()
+	add_to_group(&"entities")
 
 
 func _physics_process(delta: float) -> void:
@@ -90,7 +110,71 @@ func die() -> void:
 	if is_dead:
 		return
 	is_dead = true
+	set_collision_layer(0)
+	set_collision_mask(0)
+	set_physics_process(false)
+	if animated_sprite != null:
+		animated_sprite.hide()
+	if health_bar != null:
+		health_bar.hide()
 	died.emit(self)
+	# Signal the level so it can spawn the death poof at our position.
+	if get_tree().current_scene.has_method("on_entity_died"):
+		get_tree().current_scene.on_entity_died(global_position)
+	# Clean up after 5 seconds.
+	get_tree().create_timer(5.0).timeout.connect(queue_free, CONNECT_ONE_SHOT)
+
+
+func _on_health_changed(new_health: float, max_hp: float) -> void:
+	if _health_bar_api != null and _health_bar_api.has_method("set_health"):
+		_health_bar_api.set_health(new_health, max_hp)
+
+
+## Recursively search descendants of root for a node that has the required_method.
+func _resolve_bar_api(root: Node, required_method: StringName) -> Node:
+	if root == null:
+		return null
+	if root.has_method(required_method):
+		return root
+	for child in root.get_children():
+		var child_node := child as Node
+		if child_node == null:
+			continue
+		var found: Node = _resolve_bar_api(child_node, required_method)
+		if found != null:
+			return found
+	return null
+
+
+## Record right-facing local positions once in _ready() before any flip.
+## Override in subclasses to also capture subclass-specific nodes (call super() first).
+func _capture_right_facing_transforms() -> void:
+	if health_bar != null:
+		_health_bar_right_pos = health_bar.position
+
+
+## Apply the current facing direction to the sprite and positioned child nodes.
+## Override in subclasses to mirror additional nodes (call super() first).
+func _apply_facing() -> void:
+	if animated_sprite == null:
+		return
+	if facing_pivot != null:
+		animated_sprite.flip_h = false
+		var s := facing_pivot.scale
+		s.x = absf(s.x) * facing
+		facing_pivot.scale = s
+		return
+	animated_sprite.flip_h = facing < 0.0
+	if health_bar != null:
+		health_bar.position = Vector2(_health_bar_right_pos.x * facing, _health_bar_right_pos.y)
+
+
+## Only flip when direction actually changes to avoid double-negation.
+func _set_facing(new_facing: float) -> void:
+	if new_facing == facing:
+		return
+	facing = new_facing
+	_apply_facing()
 
 
 ## Constrains Y to the walk path, with optional oscillation.

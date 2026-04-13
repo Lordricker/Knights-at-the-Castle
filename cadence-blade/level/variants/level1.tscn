@@ -1,8 +1,10 @@
 [gd_scene format=3 uid="uid://ceawxap1jbjew"]
 
 [ext_resource type="Texture2D" uid="uid://c0y45wgfs1phi" path="res://level/backgroundSprites/Map.png" id="1_0eib5"]
+[ext_resource type="Script" uid="uid://b2dsw6etqmvgr" path="res://level/level.gd" id="1_slv3f"]
+[ext_resource type="PackedScene" uid="uid://tguwfea61v0y" path="res://FX/DeathPoof.tscn" id="2_pfm7v"]
 [ext_resource type="PackedScene" uid="uid://dbk1qvdllygxo" path="res://characters/red_knight/RedKnight.tscn" id="3_kocss"]
-[ext_resource type="PackedScene" uid="uid://1brrmdyvuppp" path="res://characters/enemies/elites/blackKnight.tscn" id="3_x3hxn"]
+[ext_resource type="PackedScene" uid="uid://1brrmdyvuppp" path="res://characters/enemies/melee/blackKnight.tscn" id="3_x3hxn"]
 [ext_resource type="Texture2D" uid="uid://c665lghwlbqwj" path="res://level/backgroundSprites/Tower.png" id="4_4v7nf"]
 [ext_resource type="PackedScene" uid="uid://vqn6c6fo34d1" path="res://characters/castle.tscn" id="5_4v7nf"]
 
@@ -13,6 +15,8 @@ _data = {
 point_count = 9
 
 [node name="Level1" type="Node2D" unique_id=1633003567]
+script = ExtResource("1_slv3f")
+death_poof_scene = ExtResource("2_pfm7v")
 
 [node name="DirtRoad" type="Sprite2D" parent="." unique_id=1181522976]
 position = Vector2(0, 50)

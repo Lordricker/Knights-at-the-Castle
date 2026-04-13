@@ -1,0 +1,107 @@
+[gd_scene format=3 uid="uid://tguwfea61v0y"]
+
+[ext_resource type="Texture2D" uid="uid://byuqv8ihenwph" path="res://assets/sprites/VFX/Dust_02.png" id="2_lbdw5"]
+[ext_resource type="Texture2D" uid="uid://bqfhipxenn0jk" path="res://assets/sprites/VFX/Shrapnel.png" id="2_w01mq"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_36ccl"]
+atlas = ExtResource("2_lbdw5")
+region = Rect2(64, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_2sgw7"]
+atlas = ExtResource("2_lbdw5")
+region = Rect2(128, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_gsypi"]
+atlas = ExtResource("2_lbdw5")
+region = Rect2(192, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_e7d40"]
+atlas = ExtResource("2_lbdw5")
+region = Rect2(256, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_yqmqv"]
+atlas = ExtResource("2_lbdw5")
+region = Rect2(320, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_qojc6"]
+atlas = ExtResource("2_lbdw5")
+region = Rect2(384, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_j4l2r"]
+atlas = ExtResource("2_lbdw5")
+region = Rect2(448, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_fdoyo"]
+atlas = ExtResource("2_lbdw5")
+region = Rect2(512, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_2wlj5"]
+atlas = ExtResource("2_lbdw5")
+region = Rect2(576, 0, 64, 64)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_ic141"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_36ccl")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_2sgw7")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_gsypi")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_e7d40")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_yqmqv")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_qojc6")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_j4l2r")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_fdoyo")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_2wlj5")
+}],
+"loop": false,
+"name": &"default",
+"speed": 6.0
+}]
+
+[node name="DeathPoof" type="Node2D" unique_id=677526727]
+
+[node name="AnimatedSprite2D2" type="AnimatedSprite2D" parent="." unique_id=961852421]
+sprite_frames = SubResource("SpriteFrames_ic141")
+frame = 8
+frame_progress = 1.0
+
+[node name="CPUParticles2D" type="CPUParticles2D" parent="." unique_id=476393678]
+emitting = false
+amount = 9
+texture = ExtResource("2_w01mq")
+lifetime = 0.51
+one_shot = true
+explosiveness = 1.0
+randomness = 0.22
+use_fixed_seed = true
+seed = 1111
+lifetime_randomness = 0.51
+emission_shape = 1
+emission_sphere_radius = 17.84
+direction = Vector2(0, -1)
+spread = 36.32
+gravity = Vector2(0, 500)
+initial_velocity_max = 328.33
+angular_velocity_min = -442.11
+angular_velocity_max = 694.74
+linear_accel_min = -100.0
+linear_accel_max = -100.0
+scale_amount_min = 1.5
+scale_amount_max = 1.5
+color = Color(0.8798933, 0.8360891, 0.8356813, 1)

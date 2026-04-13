@@ -39,11 +39,11 @@ enum SlashState { NONE, ATTACKING }
 
 var slash_state: SlashState = SlashState.NONE
 
-## 1.0 = facing right, -1.0 = facing left.
-var facing: float = 1.0
+var _slash_hitbox_right_pos: Vector2 = Vector2.ZERO
+var _detection_zone_right_pos: Vector2 = Vector2.ZERO
 
-@onready var slash_hitbox: Area2D = $SlashHitbox
-@onready var detection_zone: Area2D = $DetectionZone
+@onready var slash_hitbox: Area2D = find_child("SlashHitbox") as Area2D
+@onready var detection_zone: Area2D = find_child("DetectionZone") as Area2D
 
 
 func _ready() -> void:
@@ -56,7 +56,6 @@ func _ready() -> void:
 	animated_sprite.frame_changed.connect(_on_frame_changed)
 	# Ensure detection zone is always active regardless of inspector state.
 	detection_zone.monitoring = true
-	scale.x = 1.0  # never flip the CharacterBody2D root
 	_set_hitbox(slash_hitbox, false)
 	if slash_hitbox != null:
 		slash_hitbox.body_entered.connect(_on_hit_body)
@@ -153,24 +152,28 @@ func _set_hitbox(box: Area2D, enabled: bool) -> void:
 
 ## Called when the slash hitbox touches the player body.
 func _on_hit_body(body: Node2D) -> void:
+	if body.has_method("take_damage"):
+		body.take_damage(attack_damage)
 	if body.has_method("apply_knockback"):
 		body.apply_knockback(global_position, knockback_force)
 
 
-## Apply the facing variable to the sprite and all hitbox/detection positions.
+func _capture_right_facing_transforms() -> void:
+	super()
+	if slash_hitbox != null:
+		_slash_hitbox_right_pos = slash_hitbox.position
+	if detection_zone != null:
+		_detection_zone_right_pos = detection_zone.position
+
+
 func _apply_facing() -> void:
 	if animated_sprite == null:
 		return
-	animated_sprite.flip_h = facing < 0.0
-	if slash_hitbox != null:
-		slash_hitbox.position.x = -slash_hitbox.position.x
-	if detection_zone != null:
-		detection_zone.position.x = -detection_zone.position.x
-
-
-## Only flip when direction actually changes to avoid double-negation.
-func _set_facing(new_facing: float) -> void:
-	if new_facing == facing:
+	super()  # handles pivot scale or sprite flip_h + health_bar mirroring
+	if facing_pivot != null:
 		return
-	facing = new_facing
-	_apply_facing()
+	# No pivot: additionally mirror knight-specific nodes.
+	if slash_hitbox != null:
+		slash_hitbox.position = Vector2(_slash_hitbox_right_pos.x * facing, _slash_hitbox_right_pos.y)
+	if detection_zone != null:
+		detection_zone.position = Vector2(_detection_zone_right_pos.x * facing, _detection_zone_right_pos.y)

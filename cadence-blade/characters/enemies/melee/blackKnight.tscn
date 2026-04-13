@@ -1,7 +1,11 @@
 [gd_scene format=3 uid="uid://1brrmdyvuppp"]
 
-[ext_resource type="Script" uid="uid://b2civ401woqp5" path="res://characters/enemies/elites/black_knight.gd" id="1_xsjc2"]
-[ext_resource type="Texture2D" uid="uid://b1nyqs5s41pot" path="res://assets/sprites/enemies/warrior/blackWarrior.png" id="2_ksc84"]
+[ext_resource type="Script" uid="uid://b2civ401woqp5" path="res://characters/enemies/melee/black_knight.gd" id="1_xsjc2"]
+[ext_resource type="Texture2D" uid="uid://b1nyqs5s41pot" path="res://assets/sprites/enemies/blackWarrior.png" id="2_ksc84"]
+[ext_resource type="PackedScene" uid="uid://bkyw3pybjuqjs" path="res://ui/hud/HPBar.tscn" id="3_0kexb"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_xsjc2"]
+size = Vector2(20, 30)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_ma6xb"]
 atlas = ExtResource("2_ksc84")
@@ -114,49 +118,57 @@ animations = [{
 "speed": 6.0
 }]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_xsjc2"]
-size = Vector2(20, 30)
-
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ptajg"]
-size = Vector2(24, 22)
+size = Vector2(28, 22)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_0412h"]
 size = Vector2(53, 31)
 
 [node name="Node2D" type="Node2D" unique_id=1417772890]
 
-[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=160150496]
+[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=160150496 node_paths=PackedStringArray("facing_pivot", "health_bar")]
 position = Vector2(0, -11)
 collision_layer = 2
 script = ExtResource("1_xsjc2")
+slash_damage = 2.0
+starting_hp = 50.0
+facing_pivot = NodePath("Pivot")
+health_bar = NodePath("Pivot/HPBar")
 oscillate = true
 oscillate_speed = 0.2
-
-[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="CharacterBody2D" unique_id=1220205241]
-sprite_frames = SubResource("SpriteFrames_ma6qb")
-animation = &"slash"
-frame = 7
-frame_progress = 1.0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D" unique_id=1533444482]
 position = Vector2(0, 4)
 shape = SubResource("RectangleShape2D_xsjc2")
 
-[node name="SlashHitbox" type="Area2D" parent="CharacterBody2D" unique_id=1169559059]
+[node name="Pivot" type="Node2D" parent="CharacterBody2D" unique_id=212786294]
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="CharacterBody2D/Pivot" unique_id=1220205241]
+sprite_frames = SubResource("SpriteFrames_ma6qb")
+animation = &"slash"
+frame = 7
+frame_progress = 1.0
+
+[node name="SlashHitbox" type="Area2D" parent="CharacterBody2D/Pivot" unique_id=1169559059]
 position = Vector2(17, 0)
 monitoring = false
 monitorable = false
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D/SlashHitbox" unique_id=341442971]
-position = Vector2(0, 2)
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D/Pivot/SlashHitbox" unique_id=341442971]
+position = Vector2(2, 2)
 shape = SubResource("RectangleShape2D_ptajg")
 debug_color = Color(0.9536274, 7.70092e-07, 0.5495344, 0.41960785)
 
-[node name="DetectionZone" type="Area2D" parent="CharacterBody2D" unique_id=1603263640]
+[node name="DetectionZone" type="Area2D" parent="CharacterBody2D/Pivot" unique_id=1603263640]
 position = Vector2(7, 0)
 monitorable = false
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D/DetectionZone" unique_id=1099174522]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D/Pivot/DetectionZone" unique_id=1099174522]
 position = Vector2(-0.5, 1.5)
 shape = SubResource("RectangleShape2D_0412h")
 debug_color = Color(0.6837786, 0.5034512, 0, 0.41960785)
+
+[node name="HPBar" parent="CharacterBody2D/Pivot" unique_id=1780535160 instance=ExtResource("3_0kexb")]
+position = Vector2(-12, 24)
+rotation = 3.1415927
+scale = Vector2(0.99999964, -1)

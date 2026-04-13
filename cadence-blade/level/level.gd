@@ -12,6 +12,9 @@ const VARIANT_PATHS: Dictionary = {
 	"dusk":  "res://level/variants/dusk_environment.tres",
 }
 
+## Drag the DeathPoof scene (res://FX/DeathPoof.tscn) here in the Inspector.
+@export var death_poof_scene: PackedScene
+
 @onready var world_environment: WorldEnvironment = $WorldEnvironment
 
 signal variant_changed(variant_name: String)
@@ -19,6 +22,28 @@ signal variant_changed(variant_name: String)
 
 func _ready() -> void:
 	set_variant(GameManager.current_level_variant)
+
+
+## Called by any entity (CharacterBase or EnemyBase) when it dies.
+## Spawns a death poof at the given world position.
+func on_entity_died(world_position: Vector2) -> void:
+	if death_poof_scene == null:
+		return
+	var poof: Node2D = death_poof_scene.instantiate() as Node2D
+	if poof == null:
+		return
+	add_child(poof)
+	poof.global_position = world_position
+	# Play every child that supports play/restart/emitting.
+	for child in poof.find_children("*"):
+		if child.has_method("restart"):
+			child.restart()
+		if child.has_method("play"):
+			child.play()
+		if "emitting" in child:
+			child.emitting = true
+	# Remove the poof after 5 seconds.
+	get_tree().create_timer(5.0).timeout.connect(poof.queue_free, CONNECT_ONE_SHOT)
 
 
 ## Switch the level's visual look. variant_name must be "day", "night", or "dusk".

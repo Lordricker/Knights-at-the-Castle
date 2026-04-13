@@ -1,0 +1,48 @@
+[gd_scene format=3 uid="uid://b604hgjwaaiuj"]
+
+[ext_resource type="Texture2D" uid="uid://b186yrvo6pqkp" path="res://assets/sprites/VFX/slashEffect.png" id="1_dgijn"]
+
+[node name="slashEffect" type="Node2D" unique_id=690253014]
+
+[node name="SlashEffect" type="Sprite2D" parent="." unique_id=1815939669]
+texture = ExtResource("1_dgijn")
+
+[node name="ParticalsDown" type="CPUParticles2D" parent="." unique_id=1415169999]
+position = Vector2(39, 9)
+emitting = false
+amount = 10
+lifetime = 0.44
+one_shot = true
+explosiveness = 0.75
+lifetime_randomness = 0.93
+emission_shape = 1
+emission_sphere_radius = 0.99
+direction = Vector2(0, 1)
+spread = 30.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 140.34
+initial_velocity_max = 140.34
+angular_velocity_min = -380.0
+angular_velocity_max = -380.0
+linear_accel_min = -100.0
+linear_accel_max = -100.0
+
+[node name="ParticalsUp" type="CPUParticles2D" parent="." unique_id=1946123696]
+position = Vector2(39, 5)
+emitting = false
+amount = 5
+lifetime = 0.44
+one_shot = true
+explosiveness = 0.75
+lifetime_randomness = 0.93
+emission_shape = 1
+emission_sphere_radius = 0.99
+direction = Vector2(0, -1)
+spread = 30.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 140.34
+initial_velocity_max = 140.34
+angular_velocity_min = -380.0
+angular_velocity_max = -380.0
+linear_accel_min = -100.0
+linear_accel_max = -100.0

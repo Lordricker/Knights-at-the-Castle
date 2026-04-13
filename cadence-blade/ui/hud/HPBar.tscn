@@ -1,0 +1,28 @@
+[gd_scene format=3 uid="uid://bkyw3pybjuqjs"]
+
+[ext_resource type="Script" uid="uid://bcxtahr83w2oh" path="res://ui/hud/vertical_health_bar.gd" id="1_0dmfw"]
+[ext_resource type="Texture2D" uid="uid://i0lwqp1f4h0l" path="res://assets/sprites/UI/HPcontainer.png" id="2_tsbax"]
+[ext_resource type="Texture2D" uid="uid://odqkdva2ysde" path="res://assets/sprites/UI/HPFill.png" id="3_tsbax"]
+[ext_resource type="Texture2D" uid="uid://pe8lj5fp2mju" path="res://assets/sprites/UI/HPOverlay.png" id="4_5b0am"]
+
+[node name="HPBar" type="Node2D" unique_id=1780535160]
+
+[node name="VerticalHealthBar" type="Node2D" parent="." unique_id=1034429636 node_paths=PackedStringArray("fill_window")]
+script = ExtResource("1_0dmfw")
+fill_window = NodePath("../HpFill")
+background_color = Color(0.05882353, 0.05882353, 0.05882353, 0.10980392)
+fill_height_ratio = 0.55
+fill_bottom_ratio = 0.9
+metadata/_custom_type_script = "uid://bcxtahr83w2oh"
+
+[node name="HPcontainer" type="Sprite2D" parent="." unique_id=1990364766]
+position = Vector2(6, -39)
+texture = ExtResource("2_tsbax")
+
+[node name="HpFill" type="Sprite2D" parent="." unique_id=935992899]
+position = Vector2(6, -39)
+texture = ExtResource("3_tsbax")
+
+[node name="HpOverlay" type="Sprite2D" parent="." unique_id=1687948701]
+position = Vector2(6, -39)
+texture = ExtResource("4_5b0am")
