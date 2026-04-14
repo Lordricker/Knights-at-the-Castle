@@ -26,10 +26,6 @@ extends EnemyBase
 @export var knockback_force: float = 300.0
 
 
-@export_group("Debug")
-## Enable to show all collision shapes in-game (works in editor/debug builds only).
-@export var debug_show_collisions: bool = false
-
 # ── Internal state ─────────────────────────────────────────────────────────────
 
 enum SlashState { NONE, ATTACKING }
@@ -40,15 +36,12 @@ var _slash_hitbox_right_pos: Vector2 = Vector2.ZERO
 var _detection_zone_right_pos: Vector2 = Vector2.ZERO
 
 @onready var slash_hitbox: Area2D = find_child("SlashHitbox") as Area2D
-@onready var detection_zone: Area2D = find_child("DetectionZone") as Area2D
 
 
 func _ready() -> void:
 	
 	attack_damage = slash_damage
 	super()
-	if debug_show_collisions:
-		get_tree().debug_collisions_hint = true
 	animated_sprite.animation_finished.connect(_on_animation_finished)
 	animated_sprite.frame_changed.connect(_on_frame_changed)
 	# Ensure detection zone is always active regardless of inspector state.
@@ -56,14 +49,15 @@ func _ready() -> void:
 	_set_hitbox(slash_hitbox, false)
 	if slash_hitbox != null:
 		slash_hitbox.body_entered.connect(_on_hit_body)
+		slash_hitbox.area_entered.connect(_on_hit_area)
 	animated_sprite.play("running")
 
 
 # ── AI ─────────────────────────────────────────────────────────────────────────
 
 func _handle_ai(_delta: float) -> void:
-	# Poll the detection zone directly every frame — more reliable than signals.
-	var bodies := detection_zone.get_overlapping_bodies()
+	# Poll the detection zone for "Kill" group bodies every frame.
+	var bodies := _get_targets_in_range()
 	var in_range := bodies.size() > 0
 
 	if in_range:
@@ -132,7 +126,7 @@ func _on_frame_changed() -> void:
 func _on_animation_finished() -> void:
 	if slash_state == SlashState.ATTACKING:
 		# Poll again at animation end to decide whether to loop or stop.
-		if detection_zone.get_overlapping_bodies().size() > 0:
+		if _get_targets_in_range().size() > 0:
 			_begin_slash()
 		else:
 			_stop_attack()
@@ -147,12 +141,25 @@ func _set_hitbox(box: Area2D, enabled: bool) -> void:
 	box.monitorable = enabled
 
 
-## Called when the slash hitbox touches the player body.
+## Called when the slash hitbox touches a CharacterBody2D / StaticBody2D.
 func _on_hit_body(body: Node2D) -> void:
+	if not body.is_in_group(&"Kill"):
+		return
 	if body.has_method("take_damage"):
 		body.take_damage(attack_damage)
-	if body.has_method("apply_knockback"):
+	# Only apply knockback to characters, not static objects like the castle.
+	if body.is_in_group(&"KillCharacter") and body.has_method("apply_knockback"):
 		body.apply_knockback(global_position, knockback_force)
+
+
+## Called when the slash hitbox touches an Area2D (e.g. the castle's Kill hitbox).
+## Walks up to the parent to find the node that owns take_damage().
+func _on_hit_area(area: Area2D) -> void:
+	if not area.is_in_group(&"Kill"):
+		return
+	var owner_node := area.get_parent()
+	if owner_node != null and owner_node.has_method("take_damage"):
+		owner_node.take_damage(attack_damage)
 
 
 func _capture_right_facing_transforms() -> void:

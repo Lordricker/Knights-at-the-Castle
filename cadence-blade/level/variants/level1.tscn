@@ -9,6 +9,7 @@
 [ext_resource type="PackedScene" uid="uid://vqn6c6fo34d1" path="res://characters/castle.tscn" id="5_4v7nf"]
 [ext_resource type="Texture2D" uid="uid://bl41b5s5e5u7y" path="res://level/backgroundSprites/Clouds_02.png" id="8_hah43"]
 [ext_resource type="Texture2D" uid="uid://dpw5w2jww2dxq" path="res://level/backgroundSprites/Clouds_03.png" id="9_j7mri"]
+[ext_resource type="Texture2D" uid="uid://kwvbu2dfdsd8" path="res://level/backgroundSprites/CastleDoorFrame.png" id="10_pot7s"]
 
 [sub_resource type="Curve2D" id="Curve2D_0eib5"]
 _data = {
@@ -38,21 +39,22 @@ texture = ExtResource("4_4v7nf")
 
 [node name="Polygon2D" type="Polygon2D" parent="." unique_id=749098682 groups=["walk_area"]]
 color = Color(1, 1, 1, 0)
-polygon = PackedVector2Array(-2, 3, 109, -1, 139, -39, 167, -37, 259, 0, 463, 59, 498, 74, 559, 74, 681, 77, 999, 82, 999, 224, 766, 220, 537, 206, 355, 160, 218, 117, 64, 73, 0, 69, -57, 71, -165, 104, -273, 134, -415, 186, -519, 194, -602, 206, -663, 220, -820, 224, -1000, 224, -1000, 108, -800, 107, -750, 110, -688, 97, -604, 82, -547, 63, -492, 56, -433, 45, -388, 38, -361, 24, -235, -16, -160, -37, -138, -32, -126, -7, -100, 2, -59, 2)
+polygon = PackedVector2Array(-24, -2, -24, -62, -78, -66, -79, -151, 80, -150, 80, -67, 24, -63, 26, -2, 73, -6, 112, -8, 135, -28, 146, -39, 172, -33, 242, 1, 351, 24, 454, 62, 502, 76, 620, 75, 702, 80, 736, 83, 859, 74, 922, 77, 979, 81, 998, 87, 998, 223, 771, 220, 567, 210, 418, 178, 259, 134, 164, 99, 67, 78, 5, 64, -27, 65, -72, 75, -220, 118, -400, 181, -476, 194, -560, 199, -632, 215, -680, 220, -840, 227, -1000, 224, -1001, 108, -794, 107, -728, 103, -591, 78, -528, 60, -425, 41, -374, 26, -169, -37, -135, -34, -115, -9, -72, -10, -72, -10)
 
 [node name="Path2D" type="Path2D" parent="." unique_id=2068834957 groups=["walk_path"]]
 curve = SubResource("Curve2D_0eib5")
 
 [node name="Node2D2" parent="." unique_id=1417772890 instance=ExtResource("3_x3hxn")]
-position = Vector2(-821, 152)
+position = Vector2(-327, 80)
 
 [node name="RedKnight2" parent="." unique_id=306271988 instance=ExtResource("3_kocss")]
-position = Vector2(-671, 178)
+position = Vector2(-214, 54)
 
-[node name="Node2DCastle" parent="." unique_id=1618038282 instance=ExtResource("5_4v7nf")]
+[node name="CastleNode2D" parent="." unique_id=1618038282 instance=ExtResource("5_4v7nf")]
 position = Vector2(1, -96)
 
 [node name="CPUParticles2D" type="CPUParticles2D" parent="." unique_id=1125288507]
+visible = false
 position = Vector2(-1134, -142)
 amount = 6
 texture = ExtResource("8_hah43")
@@ -69,6 +71,7 @@ angle_max = 5.0
 color_initial_ramp = SubResource("Gradient_k7t6a")
 
 [node name="CPUParticles2D2" type="CPUParticles2D" parent="." unique_id=1330472591]
+visible = false
 position = Vector2(-1134, -140)
 amount = 6
 texture = ExtResource("9_j7mri")
@@ -83,3 +86,8 @@ initial_velocity_max = 40.0
 angle_min = -5.0
 angle_max = 5.0
 color_initial_ramp = SubResource("Gradient_k7t6a")
+
+[node name="CastleDoorFrame" type="Sprite2D" parent="." unique_id=1953443471]
+z_index = 2000
+position = Vector2(1, -103)
+texture = ExtResource("10_pot7s")

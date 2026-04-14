@@ -6,8 +6,8 @@ extends CharacterBody2D
 
 @export var max_health: float = 100.0
 @export var move_speed: float = 80.0
-@export var attack_damage: float = 10.0
-@export var attack_range: float = 60.0
+# Set by subclasses in _ready() — not exported to avoid inspector value overriding the subclass assignment.
+var attack_damage: float = 10.0
 
 @onready var animated_sprite: AnimatedSprite2D = find_child("AnimatedSprite2D") as AnimatedSprite2D
 
@@ -19,6 +19,8 @@ var facing: float = 1.0
 @export var facing_pivot: Node2D
 ## Drag the HealthBar Node2D (vertical_health_bar.gd) here in the Inspector.
 @export var health_bar: Node2D
+## Area2D used to detect attackable targets. Bodies in the "Kill" group will be targeted.
+@export var detection_zone: Area2D
 
 var _health_bar_api: Node = null
 var _health_bar_right_pos: Vector2 = Vector2.ZERO
@@ -95,6 +97,21 @@ func _handle_ai(_delta: float) -> void:
 ## Override to return true while attacking so oscillation pauses.
 func _is_attacking() -> bool:
 	return false
+
+
+## Returns all nodes overlapping detection_zone that belong to the "Kill" group.
+## Checks both physics bodies (players/enemies) and areas (e.g. castle hitbox).
+func _get_targets_in_range() -> Array:
+	if detection_zone == null:
+		return []
+	var results: Array = []
+	for body in detection_zone.get_overlapping_bodies():
+		if body.is_in_group(&"Kill"):
+			results.append(body)
+	for area in detection_zone.get_overlapping_areas():
+		if area.is_in_group(&"Kill"):
+			results.append(area)
+	return results
 
 
 func take_damage(amount: float) -> void:

@@ -126,13 +126,14 @@ size = Vector2(53, 31)
 
 [node name="Node2D" type="Node2D" unique_id=1417772890]
 
-[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=160150496 node_paths=PackedStringArray("facing_pivot", "health_bar")]
+[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=160150496 node_paths=PackedStringArray("facing_pivot", "health_bar", "detection_zone")]
 position = Vector2(0, -11)
 collision_layer = 2
 script = ExtResource("1_xsjc2")
-slash_damage = 2.0
+slash_damage = 50.0
 facing_pivot = NodePath("Pivot")
 health_bar = NodePath("Pivot/HPBar")
+detection_zone = NodePath("Pivot/DetectionZone")
 oscillate = true
 oscillate_speed = 0.2
 

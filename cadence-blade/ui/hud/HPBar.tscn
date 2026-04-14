@@ -11,8 +11,8 @@
 script = ExtResource("1_0dmfw")
 fill_window = NodePath("../HpFill")
 background_color = Color(0.05882353, 0.05882353, 0.05882353, 0.10980392)
-fill_height_ratio = 0.55
-fill_bottom_ratio = 0.9
+fill_top_y = -5.0
+fill_bottom_y = 39.0
 metadata/_custom_type_script = "uid://bcxtahr83w2oh"
 
 [node name="HPcontainer" type="Sprite2D" parent="." unique_id=1990364766]

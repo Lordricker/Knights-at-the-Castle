@@ -68,6 +68,8 @@ func _ready() -> void:
 	health = max_health
 	health_changed.connect(_on_health_changed)
 	add_to_group(&"entities")
+	add_to_group(&"Kill")
+	add_to_group(&"KillCharacter")
 	_capture_right_facing_transforms()
 	_health_bar_api = _resolve_bar_api(health_bar, &"set_health")
 	_flow_bar_api = _resolve_bar_api(flow_bar, &"start_flow")

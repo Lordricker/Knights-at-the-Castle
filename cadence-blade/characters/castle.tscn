@@ -1,28 +1,65 @@
 [gd_scene format=3 uid="uid://vqn6c6fo34d1"]
 
 [ext_resource type="Texture2D" uid="uid://cvy0sb28lvp2t" path="res://level/backgroundSprites/Castle.png" id="1_qracd"]
-[ext_resource type="Script" uid="uid://c26whhsyt1cn2" path="res://characters/character_base.gd" id="2_e2x2k"]
+[ext_resource type="Script" uid="uid://dyajivtxcsito" path="res://characters/castle.gd" id="1_v1fyj"]
+[ext_resource type="Texture2D" uid="uid://dew7fmf2bjfck" path="res://level/backgroundSprites/CastleInside.png" id="2_d4rmk"]
+[ext_resource type="Script" uid="uid://1ev0o35afyo" path="res://ui/hud/horizontal_health_bar.gd" id="4_s2tfp"]
+[ext_resource type="Texture2D" uid="uid://b8l1h6bswmk7w" path="res://level/backgroundSprites/CastleHP.png" id="5_kioy7"]
+[ext_resource type="Texture2D" uid="uid://b6gs8kqn8jrdh" path="res://level/backgroundSprites/CastleHPMask.png" id="6_kyk3r"]
+[ext_resource type="Texture2D" uid="uid://bq0y1xj775cm5" path="res://assets/sprites/UI/CastleHPOverlay.png" id="7_d4rmk"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_r4c5i"]
-size = Vector2(37, 357)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ma6sk"]
+size = Vector2(80, 190)
 
-[sub_resource type="SpriteFrames" id="SpriteFrames_qracd"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_cneay"]
+size = Vector2(218, 137)
 
-[node name="Node2DCastle" type="Node2D" unique_id=1618038282]
+[node name="CastleNode2D" type="Node2D" unique_id=1618038282]
 
-[node name="Sprite2D" type="Sprite2D" parent="." unique_id=789417120]
+[node name="StaticBody2D" type="StaticBody2D" parent="." unique_id=1698008059 node_paths=PackedStringArray("health_bar", "castle_sprite", "inside_zone")]
+script = ExtResource("1_v1fyj")
+health_bar = NodePath("hpbar")
+castle_sprite = NodePath("Castle")
+inside_zone = NodePath("Area2D")
+y_fade_threshold = 60.0
+
+[node name="Area2D2" type="Area2D" parent="StaticBody2D" unique_id=1440563958 groups=["Kill"]]
+
+[node name="hitbox" type="CollisionShape2D" parent="StaticBody2D/Area2D2" unique_id=339821832 groups=["Kill"]]
+position = Vector2(0, 117)
+shape = SubResource("RectangleShape2D_ma6sk")
+debug_color = Color(0.937407, 0.21434155, 0.34304821, 0.41960785)
+
+[node name="CastleInside" type="Sprite2D" parent="StaticBody2D" unique_id=1559556458]
+position = Vector2(0, -6.515)
+texture = ExtResource("2_d4rmk")
+
+[node name="Castle" type="Sprite2D" parent="StaticBody2D" unique_id=789417120]
+position = Vector2(0, -6.515)
 texture = ExtResource("1_qracd")
 
-[node name="CharacterBase" type="CharacterBody2D" parent="." unique_id=1961746737]
-slide_on_ceiling = false
-floor_stop_on_slope = false
-floor_block_on_wall = false
-script = ExtResource("2_e2x2k")
-metadata/_custom_type_script = "uid://c26whhsyt1cn2"
+[node name="hpbar" type="Node2D" parent="StaticBody2D" unique_id=718268115 node_paths=PackedStringArray("fill_window")]
+script = ExtResource("4_s2tfp")
+fill_window = NodePath("CastleHpMask")
+fill_color = Color(0.79607844, 0, 0, 1)
+background_color = Color(0.05882353, 0.05882353, 0.05882353, 0)
+fill_left_x = -97.0
+fill_right_x = 97.0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBase" unique_id=851144320]
-position = Vector2(0, 49.5)
-shape = SubResource("RectangleShape2D_r4c5i")
+[node name="CastleHp" type="Sprite2D" parent="StaticBody2D/hpbar" unique_id=103119287]
+position = Vector2(0, -1)
+texture = ExtResource("5_kioy7")
 
-[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="CharacterBase" unique_id=594700901]
-sprite_frames = SubResource("SpriteFrames_qracd")
+[node name="CastleHpMask" type="Sprite2D" parent="StaticBody2D/hpbar" unique_id=886186150]
+position = Vector2(0, -1)
+texture = ExtResource("6_kyk3r")
+
+[node name="CastleHpOverlay" type="Sprite2D" parent="StaticBody2D/hpbar" unique_id=994312762]
+position = Vector2(0, -1)
+texture = ExtResource("7_d4rmk")
+
+[node name="Area2D" type="Area2D" parent="StaticBody2D" unique_id=1943352107]
+
+[node name="InsideBox" type="CollisionShape2D" parent="StaticBody2D/Area2D" unique_id=1414038696]
+position = Vector2(0, 10.5)
+shape = SubResource("RectangleShape2D_cneay")

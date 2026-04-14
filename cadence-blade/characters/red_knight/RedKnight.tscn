@@ -313,12 +313,12 @@ size = Vector2(20, 28)
 
 [node name="RedKnight" type="Node2D" unique_id=306271988]
 
-[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=1552212822 node_paths=PackedStringArray("body_box", "facing_pivot", "health_bar", "flow_bar")]
+[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=1552212822 node_paths=PackedStringArray("body_box", "facing_pivot", "health_bar", "flow_bar") groups=["Kill"]]
 script = ExtResource("1_6xwxy")
 knockback_force = 200.0
 thrust_lunge_speed = 300.0
 body_box = NodePath("bodyBox")
-max_health = 151.0
+max_health = 150.0
 facing_pivot = NodePath("Pivot")
 health_bar = NodePath("Pivot/HPBar")
 flow_bar = NodePath("Pivot/FlowBar")
@@ -366,11 +366,11 @@ position = Vector2(-16, 38)
 rotation = -3.1415925
 scale = Vector2(1.0000002, -1)
 
-[node name="bodyBox" type="CollisionShape2D" parent="CharacterBody2D" unique_id=1370339960]
-position = Vector2(0, 14)
-shape = SubResource("RectangleShape2D_vh32c")
-
 [node name="Camera2D" type="Camera2D" parent="CharacterBody2D" unique_id=924440947]
 zoom = Vector2(2, 2)
 limit_left = -1000
 limit_right = 1000
+
+[node name="bodyBox" type="CollisionShape2D" parent="CharacterBody2D" unique_id=1370339960]
+position = Vector2(0, 14)
+shape = SubResource("RectangleShape2D_vh32c")

@@ -24,9 +24,10 @@ extends Node2D
 @export var background_color: Color = Color(0.06, 0.06, 0.06, 0.75)
 
 @export_group("Fill")
-## What fraction of the window height counts as 100% HP.
-## Lower this to shrink the maximum fill height so hits are visible from the start.
-@export_range(0.1, 1.0, 0.01) var fill_height_ratio: float = 0.75
+## Local Y of the 100% HP mark (top of the fill, at this node's origin).
+@export var fill_top_y: float = 0.0
+## Local Y of the 0% HP mark (bottom of the fill, Y increases downward in Godot).
+@export var fill_bottom_y: float = 60.0
 
 var _ratio: float = 1.0
 var _draw_node: Node2D
@@ -76,11 +77,12 @@ func _on_draw_fill() -> void:
 	# Background fills the entire window area.
 	_draw_node.draw_rect(b, background_color)
 
-	# Cap the usable height so 100% HP never reaches the very top.
-	var usable_h := b.size.y * fill_height_ratio
-	var filled_h := usable_h * _ratio
-	if filled_h > 0.0:
-		_draw_node.draw_rect(
-			Rect2(Vector2(b.position.x, b.end.y - filled_h), Vector2(b.size.x, filled_h)),
-			fill_color
-		)
+	var total_h := fill_bottom_y - fill_top_y
+	if total_h <= 0.0:
+		return
+	var filled_h := total_h * _ratio
+	if filled_h <= 0.0:
+		return
+
+	var top_y := fill_bottom_y - filled_h
+	_draw_node.draw_rect(Rect2(Vector2(b.position.x, top_y), Vector2(b.size.x, filled_h)), fill_color)
