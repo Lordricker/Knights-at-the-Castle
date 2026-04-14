@@ -25,9 +25,6 @@ extends EnemyBase
 ## How hard the black knight's slash knocks the player back.
 @export var knockback_force: float = 300.0
 
-@export_group("Health")
-## Starting hit points.
-@export var starting_hp: float = 150.0
 
 @export_group("Debug")
 ## Enable to show all collision shapes in-game (works in editor/debug builds only).
@@ -47,7 +44,7 @@ var _detection_zone_right_pos: Vector2 = Vector2.ZERO
 
 
 func _ready() -> void:
-	max_health = starting_hp
+	
 	attack_damage = slash_damage
 	super()
 	if debug_show_collisions:

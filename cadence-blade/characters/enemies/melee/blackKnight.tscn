@@ -131,7 +131,6 @@ position = Vector2(0, -11)
 collision_layer = 2
 script = ExtResource("1_xsjc2")
 slash_damage = 2.0
-starting_hp = 50.0
 facing_pivot = NodePath("Pivot")
 health_bar = NodePath("Pivot/HPBar")
 oscillate = true

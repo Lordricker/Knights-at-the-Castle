@@ -318,11 +318,13 @@ script = ExtResource("1_6xwxy")
 knockback_force = 200.0
 thrust_lunge_speed = 300.0
 body_box = NodePath("bodyBox")
-max_health = 51.0
+max_health = 151.0
 facing_pivot = NodePath("Pivot")
 health_bar = NodePath("Pivot/HPBar")
 flow_bar = NodePath("Pivot/FlowBar")
 flow_fill_duration = 1.0
+flow_success_window_start = 0.4
+flow_success_window_end = 0.5
 
 [node name="Pivot" type="Node2D" parent="CharacterBody2D" unique_id=65507104]
 
