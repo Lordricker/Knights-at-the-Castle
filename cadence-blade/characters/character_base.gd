@@ -51,6 +51,7 @@ var _flow_on_resolved: Callable
 var walk_area: Polygon2D = null
 var is_dead: bool = false
 var knockback_velocity: Vector2 = Vector2.ZERO
+var _orig_layer: int = 0
 
 ## How fast knockback decelerates in pixels/sec.
 @export var knockback_friction: float = 800.0
@@ -59,6 +60,7 @@ signal died()
 
 
 func _ready() -> void:
+	_orig_layer = get_collision_layer()
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
 	set_collision_mask(0)
 	scale.x = 1.0  # never flip the CharacterBody2D root
@@ -256,6 +258,9 @@ func die() -> void:
 	set_collision_layer(0)
 	set_collision_mask(0)
 	set_physics_process(false)
+	set_process(false)
+	set_process_input(false)
+	set_process_unhandled_input(false)
 	if animated_sprite != null:
 		animated_sprite.hide()
 	if health_bar != null:
@@ -266,6 +271,30 @@ func die() -> void:
 	# Signal the level so it can spawn the death poof at our position.
 	if get_tree().current_scene.has_method("on_entity_died"):
 		get_tree().current_scene.on_entity_died(global_position)
+
+
+## Revive this character at the given world position, restoring full health.
+## Called by RunManager after the respawn delay expires.
+func revive(at: Vector2) -> void:
+	if not is_dead:
+		return
+	is_dead = false
+	health = max_health
+	global_position = at
+	knockback_velocity = Vector2.ZERO
+	set_collision_layer(_orig_layer)
+	set_physics_process(true)
+	set_process(true)
+	set_process_input(true)
+	set_process_unhandled_input(true)
+	if animated_sprite != null:
+		animated_sprite.show()
+		animated_sprite.play(&"idle")
+	if health_bar != null:
+		health_bar.show()
+	if flow_bar != null:
+		flow_bar.hide()
+	health_changed.emit(health, max_health)
 
 
 # ── Flow timing ────────────────────────────────────────────────────────────────

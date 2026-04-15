@@ -116,6 +116,12 @@ func _stop_attack() -> void:
 	animated_sprite.play("running")
 
 
+func die() -> void:
+	slash_state = SlashState.NONE
+	_set_hitbox(slash_hitbox, false)
+	super()
+
+
 # ── Frame / animation signals ──────────────────────────────────────────────────
 
 func _on_frame_changed() -> void:

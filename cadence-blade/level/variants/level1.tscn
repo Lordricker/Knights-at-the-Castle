@@ -4,12 +4,16 @@
 [ext_resource type="Script" uid="uid://b2dsw6etqmvgr" path="res://level/level.gd" id="1_slv3f"]
 [ext_resource type="PackedScene" uid="uid://tguwfea61v0y" path="res://FX/DeathPoof.tscn" id="2_pfm7v"]
 [ext_resource type="PackedScene" uid="uid://dbk1qvdllygxo" path="res://characters/red_knight/RedKnight.tscn" id="3_kocss"]
-[ext_resource type="PackedScene" uid="uid://1brrmdyvuppp" path="res://characters/enemies/melee/blackKnight.tscn" id="3_x3hxn"]
 [ext_resource type="Texture2D" uid="uid://c665lghwlbqwj" path="res://level/backgroundSprites/Tower.png" id="4_4v7nf"]
 [ext_resource type="PackedScene" uid="uid://vqn6c6fo34d1" path="res://characters/castle.tscn" id="5_4v7nf"]
 [ext_resource type="Texture2D" uid="uid://bl41b5s5e5u7y" path="res://level/backgroundSprites/Clouds_02.png" id="8_hah43"]
 [ext_resource type="Texture2D" uid="uid://dpw5w2jww2dxq" path="res://level/backgroundSprites/Clouds_03.png" id="9_j7mri"]
+[ext_resource type="PackedScene" uid="uid://f7em6508ojfd" path="res://level/enemy_spawner.tscn" id="10_hlrrp"]
 [ext_resource type="Texture2D" uid="uid://kwvbu2dfdsd8" path="res://level/backgroundSprites/CastleDoorFrame.png" id="10_pot7s"]
+[ext_resource type="Script" uid="uid://cnpb6gsodu5ku" path="res://level/run_manager.gd" id="11_hah43"]
+[ext_resource type="Script" uid="uid://cgdiemwnuf1an" path="res://ui/menus/game_over_screen.gd" id="12_j7mri"]
+[ext_resource type="Texture2D" uid="uid://dvnkegprvdxot" path="res://assets/sprites/UI/RestartButton.png" id="13_1uxe1"]
+[ext_resource type="Texture2D" uid="uid://cukrmkf3jrgb8" path="res://assets/sprites/UI/QuitButton.png" id="14_1c4rs"]
 
 [sub_resource type="Curve2D" id="Curve2D_0eib5"]
 _data = {
@@ -20,6 +24,11 @@ point_count = 9
 [sub_resource type="Gradient" id="Gradient_k7t6a"]
 offsets = PackedFloat32Array(0.10962567, 0.96524066, 1)
 colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1)
+
+[sub_resource type="Curve" id="Curve_hah43"]
+_limits = [0.0, 15.0, 0.0, 3.0]
+_data = [Vector2(0, 1.0219193), 0.0, 0.0, 0, 0]
+point_count = 1
 
 [node name="Level1" type="Node2D" unique_id=1633003567]
 script = ExtResource("1_slv3f")
@@ -44,16 +53,11 @@ polygon = PackedVector2Array(-24, -2, -24, -62, -78, -66, -79, -151, 80, -150, 8
 [node name="Path2D" type="Path2D" parent="." unique_id=2068834957 groups=["walk_path"]]
 curve = SubResource("Curve2D_0eib5")
 
-[node name="Node2D2" parent="." unique_id=1417772890 instance=ExtResource("3_x3hxn")]
-position = Vector2(-327, 80)
-
-[node name="RedKnight2" parent="." unique_id=306271988 instance=ExtResource("3_kocss")]
-position = Vector2(-214, 54)
-
-[node name="CastleNode2D" parent="." unique_id=1618038282 instance=ExtResource("5_4v7nf")]
+[node name="Castle" parent="." unique_id=1618038282 instance=ExtResource("5_4v7nf")]
 position = Vector2(1, -96)
 
 [node name="CPUParticles2D" type="CPUParticles2D" parent="." unique_id=1125288507]
+visible = false
 position = Vector2(-1170, -239)
 amount = 6
 texture = ExtResource("8_hah43")
@@ -70,6 +74,7 @@ angle_max = 5.0
 color_initial_ramp = SubResource("Gradient_k7t6a")
 
 [node name="CPUParticles2D2" type="CPUParticles2D" parent="." unique_id=1330472591]
+visible = false
 position = Vector2(-1170, -237)
 amount = 6
 texture = ExtResource("9_j7mri")
@@ -89,3 +94,32 @@ color_initial_ramp = SubResource("Gradient_k7t6a")
 z_index = 2000
 position = Vector2(1, -103)
 texture = ExtResource("10_pot7s")
+
+[node name="EnemySpawner" parent="." unique_id=348696290 instance=ExtResource("10_hlrrp")]
+position = Vector2(0, 171.13)
+
+[node name="RunManager" type="Node2D" parent="." unique_id=1021112478 node_paths=PackedStringArray("castle", "spawner", "game_over_screen", "spawn_points")]
+script = ExtResource("11_hah43")
+castle = NodePath("../Castle")
+spawner = NodePath("../EnemySpawner")
+game_over_screen = NodePath("../CanvasLayer")
+player_scenes = Array[PackedScene]([ExtResource("3_kocss")])
+respawn_delay_curve = SubResource("Curve_hah43")
+spawn_points = [NodePath("KnightSpawn"), NodePath("ArcherSpawn"), NodePath("RogueSpawn")]
+
+[node name="KnightSpawn" type="Marker2D" parent="RunManager" unique_id=2086820810]
+position = Vector2(0, -110)
+
+[node name="ArcherSpawn" type="Marker2D" parent="RunManager" unique_id=1839961480]
+position = Vector2(-30, -110)
+
+[node name="RogueSpawn" type="Marker2D" parent="RunManager" unique_id=1606721425]
+position = Vector2(30, -110)
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=202966856]
+script = ExtResource("12_j7mri")
+restart_texture = ExtResource("13_1uxe1")
+quit_texture = ExtResource("14_1c4rs")
+restart_x_offset = -25.0
+quit_x_offset = -10.0
+button_gap = -100.0

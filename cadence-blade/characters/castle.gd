@@ -33,6 +33,11 @@ extends StaticBody2D
 
 # ── Fade ──────────────────────────────────────────────────────────────────────
 
+@export_group("Death")
+## Optional AnimationPlayer on the castle that plays a "death" animation
+## when the castle HP reaches zero.  Leave blank until you create the animation.
+@export var death_animation_player: AnimationPlayer
+
 @export_group("Fade")
 ## The Sprite2D whose opacity is modulated (the main castle sprite on top).
 @export var castle_sprite: Sprite2D
@@ -97,8 +102,11 @@ func take_damage(amount: float) -> void:
 
 
 func _on_died() -> void:
-	# Castle stays visible; gameplay consequences (game over, etc.)
-	# can be handled by connecting to the "died" signal from the level.
+	# Play the death animation if one has been assigned in the Inspector.
+	if death_animation_player != null:
+		death_animation_player.play(&"death")
+	# Gameplay consequences (game over, respawn stoppage, etc.) are handled
+	# by RunManager listening to this signal.
 	died.emit()
 
 

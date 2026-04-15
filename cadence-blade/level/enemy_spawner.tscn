@@ -1,0 +1,52 @@
+[gd_scene format=3 uid="uid://f7em6508ojfd"]
+
+[ext_resource type="Script" uid="uid://bkuu8fadxq726" path="res://level/enemy_spawner.gd" id="1_vki0o"]
+[ext_resource type="Script" uid="uid://dj8qa3itlkqdw" path="res://characters/enemies/enemy_type_config.gd" id="2_tu4t3"]
+[ext_resource type="Script" uid="uid://dnnh0acalw8gk" path="res://characters/enemies/enemy_variant_config.gd" id="3_nxpt8"]
+[ext_resource type="PackedScene" uid="uid://1brrmdyvuppp" path="res://characters/enemies/melee/blackKnight.tscn" id="4_reaie"]
+
+[sub_resource type="Curve" id="Curve_myysy"]
+_limits = [0.0, 5.0, 0.0, 5.0]
+_data = [Vector2(1.425532, 5), 0.0, 0.0, 0, 0]
+point_count = 1
+
+[sub_resource type="Curve" id="Curve_x1twq"]
+_data = [Vector2(0.49361697, 1), 0.0, 0.0, 0, 0]
+point_count = 1
+
+[sub_resource type="Resource" id="Resource_mf4r3"]
+script = ExtResource("3_nxpt8")
+display_name = "BlackWarrior"
+scene = ExtResource("4_reaie")
+pool_tickets_curve = SubResource("Curve_x1twq")
+max_alive_curve = SubResource("Curve_myysy")
+metadata/_custom_type_script = "uid://dnnh0acalw8gk"
+
+[sub_resource type="Resource" id="Resource_k7ket"]
+script = ExtResource("2_tu4t3")
+type_name = "Warrior"
+variants = Array[ExtResource("3_nxpt8")]([SubResource("Resource_mf4r3")])
+metadata/_custom_type_script = "uid://dj8qa3itlkqdw"
+
+[sub_resource type="Curve" id="Curve_ym028"]
+_limits = [0.0, 10.0, 0.0, 3.0]
+_data = [Vector2(0, 10), 0.0, 0.0, 0, 0, Vector2(0.35526317, 7.0104523), 0.0, 0.0, 0, 0, Vector2(0.7048872, 3.0243893), 0.0, 0.0, 0, 0, Vector2(1.2, 1), 0.0, 0.0, 0, 0]
+point_count = 4
+
+[sub_resource type="Curve" id="Curve_rah5q"]
+_limits = [0.0, 20.0, 0.0, 3.0]
+_data = [Vector2(0, 12), 0.0, 0.0, 0, 0]
+point_count = 1
+metadata/_snap_enabled = true
+
+[node name="EnemySpawner" type="Node2D" unique_id=348696290]
+script = ExtResource("1_vki0o")
+enemy_types = Array[ExtResource("2_tu4t3")]([SubResource("Resource_k7ket")])
+spawn_rate_curve = SubResource("Curve_ym028")
+max_total_curve = SubResource("Curve_rah5q")
+
+[node name="LeftSpawnPoint" type="Marker2D" parent="." unique_id=1549579816]
+position = Vector2(-950, 0)
+
+[node name="RightSpawnPoint" type="Marker2D" parent="." unique_id=1929261856]
+position = Vector2(950, 0)
