@@ -322,9 +322,9 @@ max_health = 150.0
 facing_pivot = NodePath("Pivot")
 health_bar = NodePath("Pivot/HPBar")
 flow_bar = NodePath("Pivot/FlowBar")
-flow_fill_duration = 1.0
+flow_fill_duration = 1.5
 flow_success_window_start = 0.4
-flow_success_window_end = 0.5
+flow_success_window_end = 0.45
 
 [node name="Pivot" type="Node2D" parent="CharacterBody2D" unique_id=65507104]
 
@@ -367,7 +367,7 @@ rotation = -3.1415925
 scale = Vector2(1.0000002, -1)
 
 [node name="Camera2D" type="Camera2D" parent="CharacterBody2D" unique_id=924440947]
-zoom = Vector2(2, 2)
+zoom = Vector2(3, 3)
 limit_left = -1000
 limit_right = 1000
 

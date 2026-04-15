@@ -54,8 +54,7 @@ position = Vector2(-214, 54)
 position = Vector2(1, -96)
 
 [node name="CPUParticles2D" type="CPUParticles2D" parent="." unique_id=1125288507]
-visible = false
-position = Vector2(-1134, -142)
+position = Vector2(-1170, -239)
 amount = 6
 texture = ExtResource("8_hah43")
 lifetime = 50.0
@@ -71,8 +70,7 @@ angle_max = 5.0
 color_initial_ramp = SubResource("Gradient_k7t6a")
 
 [node name="CPUParticles2D2" type="CPUParticles2D" parent="." unique_id=1330472591]
-visible = false
-position = Vector2(-1134, -140)
+position = Vector2(-1170, -237)
 amount = 6
 texture = ExtResource("9_j7mri")
 lifetime = 50.0

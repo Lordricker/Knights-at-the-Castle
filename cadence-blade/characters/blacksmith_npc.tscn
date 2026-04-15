@@ -1,0 +1,75 @@
+[gd_scene format=3 uid="uid://6ju4jgx0tkih"]
+
+[ext_resource type="Texture2D" uid="uid://jvow1lpkr13n" path="res://assets/sprites/BlacksmithSprites.png" id="1_g63nv"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_k6yf7"]
+atlas = ExtResource("1_g63nv")
+region = Rect2(0, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_fagwg"]
+atlas = ExtResource("1_g63nv")
+region = Rect2(100, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_gl1fl"]
+atlas = ExtResource("1_g63nv")
+region = Rect2(200, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_5wkli"]
+atlas = ExtResource("1_g63nv")
+region = Rect2(300, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_xoc2x"]
+atlas = ExtResource("1_g63nv")
+region = Rect2(400, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_6o5j3"]
+atlas = ExtResource("1_g63nv")
+region = Rect2(500, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_o5tce"]
+atlas = ExtResource("1_g63nv")
+region = Rect2(0, 100, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_7mh8x"]
+atlas = ExtResource("1_g63nv")
+region = Rect2(100, 100, 100, 100)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_u0404"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_k6yf7")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_fagwg")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_gl1fl")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_5wkli")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_xoc2x")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_6o5j3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_o5tce")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_7mh8x")
+}],
+"loop": true,
+"name": &"Idle",
+"speed": 6.0
+}]
+
+[node name="BlacksmithNPC" type="Node2D" unique_id=782897613]
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1743097685]
+sprite_frames = SubResource("SpriteFrames_u0404")
+animation = &"Idle"
+autoplay = "Idle"
+frame_progress = 0.36319587
