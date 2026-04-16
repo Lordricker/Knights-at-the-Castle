@@ -123,8 +123,9 @@ func _handle_movement() -> void:
 	var dir_x: float = Input.get_axis("move_left", "move_right")
 	var dir_y: float = Input.get_axis("move_up", "move_down")
 
-	velocity.x = dir_x * move_speed * speed_mult
-	velocity.y = dir_y * move_speed * speed_mult
+	var effective_speed: float = move_speed + speed_bonus
+	velocity.x = dir_x * effective_speed * speed_mult
+	velocity.y = dir_y * effective_speed * speed_mult
 
 	# Facing: driven purely by input direction.
 	# Shift held = lock facing. Otherwise, pressing left/right sets direction.
@@ -153,6 +154,12 @@ func _update_animation(dir_x: float, dir_y: float) -> void:
 	if attack_state != AttackState.NONE:
 		return
 
+	# CastleInside requests the heal pose while the player is in the monk zone.
+	if healing_locked:
+		if animated_sprite.animation != "heal":
+			animated_sprite.play(&"heal")
+		return
+
 	if dir_x != 0.0 or dir_y != 0.0:
 		if animated_sprite.animation != "running":
 			animated_sprite.play("running")
@@ -166,10 +173,12 @@ func _update_animation(dir_x: float, dir_y: float) -> void:
 func _handle_attack_input() -> void:
 	match attack_state:
 		AttackState.NONE:
-			if Input.is_action_just_pressed("slash"):
-				_begin_attack("slash", AttackState.SLASH_WINDUP)
-			elif Input.is_action_just_pressed("thrust"):
-				_begin_attack("thrust", AttackState.THRUST_WINDUP)
+			# Suppress new attacks while the player is at the blacksmith.
+			if not attacks_locked:
+				if Input.is_action_just_pressed("slash"):
+					_begin_attack("slash", AttackState.SLASH_WINDUP)
+				elif Input.is_action_just_pressed("thrust"):
+					_begin_attack("thrust", AttackState.THRUST_WINDUP)
 
 		AttackState.SLASH_PAUSED:
 			_handle_flow_attempt(&"slash")
@@ -373,7 +382,8 @@ func _get_current_attack_damage() -> float:
 			base = thrust_damage
 		_:
 			base = slash_damage
-	return base * _current_attack_damage_multiplier
+	# attack_bonus from blacksmith upgrades is added flat before the timing multiplier.
+	return (base + attack_bonus) * _current_attack_damage_multiplier
 
 
 func _sync_slash_effect_facing() -> void:

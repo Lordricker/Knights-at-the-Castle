@@ -6,6 +6,10 @@
 [ext_resource type="PackedScene" uid="uid://bkyw3pybjuqjs" path="res://ui/hud/HPBar.tscn" id="4_3og0q"]
 [ext_resource type="PackedScene" uid="uid://dh7thuuxwk7x1" path="res://ui/hud/FlowBar.tscn" id="5_d0uti"]
 
+[sub_resource type="AtlasTexture" id="AtlasTexture_trl20"]
+atlas = ExtResource("2_jjg8s")
+region = Rect2(768, 500, 128, 100)
+
 [sub_resource type="AtlasTexture" id="AtlasTexture_vh32c"]
 atlas = ExtResource("2_jjg8s")
 region = Rect2(0, 0, 128, 100)
@@ -164,6 +168,14 @@ region = Rect2(768, 200, 128, 100)
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_rvc6b"]
 animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_trl20")
+}],
+"loop": true,
+"name": &"heal",
+"speed": 5.0
+}, {
 "frames": [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_vh32c")
@@ -330,9 +342,7 @@ flow_success_window_end = 0.45
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="CharacterBody2D/Pivot" unique_id=1262161212]
 sprite_frames = SubResource("SpriteFrames_rvc6b")
-animation = &"thrust"
-frame = 13
-frame_progress = 1.0
+animation = &"heal"
 
 [node name="SlashHitbox" type="Area2D" parent="CharacterBody2D/Pivot" unique_id=1571313381]
 position = Vector2(21.85, 0)

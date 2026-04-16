@@ -17,6 +17,24 @@ extends CharacterBody2D
 var health: float = 0.0
 signal health_changed(new_health: float, max_hp: float)
 
+# ── Coins (run currency) ───────────────────────────────────────────────────────
+## Current coin balance. Modified by add_coins(); persists for the whole run.
+var coins: int = 0
+signal coins_changed(new_coins: int)
+
+# ── Stat bonuses (from blacksmith upgrades) ────────────────────────────────────
+## Flat damage bonus added on top of the base attack damage each hit.
+var attack_bonus: float = 0.0
+## Flat speed bonus added on top of move_speed every frame.
+var speed_bonus: float = 0.0
+
+# ── Interaction locks (set by CastleInside) ────────────────────────────────────
+## When true, CastleInside is playing the "heal" animation; subclasses pause
+## normal animation selection so the heal pose can hold.
+var healing_locked: bool = false
+## When true, new attack actions are suppressed (player is at the blacksmith).
+var attacks_locked: bool = false
+
 # ── Facing / bars ─────────────────────────────────────────────────────────────
 ## 1.0 = facing right, -1.0 = facing left.
 var facing: float = 1.0
@@ -250,6 +268,12 @@ func _set_facing(new_facing: float) -> void:
 	_apply_facing()
 
 
+## Add (positive) or remove (negative) coins and emit the coins_changed signal.
+func add_coins(amount: int) -> void:
+	coins += amount
+	coins_changed.emit(coins)
+
+
 ## Call when the character runs out of health.
 func die() -> void:
 	if is_dead:
@@ -268,9 +292,10 @@ func die() -> void:
 	if flow_bar != null:
 		flow_bar.hide()
 	died.emit()
-	# Signal the level so it can spawn the death poof at our position.
+	# Signal the level to spawn the death poof. Pass spawn_coin=false so only
+	# enemy deaths drop coins, not player deaths.
 	if get_tree().current_scene.has_method("on_entity_died"):
-		get_tree().current_scene.on_entity_died(global_position)
+		get_tree().current_scene.on_entity_died(global_position, false)
 
 
 ## Revive this character at the given world position, restoring full health.

@@ -14,6 +14,9 @@ const VARIANT_PATHS: Dictionary = {
 
 ## Drag the DeathPoof scene (res://FX/DeathPoof.tscn) here in the Inspector.
 @export var death_poof_scene: PackedScene
+## Coin scene to spawn when enemies die (res://core/coin.tscn).
+## Leave empty to disable coin drops.
+@export var coin_scene: PackedScene = preload("res://core/coin.tscn")
 
 @onready var world_environment: WorldEnvironment = $WorldEnvironment
 
@@ -26,7 +29,9 @@ func _ready() -> void:
 
 ## Called by any entity (CharacterBase or EnemyBase) when it dies.
 ## Spawns a death poof at the given world position.
-func on_entity_died(world_position: Vector2) -> void:
+## spawn_coin is false for player deaths (CharacterBase passes false explicitly);
+## EnemyBase uses the default of true so every enemy drops a coin.
+func on_entity_died(world_position: Vector2, spawn_coin: bool = true) -> void:
 	if death_poof_scene == null:
 		return
 	var poof: Node2D = death_poof_scene.instantiate() as Node2D
@@ -44,6 +49,12 @@ func on_entity_died(world_position: Vector2) -> void:
 			child.emitting = true
 	# Remove the poof after 5 seconds.
 	get_tree().create_timer(5.0).timeout.connect(poof.queue_free, CONNECT_ONE_SHOT)
+
+	if spawn_coin and coin_scene != null:
+		var coin: Node2D = coin_scene.instantiate() as Node2D
+		if coin != null:
+			add_child(coin)
+			coin.global_position = world_position
 
 
 ## Switch the level's visual look. variant_name must be "day", "night", or "dusk".

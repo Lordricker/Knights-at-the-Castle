@@ -3,8 +3,6 @@
 [ext_resource type="Texture2D" uid="uid://cvy0sb28lvp2t" path="res://level/backgroundSprites/Castle.png" id="1_qracd"]
 [ext_resource type="Script" uid="uid://dyajivtxcsito" path="res://characters/castle.gd" id="1_v1fyj"]
 [ext_resource type="Texture2D" uid="uid://dew7fmf2bjfck" path="res://level/backgroundSprites/CastleInside.png" id="2_d4rmk"]
-[ext_resource type="PackedScene" uid="uid://6ju4jgx0tkih" path="res://characters/blacksmith_npc.tscn" id="3_kioy7"]
-[ext_resource type="PackedScene" uid="uid://csm4ia2kbgbod" path="res://characters/monk_npc.tscn" id="3_s2tfp"]
 [ext_resource type="Script" uid="uid://1ev0o35afyo" path="res://ui/hud/horizontal_health_bar.gd" id="4_s2tfp"]
 [ext_resource type="Texture2D" uid="uid://b8l1h6bswmk7w" path="res://level/backgroundSprites/CastleHP.png" id="5_kioy7"]
 [ext_resource type="Texture2D" uid="uid://b6gs8kqn8jrdh" path="res://level/backgroundSprites/CastleHPMask.png" id="6_kyk3r"]
@@ -36,13 +34,8 @@ debug_color = Color(0.937407, 0.21434155, 0.34304821, 0.41960785)
 position = Vector2(0, -6.515)
 texture = ExtResource("2_d4rmk")
 
-[node name="BlacksmithNPC" parent="StaticBody2D/CastleInside" unique_id=782897613 instance=ExtResource("3_kioy7")]
-position = Vector2(114.095, 11.515)
-
-[node name="Monk" parent="StaticBody2D/CastleInside" unique_id=321596553 instance=ExtResource("3_s2tfp")]
-position = Vector2(-96, -12.485001)
-
 [node name="Castle" type="Sprite2D" parent="StaticBody2D" unique_id=789417120]
+z_index = 1
 position = Vector2(0, -6.515)
 texture = ExtResource("1_qracd")
 

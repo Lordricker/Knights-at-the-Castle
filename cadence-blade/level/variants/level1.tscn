@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://ceawxap1jbjew"]
 
 [ext_resource type="Texture2D" uid="uid://c0y45wgfs1phi" path="res://level/backgroundSprites/Map.png" id="1_0eib5"]
-[ext_resource type="Script" uid="uid://b2dsw6etqmvgr" path="res://level/level.gd" id="1_slv3f"]
+[ext_resource type="Script" uid="uid://b2dsw6etqmvgr" path="res://core/level.gd" id="1_slv3f"]
 [ext_resource type="PackedScene" uid="uid://tguwfea61v0y" path="res://FX/DeathPoof.tscn" id="2_pfm7v"]
 [ext_resource type="PackedScene" uid="uid://dbk1qvdllygxo" path="res://characters/red_knight/RedKnight.tscn" id="3_kocss"]
 [ext_resource type="Texture2D" uid="uid://c665lghwlbqwj" path="res://level/backgroundSprites/Tower.png" id="4_4v7nf"]
@@ -10,11 +10,19 @@
 [ext_resource type="Texture2D" uid="uid://dpw5w2jww2dxq" path="res://level/backgroundSprites/Clouds_03.png" id="9_j7mri"]
 [ext_resource type="PackedScene" uid="uid://f7em6508ojfd" path="res://level/enemy_spawner.tscn" id="10_hlrrp"]
 [ext_resource type="Texture2D" uid="uid://kwvbu2dfdsd8" path="res://level/backgroundSprites/CastleDoorFrame.png" id="10_pot7s"]
-[ext_resource type="Script" uid="uid://cnpb6gsodu5ku" path="res://level/run_manager.gd" id="11_hah43"]
+[ext_resource type="Script" uid="uid://cnpb6gsodu5ku" path="res://core/run_manager.gd" id="11_hah43"]
 [ext_resource type="Script" uid="uid://cgdiemwnuf1an" path="res://ui/menus/game_over_screen.gd" id="12_j7mri"]
 [ext_resource type="Texture2D" uid="uid://dvnkegprvdxot" path="res://assets/sprites/UI/RestartButton.png" id="13_1uxe1"]
 [ext_resource type="Texture2D" uid="uid://cukrmkf3jrgb8" path="res://assets/sprites/UI/QuitButton.png" id="14_1c4rs"]
-[ext_resource type="Script" uid="uid://dpjae2t3dv3ia" path="res://level/level_camera.gd" id="15_lvlcam"]
+[ext_resource type="Script" uid="uid://bqb4xx8hrf5w3" path="res://ui/hud/coins_display.gd" id="14_pr8jp"]
+[ext_resource type="Script" uid="uid://dcj5kusq32vwi" path="res://characters/castle_inside.gd" id="15_154h8"]
+[ext_resource type="Script" uid="uid://dpjae2t3dv3ia" path="res://core/level_camera.gd" id="15_lvlcam"]
+[ext_resource type="Script" uid="uid://cidykeebxaujw" path="res://core/Upgrades/upgrade_config.gd" id="16_edmi1"]
+[ext_resource type="Texture2D" uid="uid://bhfpc1w4dqq0y" path="res://core/Upgrades/plus5atk.png" id="17_5g4e1"]
+[ext_resource type="Texture2D" uid="uid://wxcyewyr8jxt" path="res://core/Upgrades/plus5spd.png" id="18_gwq2p"]
+[ext_resource type="Texture2D" uid="uid://cne0q84ecjudd" path="res://assets/sprites/MonkSprites.png" id="21_tm2co"]
+[ext_resource type="Texture2D" uid="uid://jvow1lpkr13n" path="res://assets/sprites/BlacksmithSprites.png" id="22_chmu7"]
+[ext_resource type="PackedScene" uid="uid://1brrmdyvuppp" path="res://characters/enemies/melee/blackKnight.tscn" id="23_154h8"]
 
 [sub_resource type="Curve2D" id="Curve2D_0eib5"]
 _data = {
@@ -30,6 +38,228 @@ colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1)
 _limits = [0.0, 15.0, 0.0, 3.0]
 _data = [Vector2(0, 1.0219193), 0.0, 0.0, 0, 0]
 point_count = 1
+
+[sub_resource type="Curve" id="Curve_8ow3n"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0]
+point_count = 1
+
+[sub_resource type="Resource" id="Resource_ll8mu"]
+script = ExtResource("16_edmi1")
+icon = ExtResource("17_5g4e1")
+pool_tickets_curve = SubResource("Curve_8ow3n")
+metadata/_custom_type_script = "uid://cidykeebxaujw"
+
+[sub_resource type="Curve" id="Curve_gi5ih"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0]
+point_count = 1
+
+[sub_resource type="Resource" id="Resource_almi1"]
+script = ExtResource("16_edmi1")
+icon = ExtResource("18_gwq2p")
+pool_tickets_curve = SubResource("Curve_gi5ih")
+metadata/_custom_type_script = "uid://cidykeebxaujw"
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_pmto4"]
+atlas = ExtResource("21_tm2co")
+region = Rect2(0, 100, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ex7cg"]
+atlas = ExtResource("21_tm2co")
+region = Rect2(100, 100, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_cblfy"]
+atlas = ExtResource("21_tm2co")
+region = Rect2(200, 100, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_nkn60"]
+atlas = ExtResource("21_tm2co")
+region = Rect2(300, 100, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_gtrn2"]
+atlas = ExtResource("21_tm2co")
+region = Rect2(400, 100, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_p3vt1"]
+atlas = ExtResource("21_tm2co")
+region = Rect2(500, 100, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_w77vi"]
+atlas = ExtResource("21_tm2co")
+region = Rect2(0, 200, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_2lfbx"]
+atlas = ExtResource("21_tm2co")
+region = Rect2(100, 200, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_0e3vg"]
+atlas = ExtResource("21_tm2co")
+region = Rect2(200, 200, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_61uay"]
+atlas = ExtResource("21_tm2co")
+region = Rect2(300, 200, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_v4ptn"]
+atlas = ExtResource("21_tm2co")
+region = Rect2(400, 200, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_0kldc"]
+atlas = ExtResource("21_tm2co")
+region = Rect2(0, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_08x7v"]
+atlas = ExtResource("21_tm2co")
+region = Rect2(100, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_tl8wq"]
+atlas = ExtResource("21_tm2co")
+region = Rect2(200, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_keknm"]
+atlas = ExtResource("21_tm2co")
+region = Rect2(300, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_3hhgk"]
+atlas = ExtResource("21_tm2co")
+region = Rect2(400, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_pl843"]
+atlas = ExtResource("21_tm2co")
+region = Rect2(500, 0, 100, 100)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_trs4y"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_pmto4")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ex7cg")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_cblfy")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_nkn60")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_gtrn2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_p3vt1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_w77vi")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_2lfbx")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_0e3vg")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_61uay")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_v4ptn")
+}],
+"loop": true,
+"name": &"Heal",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_0kldc")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_08x7v")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_tl8wq")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_keknm")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_3hhgk")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_pl843")
+}],
+"loop": true,
+"name": &"Idle",
+"speed": 6.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_karr3"]
+size = Vector2(38, 47)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_k6yf7"]
+atlas = ExtResource("22_chmu7")
+region = Rect2(0, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_fagwg"]
+atlas = ExtResource("22_chmu7")
+region = Rect2(100, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_gl1fl"]
+atlas = ExtResource("22_chmu7")
+region = Rect2(200, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_5wkli"]
+atlas = ExtResource("22_chmu7")
+region = Rect2(300, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_xoc2x"]
+atlas = ExtResource("22_chmu7")
+region = Rect2(400, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_6o5j3"]
+atlas = ExtResource("22_chmu7")
+region = Rect2(500, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_o5tce"]
+atlas = ExtResource("22_chmu7")
+region = Rect2(0, 100, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_7mh8x"]
+atlas = ExtResource("22_chmu7")
+region = Rect2(100, 100, 100, 100)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_62wvd"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_k6yf7")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_fagwg")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_gl1fl")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_5wkli")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_xoc2x")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_6o5j3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_o5tce")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_7mh8x")
+}],
+"loop": true,
+"name": &"Idle",
+"speed": 6.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_732d0"]
+size = Vector2(30.5, 48)
 
 [node name="Level1" type="Node2D" unique_id=1633003567]
 script = ExtResource("1_slv3f")
@@ -53,9 +283,6 @@ polygon = PackedVector2Array(-24, -2, -24, -62, -78, -66, -79, -151, 80, -150, 8
 
 [node name="Path2D" type="Path2D" parent="." unique_id=2068834957 groups=["walk_path"]]
 curve = SubResource("Curve2D_0eib5")
-
-[node name="Castle" parent="." unique_id=1618038282 instance=ExtResource("5_4v7nf")]
-position = Vector2(1, -96)
 
 [node name="CPUParticles2D" type="CPUParticles2D" parent="." unique_id=1125288507]
 visible = false
@@ -91,17 +318,12 @@ angle_min = -5.0
 angle_max = 5.0
 color_initial_ramp = SubResource("Gradient_k7t6a")
 
-[node name="CastleDoorFrame" type="Sprite2D" parent="." unique_id=1953443471]
-z_index = 2000
-position = Vector2(1, -103)
-texture = ExtResource("10_pot7s")
-
 [node name="EnemySpawner" parent="." unique_id=348696290 instance=ExtResource("10_hlrrp")]
 position = Vector2(0, 171.13)
 
 [node name="RunManager" type="Node2D" parent="." unique_id=1021112478 node_paths=PackedStringArray("castle", "spawner", "game_over_screen", "spawn_points")]
 script = ExtResource("11_hah43")
-castle = NodePath("../Castle")
+castle = NodePath("../Castle/Castlescript/Castle")
 spawner = NodePath("../EnemySpawner")
 game_over_screen = NodePath("../CanvasLayer")
 player_scenes = Array[PackedScene]([ExtResource("3_kocss")])
@@ -121,12 +343,153 @@ position = Vector2(30, -110)
 limit_left = -1000
 limit_right = 1000
 script = ExtResource("15_lvlcam")
-single_player_zoom = 3.0
 
-[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=202966856]
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=202966856 node_paths=PackedStringArray("game_over_control", "game_over_label", "time_label", "restart_button", "quit_button")]
+layer = 5
+follow_viewport_enabled = true
 script = ExtResource("12_j7mri")
-restart_texture = ExtResource("13_1uxe1")
-quit_texture = ExtResource("14_1c4rs")
-restart_x_offset = -25.0
-quit_x_offset = -15.0
-button_gap = -70.0
+game_over_control = NodePath("HUD/gameover")
+game_over_label = NodePath("HUD/gameover/fallen")
+time_label = NodePath("HUD/gameover/time")
+restart_button = NodePath("HUD/gameover/Restart")
+quit_button = NodePath("HUD/gameover/Quit")
+
+[node name="HUD" type="Control" parent="CanvasLayer" unique_id=1093251749]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -631.0
+offset_top = -376.0
+offset_right = -631.0
+offset_bottom = -376.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Coins" type="Label" parent="CanvasLayer/HUD" unique_id=1135127464]
+layout_mode = 1
+offset_left = 126.0
+offset_top = 64.0
+offset_right = 227.0
+offset_bottom = 87.0
+text = "coins"
+script = ExtResource("14_pr8jp")
+
+[node name="Time" type="Label" parent="CanvasLayer/HUD" unique_id=2003314903]
+layout_mode = 1
+offset_left = 29.0
+offset_top = 65.0
+offset_right = 114.0
+offset_bottom = 90.0
+text = "time"
+
+[node name="gameover" type="Control" parent="CanvasLayer/HUD" unique_id=2061573304]
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="fallen" type="Label" parent="CanvasLayer/HUD/gameover" unique_id=733210995]
+layout_mode = 0
+offset_left = 534.0
+offset_top = 78.0
+offset_right = 723.0
+offset_bottom = 101.0
+text = "THE CASTLE HAS FALLEN"
+
+[node name="time" type="Label" parent="CanvasLayer/HUD/gameover" unique_id=740871319]
+layout_mode = 0
+offset_left = 583.0
+offset_top = 113.0
+offset_right = 686.0
+offset_bottom = 136.0
+
+[node name="Restart" type="Button" parent="CanvasLayer/HUD/gameover" unique_id=1601470284]
+layout_mode = 0
+offset_left = 388.0
+offset_top = 302.0
+offset_right = 896.0
+offset_bottom = 510.0
+icon = ExtResource("13_1uxe1")
+
+[node name="Quit" type="Button" parent="CanvasLayer/HUD/gameover" unique_id=430628255]
+layout_mode = 0
+offset_left = 366.0
+offset_top = 505.0
+offset_right = 874.0
+offset_bottom = 713.0
+icon = ExtResource("14_1c4rs")
+
+[node name="Castle" type="Node2D" parent="." unique_id=654288399]
+
+[node name="Castlescript" type="Node2D" parent="Castle" unique_id=680612278 node_paths=PackedStringArray("monk_zone", "monk_sprite", "blacksmith_zone", "blacksmith_sprite", "upgrade_ui", "option1_icon", "option2_icon", "coins_display", "run_manager")]
+script = ExtResource("15_154h8")
+monk_zone = NodePath("Monk/Area2D")
+monk_sprite = NodePath("Monk")
+upgrades = Array[ExtResource("16_edmi1")]([SubResource("Resource_ll8mu"), SubResource("Resource_almi1")])
+blacksmith_zone = NodePath("Blacksmith/Area2D")
+blacksmith_sprite = NodePath("Blacksmith")
+upgrade_ui = NodePath("../Shop")
+option1_icon = NodePath("../Shop/upgrad1")
+option2_icon = NodePath("../Shop/upgrade2")
+coins_display = NodePath("../../CanvasLayer/HUD/Coins")
+run_manager = NodePath("../../RunManager")
+
+[node name="Castle" parent="Castle/Castlescript" unique_id=1618038282 instance=ExtResource("5_4v7nf")]
+position = Vector2(1, -96)
+
+[node name="Monk" type="AnimatedSprite2D" parent="Castle/Castlescript" unique_id=1180003735]
+position = Vector2(-94, -109)
+sprite_frames = SubResource("SpriteFrames_trs4y")
+animation = &"Heal"
+autoplay = "Idle"
+
+[node name="Area2D" type="Area2D" parent="Castle/Castlescript/Monk" unique_id=1696892183]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Castle/Castlescript/Monk/Area2D" unique_id=1256796284]
+position = Vector2(9, -1.5)
+shape = SubResource("RectangleShape2D_karr3")
+
+[node name="Blacksmith" type="AnimatedSprite2D" parent="Castle/Castlescript" unique_id=1920024453]
+position = Vector2(113, -101)
+sprite_frames = SubResource("SpriteFrames_62wvd")
+animation = &"Idle"
+autoplay = "Idle"
+
+[node name="Area2D" type="Area2D" parent="Castle/Castlescript/Blacksmith" unique_id=399773238]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Castle/Castlescript/Blacksmith/Area2D" unique_id=262139296]
+position = Vector2(-45.75, -4)
+shape = SubResource("RectangleShape2D_732d0")
+debug_color = Color(0, 0, 0, 0.41960785)
+
+[node name="CastleDoorFrame" type="Sprite2D" parent="Castle" unique_id=1953443471]
+z_index = 2000
+position = Vector2(1, -103)
+texture = ExtResource("10_pot7s")
+
+[node name="Shop" type="Control" parent="Castle" unique_id=1233370777]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="upgrad1" type="TextureRect" parent="Castle/Shop" unique_id=1247963930]
+layout_mode = 0
+offset_left = 26.0
+offset_top = -217.0
+offset_right = 159.0
+offset_bottom = -109.0
+texture = ExtResource("17_5g4e1")
+expand_mode = 1
+
+[node name="upgrade2" type="TextureRect" parent="Castle/Shop" unique_id=364114191]
+layout_mode = 0
+offset_left = 77.0
+offset_top = -217.0
+offset_right = 210.0
+offset_bottom = -109.0
+texture = ExtResource("18_gwq2p")
+expand_mode = 1
+
+[node name="Node2D" parent="." unique_id=1417772890 instance=ExtResource("23_154h8")]
+position = Vector2(-938, 138)
