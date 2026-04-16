@@ -138,8 +138,11 @@ func die() -> void:
 	# Signal the level so it can spawn the death poof at our position.
 	if get_tree().current_scene.has_method("on_entity_died"):
 		get_tree().current_scene.on_entity_died(global_position)
-	# Clean up after 5 seconds.
-	get_tree().create_timer(5.0).timeout.connect(queue_free, CONNECT_ONE_SHOT)
+	# Clean up after the death poof finishes (~2 seconds).
+	# Use owner (the scene root Node2D) so the entire instance is freed,
+	# not just this CharacterBody2D child node.
+	var scene_root: Node = owner if owner != null else self
+	get_tree().create_timer(2.5).timeout.connect(scene_root.queue_free, CONNECT_ONE_SHOT)
 
 
 func _on_health_changed(new_health: float, max_hp: float) -> void:

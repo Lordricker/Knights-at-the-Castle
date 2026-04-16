@@ -366,11 +366,6 @@ position = Vector2(-16, 38)
 rotation = -3.1415925
 scale = Vector2(1.0000002, -1)
 
-[node name="Camera2D" type="Camera2D" parent="CharacterBody2D" unique_id=924440947]
-zoom = Vector2(2, 2)
-limit_left = -1000
-limit_right = 1000
-
 [node name="bodyBox" type="CollisionShape2D" parent="CharacterBody2D" unique_id=1370339960]
 position = Vector2(0, 14)
 shape = SubResource("RectangleShape2D_vh32c")

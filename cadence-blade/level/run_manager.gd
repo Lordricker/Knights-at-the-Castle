@@ -75,7 +75,7 @@ var _game_over: bool = false
 func _ready() -> void:
 	GameManager.change_state(GameManager.GameState.PLAYING)
 
-	_spawn_players()
+	_spawn_players.call_deferred()
 
 	# Resolve the Castle script node: if the assigned node has the signal use it
 	# directly; otherwise search children (handles the case where the scene root
@@ -109,6 +109,19 @@ func _resolve_castle(node: Node) -> Node:
 	return null
 
 
+## Returns the CharacterBase node from a spawned player scene.
+## Handles the case where the scene root is a plain Node2D wrapper.
+func _resolve_character(root: Node) -> Node:
+	if root == null:
+		return null
+	if root.has_signal(&"died"):
+		return root
+	for child in root.get_children():
+		if child.has_signal(&"died"):
+			return child
+	return null
+
+
 # ── Player spawning ───────────────────────────────────────────────────────────
 
 func _spawn_players() -> void:
@@ -119,26 +132,34 @@ func _spawn_players() -> void:
 			print("RunManager: player_scenes[%d] is null, skipping" % i)
 			continue
 
-		var player: Node = scene.instantiate()
-		if player == null:
+		var player_root: Node = scene.instantiate()
+		if player_root == null:
 			push_warning("RunManager: player_scenes[%d] failed to instantiate." % i)
 			continue
 
-		if not player.has_signal(&"died"):
-			push_warning("RunManager: player_scenes[%d] (%s) has no 'died' signal — respawn will not work." % [i, player.name])
+		# Add as a sibling inside the level scene (reliable regardless of current_scene).
+		get_parent().add_child(player_root)
 
-		# Parent to the level scene so the player exists in the world.
-		get_tree().current_scene.add_child(player)
-
-		# Place at the matching spawn point, falling back to slot 0.
 		var point: Marker2D = _get_spawn_point(i)
-		if point != null:
-			player.global_position = point.global_position
 
-		_players.append(player)
-		if player.has_signal(&"died"):
-			player.died.connect(_on_player_died.bind(player))
-		print("RunManager: spawned player [%d] '%s' at %s" % [i, player.name, player.global_position])
+		# The scene root may be a wrapper Node2D; find the actual character node.
+		var character: Node = _resolve_character(player_root)
+		if character == null:
+			push_warning("RunManager: player_scenes[%d] (%s) has no node with a 'died' signal." % [i, player_root.name])
+			_players.append(player_root)
+			player_root.add_to_group("players")
+			print("RunManager: spawned player [%d] '%s' at %s (no character node found)" % [i, player_root.name, player_root.global_position])
+			continue
+
+		# Position the character node itself — it's what moves, not the wrapper.
+		if point != null:
+			character.global_position = point.global_position
+
+		_players.append(player_root)
+		# Add the moving node to the group so the camera tracks it correctly.
+		character.add_to_group("players")
+		character.died.connect(_on_player_died.bind(player_root))
+		print("RunManager: spawned player [%d] '%s' at %s" % [i, player_root.name, character.global_position])
 
 
 func _get_spawn_point(index: int) -> Marker2D:
@@ -213,7 +234,11 @@ func _respawn_player(player: Node) -> void:
 	if point == null:
 		return
 
-	if player.has_method(&"revive"):
+	var character: Node = _resolve_character(player)
+	if character != null and character.has_method(&"revive"):
+		character.revive(point.global_position)
+		print("RunManager: revived player '%s' at %s" % [player.name, point.global_position])
+	elif player.has_method(&"revive"):
 		player.revive(point.global_position)
 		print("RunManager: revived player '%s' at %s" % [player.name, point.global_position])
 	else:

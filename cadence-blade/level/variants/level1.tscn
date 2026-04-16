@@ -14,6 +14,7 @@
 [ext_resource type="Script" uid="uid://cgdiemwnuf1an" path="res://ui/menus/game_over_screen.gd" id="12_j7mri"]
 [ext_resource type="Texture2D" uid="uid://dvnkegprvdxot" path="res://assets/sprites/UI/RestartButton.png" id="13_1uxe1"]
 [ext_resource type="Texture2D" uid="uid://cukrmkf3jrgb8" path="res://assets/sprites/UI/QuitButton.png" id="14_1c4rs"]
+[ext_resource type="Script" uid="uid://dpjae2t3dv3ia" path="res://level/level_camera.gd" id="15_lvlcam"]
 
 [sub_resource type="Curve2D" id="Curve2D_0eib5"]
 _data = {
@@ -116,10 +117,16 @@ position = Vector2(-30, -110)
 [node name="RogueSpawn" type="Marker2D" parent="RunManager" unique_id=1606721425]
 position = Vector2(30, -110)
 
+[node name="LevelCamera" type="Camera2D" parent="." unique_id=1744000001]
+limit_left = -1000
+limit_right = 1000
+script = ExtResource("15_lvlcam")
+single_player_zoom = 3.0
+
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=202966856]
 script = ExtResource("12_j7mri")
 restart_texture = ExtResource("13_1uxe1")
 quit_texture = ExtResource("14_1c4rs")
 restart_x_offset = -25.0
-quit_x_offset = -10.0
-button_gap = -100.0
+quit_x_offset = -15.0
+button_gap = -70.0

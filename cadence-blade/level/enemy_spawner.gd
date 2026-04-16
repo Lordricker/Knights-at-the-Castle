@@ -185,8 +185,15 @@ func _spawn_variant(key: Vector2i) -> void:
 	instance.global_position = _left_point.global_position if use_left else _right_point.global_position
 
 	# Track alive count; lambda captures key by value.
-	if instance.has_signal("died"):
-		instance.died.connect(func(_e: Node) -> void: _on_enemy_died(key))
+	# The scene root may be a plain Node2D wrapper — find the actual enemy node.
+	var signal_source: Node = instance
+	if not instance.has_signal("died"):
+		for child in instance.get_children():
+			if child.has_signal("died"):
+				signal_source = child
+				break
+	if signal_source.has_signal("died"):
+		signal_source.died.connect(func(_e: Node) -> void: _on_enemy_died(key))
 
 	_alive_counts[key] = _alive_counts.get(key, 0) + 1
 	_total_alive += 1

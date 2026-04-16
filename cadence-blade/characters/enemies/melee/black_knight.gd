@@ -143,8 +143,8 @@ func _on_animation_finished() -> void:
 func _set_hitbox(box: Area2D, enabled: bool) -> void:
 	if box == null:
 		return
-	box.monitoring = enabled
-	box.monitorable = enabled
+	box.set_deferred(&"monitoring", enabled)
+	box.set_deferred(&"monitorable", enabled)
 
 
 ## Called when the slash hitbox touches a CharacterBody2D / StaticBody2D.

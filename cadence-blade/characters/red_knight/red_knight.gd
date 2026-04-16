@@ -178,6 +178,19 @@ func _handle_attack_input() -> void:
 			_handle_flow_attempt(&"thrust")
 
 
+## Reset all attack state on respawn so the player does not resume mid-swing.
+func revive(at: Vector2) -> void:
+	attack_state = AttackState.NONE
+	lunge_active = false
+	_slash_effect_pending_hide = false
+	_current_attack_damage_multiplier = 1.0
+	_stop_flow()
+	_set_hitbox(slash_hitbox, false)
+	_set_hitbox(thrust_hitbox, false)
+	_set_slash_effect_sprite(false)
+	super(at)
+
+
 func _begin_attack(anim_name: String, next_state: AttackState) -> void:
 	attack_state = next_state
 	_current_attack_damage_multiplier = 1.0
