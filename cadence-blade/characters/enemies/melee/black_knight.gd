@@ -116,10 +116,10 @@ func _stop_attack() -> void:
 	animated_sprite.play("running")
 
 
-func die() -> void:
+func die(flow_success: bool = false) -> void:
 	slash_state = SlashState.NONE
 	_set_hitbox(slash_hitbox, false)
-	super()
+	super(flow_success)
 
 
 # ── Frame / animation signals ──────────────────────────────────────────────────

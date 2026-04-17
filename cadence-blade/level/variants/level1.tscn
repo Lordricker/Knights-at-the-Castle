@@ -7,6 +7,8 @@
 [ext_resource type="Texture2D" uid="uid://c665lghwlbqwj" path="res://level/backgroundSprites/Tower.png" id="4_4v7nf"]
 [ext_resource type="PackedScene" uid="uid://vqn6c6fo34d1" path="res://characters/castle.tscn" id="5_4v7nf"]
 [ext_resource type="Texture2D" uid="uid://bl41b5s5e5u7y" path="res://level/backgroundSprites/Clouds_02.png" id="8_hah43"]
+[ext_resource type="Script" uid="uid://dj8qa3itlkqdw" path="res://characters/enemies/enemy_type_config.gd" id="8_pr8jp"]
+[ext_resource type="Script" uid="uid://dnnh0acalw8gk" path="res://characters/enemies/enemy_variant_config.gd" id="9_154h8"]
 [ext_resource type="Texture2D" uid="uid://dpw5w2jww2dxq" path="res://level/backgroundSprites/Clouds_03.png" id="9_j7mri"]
 [ext_resource type="PackedScene" uid="uid://f7em6508ojfd" path="res://level/enemy_spawner.tscn" id="10_hlrrp"]
 [ext_resource type="Texture2D" uid="uid://kwvbu2dfdsd8" path="res://level/backgroundSprites/CastleDoorFrame.png" id="10_pot7s"]
@@ -15,8 +17,11 @@
 [ext_resource type="Script" uid="uid://dpjae2t3dv3ia" path="res://core/level_camera.gd" id="15_lvlcam"]
 [ext_resource type="Script" uid="uid://cidykeebxaujw" path="res://core/Upgrades/upgrade_config.gd" id="16_edmi1"]
 [ext_resource type="Texture2D" uid="uid://bhfpc1w4dqq0y" path="res://core/Upgrades/plus5atk.png" id="17_5g4e1"]
+[ext_resource type="Texture2D" uid="uid://chf7h63qrwf7i" path="res://core/Upgrades/plus50hp.png" id="18_5g4e1"]
 [ext_resource type="Texture2D" uid="uid://wxcyewyr8jxt" path="res://core/Upgrades/plus5spd.png" id="18_gwq2p"]
+[ext_resource type="Texture2D" uid="uid://dtovxjqw2h3pi" path="res://core/Upgrades/castlehp250.png" id="19_gwq2p"]
 [ext_resource type="PackedScene" uid="uid://0cyfncn8h6nd" path="res://ui/hud/hud.tscn" id="20_h2mhx"]
+[ext_resource type="Texture2D" uid="uid://c1vdscvx00hm0" path="res://core/Upgrades/healcastle250.png" id="20_tm2co"]
 [ext_resource type="Texture2D" uid="uid://cne0q84ecjudd" path="res://assets/sprites/MonkSprites.png" id="21_tm2co"]
 [ext_resource type="Texture2D" uid="uid://jvow1lpkr13n" path="res://assets/sprites/BlacksmithSprites.png" id="22_chmu7"]
 [ext_resource type="PackedScene" uid="uid://1brrmdyvuppp" path="res://characters/enemies/melee/blackKnight.tscn" id="23_154h8"]
@@ -31,10 +36,34 @@ point_count = 9
 offsets = PackedFloat32Array(0.10962567, 0.96524066, 1)
 colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1)
 
+[sub_resource type="Curve" id="Curve_edmi1"]
+_limits = [0.0, 5.0, 0.0, 3.0]
+_data = [Vector2(0, 5), 0.0, 0.0, 0, 0]
+point_count = 1
+
+[sub_resource type="Curve" id="Curve_5g4e1"]
+_limits = [0.0, 5.0, 0.0, 3.0]
+_data = [Vector2(0, 5), 0.0, 0.0, 0, 0, Vector2(0.8494625, 2.5), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Resource" id="Resource_gwq2p"]
+script = ExtResource("9_154h8")
+scene = ExtResource("23_154h8")
+pool_tickets_curve = SubResource("Curve_5g4e1")
+max_alive_curve = SubResource("Curve_edmi1")
+flow_kill_coin_tier = 2
+metadata/_custom_type_script = "uid://dnnh0acalw8gk"
+
+[sub_resource type="Resource" id="Resource_tm2co"]
+script = ExtResource("8_pr8jp")
+type_name = "Warrior"
+variants = Array[ExtResource("9_154h8")]([SubResource("Resource_gwq2p")])
+metadata/_custom_type_script = "uid://dj8qa3itlkqdw"
+
 [sub_resource type="Curve" id="Curve_hah43"]
 _limits = [0.0, 15.0, 0.0, 3.0]
-_data = [Vector2(0, 1.0219193), 0.0, 0.0, 0, 0]
-point_count = 1
+_data = [Vector2(0, 1.484005), 0.0, 9.864617, 0, 1, Vector2(0.15223882, 2.9857826), 2.948544, 2.948544, 0, 0, Vector2(3, 15), 4.218829, 0.0, 1, 0]
+point_count = 3
 
 [sub_resource type="Curve" id="Curve_8ow3n"]
 _data = [Vector2(0, 1), 0.0, 0.0, 0, 0]
@@ -42,8 +71,10 @@ point_count = 1
 
 [sub_resource type="Resource" id="Resource_ll8mu"]
 script = ExtResource("16_edmi1")
+display_name = "+attack"
 icon = ExtResource("17_5g4e1")
-cost = 2
+cost = 3
+stat_amount = 20.0
 pool_tickets_curve = SubResource("Curve_8ow3n")
 metadata/_custom_type_script = "uid://cidykeebxaujw"
 
@@ -53,9 +84,57 @@ point_count = 1
 
 [sub_resource type="Resource" id="Resource_almi1"]
 script = ExtResource("16_edmi1")
+display_name = "+speed"
 icon = ExtResource("18_gwq2p")
-cost = 2
+cost = 3
+stat_type = 1
+stat_amount = 50.0
 pool_tickets_curve = SubResource("Curve_gi5ih")
+metadata/_custom_type_script = "uid://cidykeebxaujw"
+
+[sub_resource type="Curve" id="Curve_chmu7"]
+_limits = [0.0, 3.0, 0.0, 3.0]
+_data = [Vector2(0.045602612, 1), 0.0, 0.0, 0, 0]
+point_count = 1
+
+[sub_resource type="Resource" id="Resource_8ow3n"]
+script = ExtResource("16_edmi1")
+display_name = "upHP"
+icon = ExtResource("18_5g4e1")
+cost = 3
+stat_type = 4
+stat_amount = 50.0
+pool_tickets_curve = SubResource("Curve_chmu7")
+metadata/_custom_type_script = "uid://cidykeebxaujw"
+
+[sub_resource type="Curve" id="Curve_ll8mu"]
+_limits = [0.0, 1.0, 0.0, 3.0]
+_data = [Vector2(0.019543976, 1), 0.0, 0.0, 0, 0]
+point_count = 1
+
+[sub_resource type="Resource" id="Resource_gi5ih"]
+script = ExtResource("16_edmi1")
+display_name = "upCastle"
+icon = ExtResource("19_gwq2p")
+cost = 3
+stat_type = 3
+stat_amount = 250.0
+pool_tickets_curve = SubResource("Curve_ll8mu")
+metadata/_custom_type_script = "uid://cidykeebxaujw"
+
+[sub_resource type="Curve" id="Curve_almi1"]
+_limits = [0.0, 1.0, 0.0, 3.0]
+_data = [Vector2(0.09771988, 1), 0.0, 0.0, 0, 0]
+point_count = 1
+
+[sub_resource type="Resource" id="Resource_pmto4"]
+script = ExtResource("16_edmi1")
+display_name = "HealCastle"
+icon = ExtResource("20_tm2co")
+cost = 3
+stat_type = 2
+stat_amount = 250.0
+pool_tickets_curve = SubResource("Curve_almi1")
 metadata/_custom_type_script = "uid://cidykeebxaujw"
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_pmto4"]
@@ -319,6 +398,7 @@ color_initial_ramp = SubResource("Gradient_k7t6a")
 
 [node name="EnemySpawner" parent="." unique_id=348696290 instance=ExtResource("10_hlrrp")]
 position = Vector2(0, 171.13)
+enemy_types = Array[ExtResource("8_pr8jp")]([SubResource("Resource_tm2co")])
 
 [node name="RunManager" type="Node2D" parent="." unique_id=1021112478 node_paths=PackedStringArray("castle", "spawner", "game_over_screen", "spawn_points")]
 script = ExtResource("11_hah43")
@@ -347,9 +427,10 @@ script = ExtResource("15_lvlcam")
 
 [node name="Castlescript" type="Node2D" parent="Castle" unique_id=680612278 node_paths=PackedStringArray("monk_zone", "monk_sprite", "blacksmith_zone", "blacksmith_sprite", "upgrade_ui", "option1_icon", "option2_icon", "run_manager")]
 script = ExtResource("15_154h8")
+heal_per_second = 75.0
 monk_zone = NodePath("Monk/Area2D")
 monk_sprite = NodePath("Monk")
-upgrades = Array[ExtResource("16_edmi1")]([SubResource("Resource_ll8mu"), SubResource("Resource_almi1")])
+upgrades = Array[ExtResource("16_edmi1")]([SubResource("Resource_ll8mu"), SubResource("Resource_almi1"), SubResource("Resource_8ow3n"), SubResource("Resource_gi5ih"), SubResource("Resource_pmto4")])
 blacksmith_zone = NodePath("Blacksmith/Area2D")
 blacksmith_sprite = NodePath("Blacksmith")
 upgrade_ui = NodePath("../Shop")
@@ -415,6 +496,6 @@ texture = ExtResource("18_gwq2p")
 expand_mode = 1
 
 [node name="Node2D" parent="." unique_id=1417772890 instance=ExtResource("23_154h8")]
-position = Vector2(-938, 138)
+position = Vector2(-695, 156)
 
 [node name="HUD" parent="." unique_id=263715054 instance=ExtResource("20_h2mhx")]

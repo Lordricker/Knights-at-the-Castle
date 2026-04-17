@@ -1,0 +1,142 @@
+[gd_scene format=3 uid="uid://0ofisefroi8"]
+
+[ext_resource type="Script" uid="uid://bp8xsb0bkidtc" path="res://FX/coin.gd" id="1_uffm0"]
+[ext_resource type="Texture2D" uid="uid://wm2wi6wguq22" path="res://assets/sprites/Coin2.png" id="2_at70c"]
+[ext_resource type="Texture2D" uid="uid://d17uykc2xhfgb" path="res://assets/sprites/CoinShadow.png" id="2_ep7oc"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_m8vbh"]
+radius = 8.0
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_jksmi"]
+atlas = ExtResource("2_at70c")
+region = Rect2(0, 0, 40, 80)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_0tnun"]
+atlas = ExtResource("2_at70c")
+region = Rect2(40, 0, 40, 80)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_og6g1"]
+atlas = ExtResource("2_at70c")
+region = Rect2(80, 0, 40, 80)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_rejji"]
+atlas = ExtResource("2_at70c")
+region = Rect2(120, 0, 40, 80)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_n4mer"]
+atlas = ExtResource("2_at70c")
+region = Rect2(0, 80, 40, 80)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_gn7je"]
+atlas = ExtResource("2_at70c")
+region = Rect2(40, 80, 40, 80)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_pemb7"]
+atlas = ExtResource("2_at70c")
+region = Rect2(80, 80, 40, 80)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_e4s04"]
+atlas = ExtResource("2_at70c")
+region = Rect2(120, 80, 40, 80)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_bgwsm"]
+atlas = ExtResource("2_at70c")
+region = Rect2(0, 160, 40, 80)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_jrogy"]
+atlas = ExtResource("2_at70c")
+region = Rect2(40, 160, 40, 80)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_emy6e"]
+atlas = ExtResource("2_at70c")
+region = Rect2(80, 160, 40, 80)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_r8dej"]
+atlas = ExtResource("2_at70c")
+region = Rect2(120, 160, 40, 80)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_v6ue7"]
+atlas = ExtResource("2_at70c")
+region = Rect2(0, 240, 40, 80)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_g1pc3"]
+atlas = ExtResource("2_at70c")
+region = Rect2(40, 240, 40, 80)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_siboe"]
+atlas = ExtResource("2_at70c")
+region = Rect2(80, 240, 40, 80)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_jquwk"]
+atlas = ExtResource("2_at70c")
+region = Rect2(120, 240, 40, 80)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_r5g3i"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_jksmi")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_0tnun")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_og6g1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_rejji")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_n4mer")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_gn7je")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_pemb7")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_e4s04")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_bgwsm")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_jrogy")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_emy6e")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_r8dej")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_v6ue7")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_g1pc3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_siboe")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_jquwk")
+}],
+"loop": false,
+"name": &"default",
+"speed": 6.0
+}]
+
+[node name="Coin2" type="Area2D" unique_id=894908613]
+script = ExtResource("1_uffm0")
+coin_value = 2
+
+[node name="CoinShadow" type="Sprite2D" parent="." unique_id=1464864835]
+texture = ExtResource("2_ep7oc")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1652381210]
+shape = SubResource("CircleShape2D_m8vbh")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=168454951]
+sprite_frames = SubResource("SpriteFrames_r5g3i")
+autoplay = "default"

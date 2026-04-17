@@ -56,7 +56,7 @@ var facing: float = 1.0
 @export_range(0.0, 1.0, 0.01) var flow_success_window_end: float = 0.60
 ## Max random shift applied to the window position each attack (bar units, 0.0-0.5).
 ## The window size stays fixed; only its position shifts.
-@export_range(0.0, 0.5, 0.01) var flow_window_random_range: float = 0.20
+@export_range(0.0, 0.5, 0.01) var flow_window_random_range: float = 0.10
 @export_group("")
 
 var _health_bar_api: Node = null
@@ -206,7 +206,7 @@ func _nearest_point_on_segment(p: Vector2, a: Vector2, b: Vector2) -> Vector2:
 	return a + ab * t
 
 
-func take_damage(amount: float) -> void:
+func take_damage(amount: float, _flow_success: bool = false) -> void:
 	if is_dead:
 		return
 	health = maxf(0.0, health - amount)

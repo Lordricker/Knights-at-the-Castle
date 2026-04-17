@@ -29,6 +29,10 @@ var _health_bar_right_pos: Vector2 = Vector2.ZERO
 var health: float = max_health
 var is_dead: bool = false
 var target: Node2D = null
+## Set by EnemySpawner. 0=none, 1=Coin, 2=Coin2, 3=Coin4.
+var coin_tier: int = 1
+## Set by EnemySpawner. 0=same as coin_tier, otherwise overrides on flow kill.
+var flow_kill_coin_tier: int = 0
 var walk_path: Path2D = null
 var knockback_velocity: Vector2 = Vector2.ZERO
 
@@ -114,16 +118,16 @@ func _get_targets_in_range() -> Array:
 	return results
 
 
-func take_damage(amount: float) -> void:
+func take_damage(amount: float, flow_success: bool = false) -> void:
 	if is_dead:
 		return
 	health = maxf(0.0, health - amount)
 	health_changed.emit(health, max_health)
 	if health == 0.0:
-		die()
+		die(flow_success)
 
 
-func die() -> void:
+func die(flow_success: bool = false) -> void:
 	if is_dead:
 		return
 	is_dead = true
@@ -135,9 +139,12 @@ func die() -> void:
 	if health_bar != null:
 		health_bar.hide()
 	died.emit(self)
-	# Signal the level so it can spawn the death poof at our position.
+	# Signal the level so it can spawn the death poof and the correct coin.
 	if get_tree().current_scene.has_method("on_entity_died"):
-		get_tree().current_scene.on_entity_died(global_position)
+		var tier: int = coin_tier
+		if flow_success and flow_kill_coin_tier > 0:
+			tier = flow_kill_coin_tier
+		get_tree().current_scene.on_entity_died(global_position, true, tier)
 	# Clean up after the death poof finishes (~2 seconds).
 	# Use owner (the scene root Node2D) so the entire instance is freed,
 	# not just this CharacterBody2D child node.

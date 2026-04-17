@@ -15,8 +15,11 @@ extends Resource
 #   +5 Speed:  Y=0 for first 20 % of run, then ramp to Y=8 (unlocks mid-run).
 
 enum StatType {
-	ATTACK,  ## Adds stat_amount to the player's attack_bonus (flat damage added per hit).
-	SPEED,   ## Adds stat_amount to the player's speed_bonus (flat move_speed increase).
+	ATTACK,          ## Adds stat_amount to the player's attack_bonus (flat damage added per hit).
+	SPEED,           ## Adds stat_amount to the player's speed_bonus (flat move_speed increase).
+	HEAL_CASTLE,     ## Restores stat_amount HP to the castle (capped at its current max).
+	UPGRADE_CASTLE,  ## Increases the castle's max HP by stat_amount.
+	UPGRADE_HP,      ## Increases the player's max HP by stat_amount.
 }
 
 @export_group("Identity")

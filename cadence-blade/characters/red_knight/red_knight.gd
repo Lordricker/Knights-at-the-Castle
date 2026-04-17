@@ -290,8 +290,9 @@ func _on_thrust_hit_body(body: Node2D) -> void:
 
 
 func _apply_hit_body(body: Node2D) -> void:
+	var flow_success: bool = _current_attack_damage_multiplier >= 1.0
 	if body.has_method("take_damage"):
-		body.take_damage(_get_current_attack_damage())
+		body.take_damage(_get_current_attack_damage(), flow_success)
 	if body.has_method("apply_knockback"):
 		body.apply_knockback(global_position, knockback_force)
 

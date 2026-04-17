@@ -28,3 +28,10 @@ extends Resource
 ## X = normalised elapsed time, Y = max alive count (rounded to int).
 ## The lottery skips this variant when the cap is reached and retries.
 @export var max_alive_curve: Curve
+
+@export_group("Rewards")
+## Which coin tier drops on a normal kill. 0 = none, 1 = Coin, 2 = Coin2, 3 = Coin4.
+@export_enum("None", "Coin (1)", "Coin 2 (2)", "Coin 4 (4)") var coin_tier: int = 1
+## Which coin tier drops when killed with a perfect flow hit.
+## Set to 0 to use the same tier as a normal kill.
+@export_enum("None", "Coin (1)", "Coin 2 (2)", "Coin 4 (4)") var flow_kill_coin_tier: int = 0

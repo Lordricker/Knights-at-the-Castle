@@ -134,6 +134,7 @@ slash_damage = 50.0
 facing_pivot = NodePath("Pivot")
 health_bar = NodePath("Pivot/HPBar")
 detection_zone = NodePath("Pivot/DetectionZone")
+knockback_friction = 400.0
 oscillate = true
 oscillate_speed = 0.2
 

@@ -98,6 +98,8 @@ extends Node2D
 @export_group("Scene References")
 ## RunManager node — must have a float property `time_elapsed`.
 @export var run_manager: Node
+## The Castle node in the level scene. Required for HealCastle and UpgradeCastle upgrades.
+@export var castle: Castle
 
 # ── Runtime state ─────────────────────────────────────────────────────────────
 
@@ -178,9 +180,12 @@ func _on_blacksmith_zone_body_entered(body: Node2D) -> void:
 	_player = player
 	_player_in_blacksmith_zone = true
 	player.attacks_locked = true
-	_roll_upgrades()
+	# Only roll fresh offers if there are none active (first visit or all slots purchased).
+	# Re-entering the zone mid-timer keeps the existing offers and the running timer.
+	if _offered[0] == null and _offered[1] == null:
+		_roll_upgrades()
+		_refresh_timer = refresh_interval
 	_show_upgrade_ui(true)
-	_refresh_timer = refresh_interval
 
 
 func _on_blacksmith_zone_body_exited(body: Node2D) -> void:
@@ -223,7 +228,6 @@ func _try_purchase(slot: int) -> void:
 		return
 	_player.add_coins(-upgrade.cost)
 	_apply_upgrade(upgrade)
-	_offered[slot] = null
 	_flash_purchase_icon(slot)
 
 
@@ -233,6 +237,18 @@ func _apply_upgrade(upgrade: UpgradeConfig) -> void:
 			_player.attack_bonus += upgrade.stat_amount
 		UpgradeConfig.StatType.SPEED:
 			_player.speed_bonus += upgrade.stat_amount
+		UpgradeConfig.StatType.HEAL_CASTLE:
+			if castle != null:
+				castle.health = minf(castle.health + upgrade.stat_amount, castle.max_health)
+				castle.health_changed.emit(castle.health, castle.max_health)
+		UpgradeConfig.StatType.UPGRADE_CASTLE:
+			if castle != null:
+				castle.max_health += upgrade.stat_amount
+				castle.health_changed.emit(castle.health, castle.max_health)
+		UpgradeConfig.StatType.UPGRADE_HP:
+			if _player != null:
+				_player.max_health += upgrade.stat_amount
+				_player.health_changed.emit(_player.health, _player.max_health)
 
 # ── Lottery rolling ───────────────────────────────────────────────────────────
 
@@ -281,7 +297,6 @@ func _flash_purchase_icon(slot: int) -> void:
 	icon_ref.modulate = Color(0.2, 1.0, 0.3, 1.0)
 	var tween := create_tween()
 	tween.tween_property(icon_ref, "modulate", Color.WHITE, 0.35)
-	tween.tween_callback(icon_ref.hide)
 
 
 ## Briefly tints the icon red to signal the player cannot afford it.

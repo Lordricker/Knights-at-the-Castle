@@ -198,6 +198,12 @@ func _spawn_variant(key: Vector2i) -> void:
 	_alive_counts[key] = _alive_counts.get(key, 0) + 1
 	_total_alive += 1
 
+	# Propagate coin tier config to the enemy so it knows what to drop on death.
+	if "coin_tier" in signal_source:
+		signal_source.coin_tier = vi_cfg.coin_tier
+	if "flow_kill_coin_tier" in signal_source:
+		signal_source.flow_kill_coin_tier = vi_cfg.flow_kill_coin_tier
+
 
 func _on_enemy_died(key: Vector2i) -> void:
 	_alive_counts[key] = maxi(0, _alive_counts.get(key, 0) - 1)

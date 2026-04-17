@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://0cyfncn8h6nd"]
 
 [ext_resource type="FontFile" uid="uid://3k4f02awf4kq" path="res://assets/fonts/FRSCRIPT.TTF" id="1_4d6w6"]
-[ext_resource type="Script" uid="uid://cgdiemwnuf1an" path="res://ui/menus/hud.gd" id="1_imuuq"]
-[ext_resource type="Texture2D" uid="uid://fd07122yexlv" path="res://assets/sprites/Coin.png" id="2_e0nub"]
+[ext_resource type="Script" path="res://ui/menus/hud.gd" id="1_imuuq"]
+[ext_resource type="Texture2D" uid="uid://dcnd0q3lk55mi" path="res://assets/sprites/CoinPNG.png" id="3_kwc50"]
 [ext_resource type="Texture2D" uid="uid://dvnkegprvdxot" path="res://assets/sprites/UI/RestartButton.png" id="4_kwc50"]
 [ext_resource type="Texture2D" uid="uid://cukrmkf3jrgb8" path="res://assets/sprites/UI/QuitButton.png" id="5_o2lis"]
 [ext_resource type="FontFile" uid="uid://di588hyvkxc6w" path="res://assets/fonts/LATINWD.TTF" id="6_kwc50"]
@@ -46,9 +46,9 @@ theme_override_font_sizes/font_size = 64
 text = "Coins"
 
 [node name="Sprite2D" type="Sprite2D" parent="Control" unique_id=796565681]
-position = Vector2(176, 36.435)
-scale = Vector2(2, 2)
-texture = ExtResource("2_e0nub")
+position = Vector2(164.13, 36.435)
+scale = Vector2(2.5, 2.5)
+texture = ExtResource("3_kwc50")
 
 [node name="gameoverscreen" type="Control" parent="Control" unique_id=39879618]
 layout_mode = 1
@@ -132,5 +132,5 @@ offset_bottom = -129.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_fonts/font = ExtResource("6_kwc50")
-theme_override_font_sizes/font_size = 64
+theme_override_font_sizes/font_size = 50
 text = "The Castle Has Fallen"
