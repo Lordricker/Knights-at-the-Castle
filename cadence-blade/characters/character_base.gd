@@ -54,6 +54,9 @@ var facing: float = 1.0
 @export var flow_miss_damage_multiplier: float = 0.6
 @export_range(0.0, 1.0, 0.01) var flow_success_window_start: float = 0.45
 @export_range(0.0, 1.0, 0.01) var flow_success_window_end: float = 0.60
+## Max random shift applied to the window position each attack (bar units, 0.0-0.5).
+## The window size stays fixed; only its position shifts.
+@export_range(0.0, 0.5, 0.01) var flow_window_random_range: float = 0.20
 @export_group("")
 
 var _health_bar_api: Node = null
@@ -332,8 +335,11 @@ func _start_flow(input_action: StringName, on_resolved: Callable) -> void:
 	if flow_bar != null:
 		flow_bar.show()
 	if _flow_bar_api != null:
-		_flow_bar_api.success_window_start = flow_success_window_start
-		_flow_bar_api.success_window_end = flow_success_window_end
+		var _window_size: float = flow_success_window_end - flow_success_window_start
+		var _shift: float = randf_range(-flow_window_random_range, flow_window_random_range)
+		var _rand_start: float = clampf(flow_success_window_start + _shift, 0.0, 1.0 - _window_size)
+		_flow_bar_api.success_window_start = _rand_start
+		_flow_bar_api.success_window_end = _rand_start + _window_size
 		if _flow_bar_api.has_method("start_flow"):
 			_flow_bar_api.start_flow()
 

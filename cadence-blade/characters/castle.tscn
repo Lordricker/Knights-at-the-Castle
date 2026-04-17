@@ -3,7 +3,7 @@
 [ext_resource type="Texture2D" uid="uid://cvy0sb28lvp2t" path="res://level/backgroundSprites/Castle.png" id="1_qracd"]
 [ext_resource type="Script" uid="uid://dyajivtxcsito" path="res://characters/castle.gd" id="1_v1fyj"]
 [ext_resource type="Texture2D" uid="uid://dew7fmf2bjfck" path="res://level/backgroundSprites/CastleInside.png" id="2_d4rmk"]
-[ext_resource type="Script" uid="uid://1ev0o35afyo" path="res://ui/hud/horizontal_health_bar.gd" id="4_s2tfp"]
+[ext_resource type="Script" path="res://ui/hud/horizontal_health_bar.gd" id="4_s2tfp"]
 [ext_resource type="Texture2D" uid="uid://b8l1h6bswmk7w" path="res://level/backgroundSprites/CastleHP.png" id="5_kioy7"]
 [ext_resource type="Texture2D" uid="uid://b6gs8kqn8jrdh" path="res://level/backgroundSprites/CastleHPMask.png" id="6_kyk3r"]
 [ext_resource type="Texture2D" uid="uid://bq0y1xj775cm5" path="res://assets/sprites/UI/CastleHPOverlay.png" id="7_d4rmk"]
@@ -18,6 +18,7 @@ size = Vector2(218, 137)
 
 [node name="StaticBody2D" type="StaticBody2D" parent="." unique_id=1698008059 node_paths=PackedStringArray("health_bar", "castle_sprite", "inside_zone")]
 script = ExtResource("1_v1fyj")
+max_health = 1000.0
 health_bar = NodePath("hpbar")
 castle_sprite = NodePath("Castle")
 inside_zone = NodePath("Area2D")

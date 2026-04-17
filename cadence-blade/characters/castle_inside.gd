@@ -219,11 +219,12 @@ func _try_purchase(slot: int) -> void:
 	if _player.coins < upgrade.cost:
 		if coins_display != null and coins_display.has_method(&"flash_insufficient"):
 			coins_display.flash_insufficient()
+		_flash_deny_icon(slot)
 		return
 	_player.add_coins(-upgrade.cost)
 	_apply_upgrade(upgrade)
 	_offered[slot] = null
-	_update_ui_slot(slot)
+	_flash_purchase_icon(slot)
 
 
 func _apply_upgrade(upgrade: UpgradeConfig) -> void:
@@ -270,6 +271,27 @@ func _draw_one(t: float, exclude: Array) -> UpgradeConfig:
 func _show_upgrade_ui(show: bool) -> void:
 	if upgrade_ui != null:
 		upgrade_ui.visible = show
+
+
+## Briefly tints the purchased icon green, then fades back to white and hides it.
+func _flash_purchase_icon(slot: int) -> void:
+	var icon_ref: TextureRect = option1_icon if slot == 0 else option2_icon
+	if icon_ref == null:
+		return
+	icon_ref.modulate = Color(0.2, 1.0, 0.3, 1.0)
+	var tween := create_tween()
+	tween.tween_property(icon_ref, "modulate", Color.WHITE, 0.35)
+	tween.tween_callback(icon_ref.hide)
+
+
+## Briefly tints the icon red to signal the player cannot afford it.
+func _flash_deny_icon(slot: int) -> void:
+	var icon_ref: TextureRect = option1_icon if slot == 0 else option2_icon
+	if icon_ref == null:
+		return
+	icon_ref.modulate = Color.RED
+	var tween := create_tween()
+	tween.tween_property(icon_ref, "modulate", Color.WHITE, 0.35)
 
 
 func _update_ui_slot(slot: int) -> void:

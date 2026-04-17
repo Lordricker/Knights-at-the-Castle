@@ -1,0 +1,136 @@
+[gd_scene format=3 uid="uid://0cyfncn8h6nd"]
+
+[ext_resource type="FontFile" uid="uid://3k4f02awf4kq" path="res://assets/fonts/FRSCRIPT.TTF" id="1_4d6w6"]
+[ext_resource type="Script" uid="uid://cgdiemwnuf1an" path="res://ui/menus/hud.gd" id="1_imuuq"]
+[ext_resource type="Texture2D" uid="uid://fd07122yexlv" path="res://assets/sprites/Coin.png" id="2_e0nub"]
+[ext_resource type="Texture2D" uid="uid://dvnkegprvdxot" path="res://assets/sprites/UI/RestartButton.png" id="4_kwc50"]
+[ext_resource type="Texture2D" uid="uid://cukrmkf3jrgb8" path="res://assets/sprites/UI/QuitButton.png" id="5_o2lis"]
+[ext_resource type="FontFile" uid="uid://di588hyvkxc6w" path="res://assets/fonts/LATINWD.TTF" id="6_kwc50"]
+
+[node name="HUD" type="CanvasLayer" unique_id=263715054 node_paths=PackedStringArray("hud_timer_label", "hud_coins_label", "game_over_control", "game_over_label", "game_over_time_label", "restart_button", "quit_button")]
+script = ExtResource("1_imuuq")
+hud_timer_label = NodePath("Control/Time")
+hud_coins_label = NodePath("Control/Coins")
+game_over_control = NodePath("Control/gameoverscreen")
+game_over_label = NodePath("Control/gameoverscreen/FallenText")
+game_over_time_label = NodePath("Control/gameoverscreen/FinalTime")
+restart_button = NodePath("Control/gameoverscreen/Restart")
+quit_button = NodePath("Control/gameoverscreen/Quit")
+
+[node name="Control" type="Control" parent="." unique_id=459797019]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Time" type="Label" parent="Control" unique_id=145519178]
+layout_mode = 1
+anchors_preset = -1
+offset_left = 26.95
+offset_right = 108.95
+offset_bottom = 74.0
+theme_override_fonts/font = ExtResource("1_4d6w6")
+theme_override_font_sizes/font_size = 64
+text = "1:40"
+
+[node name="Coins" type="Label" parent="Control" unique_id=292088084]
+layout_mode = 1
+anchors_preset = -1
+offset_left = 201.94
+offset_right = 301.94006
+offset_bottom = 74.0
+theme_override_fonts/font = ExtResource("1_4d6w6")
+theme_override_font_sizes/font_size = 64
+text = "Coins"
+
+[node name="Sprite2D" type="Sprite2D" parent="Control" unique_id=796565681]
+position = Vector2(176, 36.435)
+scale = Vector2(2, 2)
+texture = ExtResource("2_e0nub")
+
+[node name="gameoverscreen" type="Control" parent="Control" unique_id=39879618]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ColorRect" type="ColorRect" parent="Control/gameoverscreen" unique_id=2110138637]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.34509805)
+
+[node name="Restart" type="Button" parent="Control/gameoverscreen" unique_id=796321251]
+layout_direction = 2
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -254.0
+offset_top = -104.0
+offset_right = 254.0
+offset_bottom = 104.0
+grow_horizontal = 2
+grow_vertical = 2
+icon = ExtResource("4_kwc50")
+flat = true
+
+[node name="Quit" type="Button" parent="Control/gameoverscreen" unique_id=1782722255]
+layout_direction = 2
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -254.0
+offset_top = 30.0
+offset_right = 254.0
+offset_bottom = 238.0
+grow_horizontal = 2
+grow_vertical = 2
+icon = ExtResource("5_o2lis")
+flat = true
+
+[node name="FinalTime" type="Label" parent="Control/gameoverscreen" unique_id=1621376736]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -41.0
+offset_top = -120.0
+offset_right = 41.0
+offset_bottom = -46.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_fonts/font = ExtResource("1_4d6w6")
+theme_override_font_sizes/font_size = 64
+text = "1:40"
+
+[node name="FallenText" type="Label" parent="Control/gameoverscreen" unique_id=1631759188]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -41.0
+offset_top = -203.0
+offset_right = 41.0
+offset_bottom = -129.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_fonts/font = ExtResource("6_kwc50")
+theme_override_font_sizes/font_size = 64
+text = "The Castle Has Fallen"

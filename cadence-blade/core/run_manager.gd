@@ -73,6 +73,7 @@ var _game_over: bool = false
 # ── Lifecycle ─────────────────────────────────────────────────────────────────
 
 func _ready() -> void:
+	add_to_group(&"run_manager")
 	GameManager.change_state(GameManager.GameState.PLAYING)
 
 	_spawn_players.call_deferred()
@@ -192,14 +193,10 @@ func _on_castle_died() -> void:
 		spawner.set_process(false)
 
 	for player in _players:
-		if player != null and player.has_method(&"is_dead_check") == false:
-			# Duck-type the is_dead check.
-			var dead: bool = player.get(&"is_dead") if "is_dead" in player else false
-			if not dead:
-				player.set_physics_process(false)
-				player.set_process(false)
-				player.set_process_input(false)
-				player.set_process_unhandled_input(false)
+		if player != null:
+			# PROCESS_MODE_DISABLED propagates to all children (e.g. CharacterBase
+			# inside a wrapper Node2D), so movement and input stop completely.
+			player.set_process_mode(Node.PROCESS_MODE_DISABLED)
 
 	GameManager.change_state(GameManager.GameState.GAME_OVER)
 
