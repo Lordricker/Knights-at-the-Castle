@@ -35,6 +35,8 @@ var coin_tier: int = 1
 var flow_kill_coin_tier: int = 0
 var walk_path: Path2D = null
 var knockback_velocity: Vector2 = Vector2.ZERO
+## When true, movement, AI, and knockback are suspended (Freeze Enemies upgrade).
+var is_frozen: bool = false
 
 ## How fast knockback decelerates in pixels/sec.
 @export var knockback_friction: float = 600.0
@@ -68,6 +70,10 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	if is_dead:
+		return
+	if is_frozen:
+		velocity = Vector2.ZERO
+		knockback_velocity = Vector2.ZERO
 		return
 	# Lazy lookup - retry until the level's Path2D is in the tree.
 	if walk_path == null:

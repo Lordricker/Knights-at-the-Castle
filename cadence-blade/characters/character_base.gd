@@ -27,6 +27,10 @@ signal coins_changed(new_coins: int)
 var attack_bonus: float = 0.0
 ## Flat speed bonus added on top of move_speed every frame.
 var speed_bonus: float = 0.0
+## Run-time seconds to subtract when sampling flow window size curves.
+## Set to run_manager.time_elapsed when a +Flow upgrade is purchased, so the
+## curve resets from the beginning (simulating a second wind).
+var flow_time_offset: float = 0.0
 
 # ── Interaction locks (set by CastleInside) ────────────────────────────────────
 ## When true, CastleInside is playing the "heal" animation; subclasses pause

@@ -6,6 +6,12 @@
 [ext_resource type="PackedScene" uid="uid://bkyw3pybjuqjs" path="res://ui/hud/HPBar.tscn" id="4_3og0q"]
 [ext_resource type="PackedScene" uid="uid://dh7thuuxwk7x1" path="res://ui/hud/FlowBar.tscn" id="5_d0uti"]
 
+[sub_resource type="Curve" id="Curve_6qwqa"]
+_limits = [0.0, 0.1, 0.0, 10.0]
+_data = [Vector2(0, 0.092752606), 0.0, -0.007177999, 0, 0, Vector2(4.924812, 0.016655043), -0.012393036, 0.0, 0, 0]
+point_count = 2
+metadata/_snap_count = 100
+
 [sub_resource type="AtlasTexture" id="AtlasTexture_sx1db"]
 atlas = ExtResource("2_jjg8s")
 region = Rect2(128, 500, 128, 100)
@@ -399,17 +405,20 @@ slash_damage = 30.0
 slash_knockback_force = 200.0
 slash_flow_fill_duration = 1.2
 slash_flow_miss_multiplier = 0.8
+slash_flow_window_size_curve = SubResource("Curve_6qwqa")
 thrust_damage = 50.0
 thrust_knockback_force = 200.0
 thrust_lunge_speed = 400.0
 thrust_flow_fill_duration = 1.3
 thrust_flow_miss_multiplier = 0.8
 thrust_flow_window_center = 0.45
+thrust_flow_window_size_curve = SubResource("Curve_6qwqa")
 spin_damage = 60.0
 spin_flow_fill_duration = 1.5
 spin_flow_miss_multiplier = 0.8
 spin_flow_window_center = 0.4
 spin_flow_window_random_range = 0.0
+spin_flow_window_size_curve = SubResource("Curve_6qwqa")
 body_box = NodePath("bodyBox")
 max_health = 200.0
 facing_pivot = NodePath("Pivot")

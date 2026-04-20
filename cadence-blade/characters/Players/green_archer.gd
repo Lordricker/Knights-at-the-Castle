@@ -58,7 +58,7 @@ var _current_attack_damage_multiplier: float = 1.0
 @export_range(0.0, 0.5, 0.01) var shoot_flow_window_half_size: float = 0.1
 ## Max random shift applied to the window center each shot.
 @export_range(0.0, 0.5, 0.01) var shoot_flow_window_random_range: float = 0.05
-## Optional Curve: Y = window half-size at normalized run time (x=0 fresh, x=1 tired).
+## Optional Curve: Y = window half-size at normalized run time (x=1 fresh, x=0 tired).
 ## Overrides the fixed half-size above when assigned.
 @export var shoot_flow_window_size_curve: Curve
 ## Run duration in seconds that maps to x=1 on the size curve.
@@ -213,10 +213,12 @@ func revive(at: Vector2) -> void:
 
 # ── Flow window helpers ────────────────────────────────────────────────────────
 
+## Returns the effective elapsed run time used to sample flow window size curves.
+## Subtracts flow_time_offset so a +Flow upgrade resets the curve to the start.
 func _get_run_elapsed() -> float:
 	var rm: Node = get_tree().get_first_node_in_group(&"run_manager")
 	if rm != null and "time_elapsed" in rm:
-		return rm.time_elapsed
+		return maxf(0.0, float(rm.time_elapsed) - flow_time_offset)
 	return 0.0
 
 

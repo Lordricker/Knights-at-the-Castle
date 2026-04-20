@@ -24,8 +24,10 @@
 [ext_resource type="PackedScene" uid="uid://0cyfncn8h6nd" path="res://ui/hud/hud.tscn" id="20_h2mhx"]
 [ext_resource type="Texture2D" uid="uid://c1vdscvx00hm0" path="res://core/Upgrades/healcastle250.png" id="20_tm2co"]
 [ext_resource type="Texture2D" uid="uid://cne0q84ecjudd" path="res://assets/sprites/MonkSprites.png" id="21_tm2co"]
+[ext_resource type="Texture2D" uid="uid://3unfhgndgew1" path="res://core/Upgrades/plusFlow.png" id="22_8ow3n"]
 [ext_resource type="Texture2D" uid="uid://jvow1lpkr13n" path="res://assets/sprites/BlacksmithSprites.png" id="22_chmu7"]
 [ext_resource type="PackedScene" uid="uid://1brrmdyvuppp" path="res://characters/enemies/melee/blackKnight.tscn" id="23_154h8"]
+[ext_resource type="Texture2D" uid="uid://cc743ee51ef1m" path="res://core/Upgrades/5secFreeze.png" id="23_ll8mu"]
 
 [sub_resource type="Curve2D" id="Curve2D_0eib5"]
 _data = {
@@ -159,6 +161,29 @@ cost = 3
 stat_type = 2
 stat_amount = 250.0
 pool_tickets_curve = SubResource("Curve_almi1")
+metadata/_custom_type_script = "uid://cidykeebxaujw"
+
+[sub_resource type="Curve" id="Curve_ex7cg"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.24007934, 0), 0.0, 0.0, 0, 0, Vector2(0.24999997, 1), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="Resource" id="Resource_cblfy"]
+script = ExtResource("16_edmi1")
+display_name = "+flow"
+icon = ExtResource("22_8ow3n")
+cost = 3
+stat_type = 5
+stat_amount = 1.0
+pool_tickets_curve = SubResource("Curve_ex7cg")
+metadata/_custom_type_script = "uid://cidykeebxaujw"
+
+[sub_resource type="Resource" id="Resource_nkn60"]
+script = ExtResource("16_edmi1")
+display_name = "5sec Freeze"
+icon = ExtResource("23_ll8mu")
+cost = 3
+stat_type = 6
+pool_tickets_curve = SubResource("Curve_ex7cg")
 metadata/_custom_type_script = "uid://cidykeebxaujw"
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_pmto4"]
@@ -460,7 +485,7 @@ script = ExtResource("15_154h8")
 heal_per_second = 75.0
 monk_zone = NodePath("Monk/Area2D")
 monk_sprite = NodePath("Monk")
-upgrades = Array[ExtResource("16_edmi1")]([SubResource("Resource_ll8mu"), SubResource("Resource_almi1"), SubResource("Resource_8ow3n"), SubResource("Resource_gi5ih"), SubResource("Resource_pmto4")])
+upgrades = Array[ExtResource("16_edmi1")]([SubResource("Resource_ll8mu"), SubResource("Resource_almi1"), SubResource("Resource_8ow3n"), SubResource("Resource_gi5ih"), SubResource("Resource_pmto4"), SubResource("Resource_cblfy"), SubResource("Resource_nkn60")])
 blacksmith_zone = NodePath("Blacksmith/Area2D")
 blacksmith_sprite = NodePath("Blacksmith")
 upgrade_ui = NodePath("../Shop")

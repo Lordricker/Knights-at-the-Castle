@@ -78,8 +78,8 @@ animations = [{
 
 [node name="AnimatedSprite2D2" type="AnimatedSprite2D" parent="." unique_id=961852421]
 sprite_frames = SubResource("SpriteFrames_ic141")
-frame = 8
-frame_progress = 1.0
+frame = 1
+frame_progress = 0.7671441
 
 [node name="CPUParticles2D" type="CPUParticles2D" parent="." unique_id=476393678]
 emitting = false

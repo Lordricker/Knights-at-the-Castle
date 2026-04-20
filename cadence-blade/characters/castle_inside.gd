@@ -112,6 +112,9 @@ var _player_in_blacksmith_zone: bool = false
 var _offered: Array = [null, null]
 
 var _refresh_timer: float = 0.0
+## Reference count for active enemy-freeze effects. Enemies stay frozen until
+## every outstanding timer has expired.
+var _freeze_count: int = 0
 
 # ── Lifecycle ─────────────────────────────────────────────────────────────────
 
@@ -265,6 +268,14 @@ func _apply_upgrade(upgrade: UpgradeConfig) -> void:
 			if _player != null:
 				_player.max_health += upgrade.stat_amount
 				_player.health_changed.emit(_player.health, _player.max_health)
+		UpgradeConfig.StatType.RESET_FLOW:
+			if _player != null:
+				var elapsed: float = 0.0
+				if run_manager != null and "time_elapsed" in run_manager:
+					elapsed = float(run_manager.time_elapsed)
+				_player.flow_time_offset = elapsed
+		UpgradeConfig.StatType.FREEZE_ENEMIES:
+			_freeze_enemies(upgrade.stat_amount)
 
 # ── Lottery rolling ───────────────────────────────────────────────────────────
 
@@ -349,3 +360,28 @@ func _update_ui_slot(slot: int) -> void:
 func _clear_player_if_unused() -> void:
 	if not _player_in_monk_zone and not _player_in_blacksmith_zone:
 		_player = null
+
+# ── Freeze logic ──────────────────────────────────────────────────────────────
+
+## Freeze all live enemies and pause the spawner for `duration` seconds.
+## Uses a reference count so multiple purchases stack correctly: enemies stay
+## frozen until every outstanding timer has expired.
+func _freeze_enemies(duration: float) -> void:
+	_freeze_count += 1
+	for node in get_tree().get_nodes_in_group(&"entities"):
+		if node is EnemyBase and not (node as EnemyBase).is_dead:
+			(node as EnemyBase).is_frozen = true
+	var spawner: Node = null
+	if run_manager != null:
+		spawner = run_manager.get("spawner") as Node
+	if spawner != null:
+		spawner.set_process(false)
+	get_tree().create_timer(duration).timeout.connect(func():
+		_freeze_count = maxi(0, _freeze_count - 1)
+		if _freeze_count == 0:
+			for node in get_tree().get_nodes_in_group(&"entities"):
+				if node is EnemyBase and not (node as EnemyBase).is_dead:
+					(node as EnemyBase).is_frozen = false
+			if spawner != null and is_instance_valid(spawner):
+				spawner.set_process(true)
+	)

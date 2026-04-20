@@ -20,6 +20,8 @@ enum StatType {
 	HEAL_CASTLE,     ## Restores stat_amount HP to the castle (capped at its current max).
 	UPGRADE_CASTLE,  ## Increases the castle's max HP by stat_amount.
 	UPGRADE_HP,      ## Increases the player's max HP by stat_amount.
+	RESET_FLOW,      ## Resets the player's flow window size curves back to the start of the run.
+	FREEZE_ENEMIES,  ## Freezes all enemies and pauses spawning for stat_amount seconds.
 }
 
 @export_group("Identity")
