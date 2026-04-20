@@ -83,8 +83,6 @@ func _physics_process(delta: float) -> void:
 	if walk_path != null:
 		_constrain_to_path()
 	position = position.round()
-	# Depth sort: lower on screen (higher Y) is drawn in front.
-	z_index = 1000 + roundi(global_position.y)
 
 
 ## Push this character away from source_position.
@@ -140,11 +138,12 @@ func die(flow_success: bool = false) -> void:
 		health_bar.hide()
 	died.emit(self)
 	# Signal the level so it can spawn the death poof and the correct coin.
+	# Deferred so this never runs mid-physics-flush (e.g. triggered by a hitbox signal).
 	if get_tree().current_scene.has_method("on_entity_died"):
 		var tier: int = coin_tier
 		if flow_success and flow_kill_coin_tier > 0:
 			tier = flow_kill_coin_tier
-		get_tree().current_scene.on_entity_died(global_position, true, tier)
+		get_tree().current_scene.call_deferred("on_entity_died", global_position, true, tier)
 	# Clean up after the death poof finishes (~2 seconds).
 	# Use owner (the scene root Node2D) so the entire instance is freed,
 	# not just this CharacterBody2D child node.

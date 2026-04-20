@@ -116,6 +116,14 @@ var _refresh_timer: float = 0.0
 # ── Lifecycle ─────────────────────────────────────────────────────────────────
 
 func _ready() -> void:
+	# Auto-find the Castle node if not assigned in the Inspector.
+	if castle == null:
+		for child in find_children("*", "", true, false):
+			if child is Castle:
+				castle = child as Castle
+				break
+		if castle == null:
+			push_warning("CastleInside: no Castle node assigned or found. HEAL_CASTLE / UPGRADE_CASTLE upgrades will not work.")
 	if monk_zone != null:
 		monk_zone.body_entered.connect(_on_monk_zone_body_entered)
 		monk_zone.body_exited.connect(_on_monk_zone_body_exited)
@@ -199,12 +207,20 @@ func _on_blacksmith_zone_body_exited(body: Node2D) -> void:
 
 
 func _handle_blacksmith_refresh(delta: float) -> void:
-	if not _player_in_blacksmith_zone:
+	# Count down whenever there are active offers, not only while in the zone.
+	# This ensures the timer keeps running while the player is out fighting.
+	if _offered[0] == null and _offered[1] == null:
 		return
 	_refresh_timer -= delta
 	if _refresh_timer <= 0.0:
-		_roll_upgrades()
 		_refresh_timer = refresh_interval
+		if _player_in_blacksmith_zone:
+			# Player is present -- re-roll and display immediately.
+			_roll_upgrades()
+		else:
+			# Player is away -- clear stale offers so next visit re-rolls fresh.
+			_offered[0] = null
+			_offered[1] = null
 
 
 func _handle_upgrade_input() -> void:
@@ -266,6 +282,14 @@ func _normalized_time() -> float:
 	return clampf(float(run_manager.time_elapsed) / (curve_time_scale_minutes * 60.0), 0.0, 1.0)
 
 
+func _sample_lottery_tickets(curve: Curve, t: float, default_value: int = 1) -> int:
+	if curve == null:
+		return default_value
+	if curve.point_count > 0 and t < curve.get_point_position(0).x:
+		return 0
+	return maxi(0, roundi(curve.sample_baked(t)))
+
+
 ## Draw one upgrade from the lottery pool, excluding any in the `exclude` array.
 ## Returns null if the pool is empty.
 func _draw_one(t: float, exclude: Array) -> UpgradeConfig:
@@ -275,7 +299,7 @@ func _draw_one(t: float, exclude: Array) -> UpgradeConfig:
 			continue
 		var tickets: int = 1
 		if upgrade.pool_tickets_curve != null:
-			tickets = roundi(upgrade.pool_tickets_curve.sample_baked(t))
+			tickets = _sample_lottery_tickets(upgrade.pool_tickets_curve, t)
 		for _i in tickets:
 			pool.append(upgrade)
 	if pool.is_empty():

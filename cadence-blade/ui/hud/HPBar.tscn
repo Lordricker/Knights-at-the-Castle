@@ -6,6 +6,9 @@
 [ext_resource type="Texture2D" uid="uid://pe8lj5fp2mju" path="res://assets/sprites/UI/HPOverlay.png" id="4_5b0am"]
 
 [node name="HPBar" type="Node2D" unique_id=1780535160]
+visibility_layer = 2
+z_index = 6
+z_as_relative = false
 
 [node name="VerticalHealthBar" type="Node2D" parent="." unique_id=1034429636 node_paths=PackedStringArray("fill_window")]
 script = ExtResource("1_0dmfw")
@@ -16,13 +19,16 @@ fill_bottom_y = 39.0
 metadata/_custom_type_script = "uid://bcxtahr83w2oh"
 
 [node name="HPcontainer" type="Sprite2D" parent="." unique_id=1990364766]
+z_index = 2
 position = Vector2(6, -39)
 texture = ExtResource("2_tsbax")
 
 [node name="HpFill" type="Sprite2D" parent="." unique_id=935992899]
+z_index = 2
 position = Vector2(6, -39)
 texture = ExtResource("3_tsbax")
 
 [node name="HpOverlay" type="Sprite2D" parent="." unique_id=1687948701]
+z_index = 2
 position = Vector2(6, -39)
 texture = ExtResource("4_5b0am")

@@ -32,11 +32,11 @@ shape = SubResource("RectangleShape2D_ma6sk")
 debug_color = Color(0.937407, 0.21434155, 0.34304821, 0.41960785)
 
 [node name="CastleInside" type="Sprite2D" parent="StaticBody2D" unique_id=1559556458]
+z_index = -1
 position = Vector2(0, -6.515)
 texture = ExtResource("2_d4rmk")
 
 [node name="Castle" type="Sprite2D" parent="StaticBody2D" unique_id=789417120]
-z_index = 1
 position = Vector2(0, -6.515)
 texture = ExtResource("1_qracd")
 

@@ -115,6 +115,14 @@ func _sample_max_total(t: float) -> int:
 	return roundi(max_total_curve.sample_baked(t))
 
 
+func _sample_curve_count(curve: Curve, t: float, default_value: int = 0, zero_before_first_point: bool = false) -> int:
+	if curve == null:
+		return default_value
+	if zero_before_first_point and curve.point_count > 0 and t < curve.get_point_position(0).x:
+		return 0
+	return maxi(0, roundi(curve.sample_baked(t)))
+
+
 # ── Spawn logic ───────────────────────────────────────────────────────────────
 
 func _attempt_spawn() -> void:
@@ -144,7 +152,7 @@ func _attempt_spawn() -> void:
 		var vi_cfg: EnemyVariantConfig = enemy_types[pick.x].variants[pick.y]
 		var max_alive := 999
 		if vi_cfg.max_alive_curve != null:
-			max_alive = roundi(vi_cfg.max_alive_curve.sample_baked(t))
+			max_alive = _sample_curve_count(vi_cfg.max_alive_curve, t, 999, true)
 
 		if _alive_counts.get(pick, 0) < max_alive:
 			chosen = pick
@@ -168,7 +176,7 @@ func _build_pool(t: float) -> Array[Vector2i]:
 			var vi_cfg: EnemyVariantConfig = type_cfg.variants[vi]
 			if vi_cfg == null or vi_cfg.scene == null or vi_cfg.pool_tickets_curve == null:
 				continue
-			var tickets := roundi(vi_cfg.pool_tickets_curve.sample_baked(t))
+			var tickets := _sample_curve_count(vi_cfg.pool_tickets_curve, t, 0, true)
 			for _i in tickets:
 				pool.append(Vector2i(ti, vi))
 	return pool

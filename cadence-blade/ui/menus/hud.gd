@@ -22,6 +22,8 @@ extends CanvasLayer
 @export var hud_timer_label: Label
 ## Top-left coins Label. Automatically connects to the first player's coins_changed signal.
 @export var hud_coins_label: Label
+## Label that displays the all-time best survival time (loaded from browser localStorage).
+@export var hud_best_time_label: Label
 ## Optional RunManager override. If left empty, the HUD finds it after the level loads.
 @export var run_manager: Node
 
@@ -64,6 +66,7 @@ func _ready() -> void:
 	if hud_coins_label != null:
 		hud_coins_label.text = "0"
 	_try_connect_coins()
+	_refresh_best_time_label()
 
 
 func _process(_delta: float) -> void:
@@ -144,6 +147,8 @@ func _on_coins_changed(new_coins: int) -> void:
 
 ## Called by RunManager when the castle dies.
 func show_screen(run_time_seconds: float) -> void:
+	GameManager.submit_time(run_time_seconds)
+	_refresh_best_time_label()
 	_selected = 0
 	if game_over_control != null:
 		game_over_control.show()
@@ -154,6 +159,17 @@ func show_screen(run_time_seconds: float) -> void:
 		var secs := int(run_time_seconds) % 60
 		game_over_time_label.text = "Survived  %d:%02d" % [mins, secs]
 	_update_selection()
+
+
+func _refresh_best_time_label() -> void:
+	if hud_best_time_label == null:
+		return
+	if GameManager.best_time <= 0.0:
+		hud_best_time_label.text = "BEST: --:--"
+	else:
+		var mins := int(GameManager.best_time) / 60
+		var secs := int(GameManager.best_time) % 60
+		hud_best_time_label.text = "BEST: %d:%02d" % [mins, secs]
 
 
 # ── Button callbacks ──────────────────────────────────────────────────────────

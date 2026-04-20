@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://bp8xsb0bkidtc" path="res://FX/coin.gd" id="1_coin_script"]
 [ext_resource type="Texture2D" uid="uid://d17uykc2xhfgb" path="res://assets/sprites/CoinShadow.png" id="2_n0j2w"]
-[ext_resource type="Texture2D" uid="uid://do82metdy3ent" path="res://assets/sprites/coin.png" id="3_n0j2w"]
+[ext_resource type="Texture2D" uid="uid://do82metdy3ent" path="res://assets/sprites/Coin.png" id="3_n0j2w"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_m8vbh"]
 radius = 8.0
@@ -59,18 +59,6 @@ region = Rect2(120, 160, 40, 80)
 atlas = ExtResource("3_n0j2w")
 region = Rect2(0, 240, 40, 80)
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_fbuls"]
-atlas = ExtResource("3_n0j2w")
-region = Rect2(40, 240, 40, 80)
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_nub2t"]
-atlas = ExtResource("3_n0j2w")
-region = Rect2(80, 240, 40, 80)
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_yktu7"]
-atlas = ExtResource("3_n0j2w")
-region = Rect2(120, 240, 40, 80)
-
 [sub_resource type="SpriteFrames" id="SpriteFrames_r5g3i"]
 animations = [{
 "frames": [{
@@ -112,15 +100,6 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_4xdht")
-}, {
-"duration": 1.0,
-"texture": SubResource("AtlasTexture_fbuls")
-}, {
-"duration": 1.0,
-"texture": SubResource("AtlasTexture_nub2t")
-}, {
-"duration": 1.0,
-"texture": SubResource("AtlasTexture_yktu7")
 }],
 "loop": false,
 "name": &"default",
@@ -128,6 +107,7 @@ animations = [{
 }]
 
 [node name="Coin" type="Area2D" unique_id=894908613]
+z_index = 2
 script = ExtResource("1_coin_script")
 
 [node name="CoinShadow" type="Sprite2D" parent="." unique_id=86872624]

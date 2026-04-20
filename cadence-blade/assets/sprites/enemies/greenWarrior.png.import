@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://do82metdy3ent"
-path="res://.godot/imported/Coin.png-0ca4a26af2d4a47b18a753adb49a59d2.ctex"
+uid="uid://6rr5h7ym7obk"
+path="res://.godot/imported/greenWarrior.png-cf8e88d059700c5c6c51d4c4e114b05d.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/Coin.png"
-dest_files=["res://.godot/imported/Coin.png-0ca4a26af2d4a47b18a753adb49a59d2.ctex"]
+source_file="res://assets/sprites/enemies/greenWarrior.png"
+dest_files=["res://.godot/imported/greenWarrior.png-cf8e88d059700c5c6c51d4c4e114b05d.ctex"]
 
 [params]
 

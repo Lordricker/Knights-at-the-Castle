@@ -119,18 +119,21 @@ animations = [{
 }]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ptajg"]
-size = Vector2(28, 22)
+size = Vector2(28, 32)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_0412h"]
 size = Vector2(53, 31)
 
 [node name="Node2D" type="Node2D" unique_id=1417772890]
+z_index = 1
+y_sort_enabled = true
 
 [node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=160150496 node_paths=PackedStringArray("facing_pivot", "health_bar", "detection_zone")]
+y_sort_enabled = true
 position = Vector2(0, -11)
 collision_layer = 2
 script = ExtResource("1_xsjc2")
-slash_damage = 50.0
+slash_damage = 30.0
 facing_pivot = NodePath("Pivot")
 health_bar = NodePath("Pivot/HPBar")
 detection_zone = NodePath("Pivot/DetectionZone")
@@ -139,6 +142,7 @@ oscillate = true
 oscillate_speed = 0.2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D" unique_id=1533444482]
+visible = false
 position = Vector2(0, 4)
 shape = SubResource("RectangleShape2D_xsjc2")
 
@@ -146,9 +150,9 @@ shape = SubResource("RectangleShape2D_xsjc2")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="CharacterBody2D/Pivot" unique_id=1220205241]
 sprite_frames = SubResource("SpriteFrames_ma6qb")
-animation = &"slash"
-frame = 7
-frame_progress = 1.0
+animation = &"running"
+frame = 3
+frame_progress = 0.8092881
 
 [node name="SlashHitbox" type="Area2D" parent="CharacterBody2D/Pivot" unique_id=1169559059]
 position = Vector2(17, 0)
@@ -156,6 +160,7 @@ monitoring = false
 monitorable = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D/Pivot/SlashHitbox" unique_id=341442971]
+visible = false
 position = Vector2(2, 2)
 shape = SubResource("RectangleShape2D_ptajg")
 debug_color = Color(0.9536274, 7.70092e-07, 0.5495344, 0.41960785)
@@ -165,6 +170,7 @@ position = Vector2(7, 0)
 monitorable = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D/Pivot/DetectionZone" unique_id=1099174522]
+visible = false
 position = Vector2(-0.5, 1.5)
 shape = SubResource("RectangleShape2D_0412h")
 debug_color = Color(0.6837786, 0.5034512, 0, 0.41960785)

@@ -13,10 +13,6 @@ extends EnemyBase
 
 # ── Inspector-configurable stats ──────────────────────────────────────────────
 
-@export_group("Movement")
-## Horizontal walk speed in pixels per second.
-@export var walk_speed: float = 80.0
-
 @export_group("Combat")
 ## Damage dealt per slash hit.
 @export var slash_damage: float = 20.0
@@ -81,7 +77,7 @@ func _handle_ai(_delta: float) -> void:
 		velocity.x = 0.0
 	else:
 		var dir: float = -signf(dist)
-		velocity.x = walk_speed * dir
+		velocity.x = move_speed * dir
 		# Face toward x = 0 (the direction we're walking).
 		_set_facing(1.0 if dir > 0.0 else -1.0)
 

@@ -47,17 +47,7 @@ var facing: float = 1.0
 @export var flow_bar: Node2D
 
 # ── Flow timing ───────────────────────────────────────────────────────────────
-@export_group("Flow Timing")
-## Seconds for the flow bar to fill during an attack pause window.
-@export var flow_fill_duration: float = 0.45
-## Damage multiplier when the bar auto-resolves without a successful timed press.
-@export var flow_miss_damage_multiplier: float = 0.6
-@export_range(0.0, 1.0, 0.01) var flow_success_window_start: float = 0.45
-@export_range(0.0, 1.0, 0.01) var flow_success_window_end: float = 0.60
-## Max random shift applied to the window position each attack (bar units, 0.0-0.5).
-## The window size stays fixed; only its position shifts.
-@export_range(0.0, 0.5, 0.01) var flow_window_random_range: float = 0.10
-@export_group("")
+# ── Flow timing (set per-attack by _start_flow callers) ──────────────────────
 
 var _health_bar_api: Node = null
 var _health_bar_right_pos: Vector2 = Vector2.ZERO
@@ -67,6 +57,8 @@ var _flow_active: bool = false
 var _flow_input_action: StringName = &""
 var _flow_progress: float = 0.0
 var _flow_on_resolved: Callable
+var _flow_fill_duration: float = 0.45
+var _flow_miss_damage_multiplier: float = 0.6
 
 # ── Movement / physics ─────────────────────────────────────────────────────────
 var walk_area: Polygon2D = null
@@ -97,9 +89,6 @@ func _ready() -> void:
 	_health_bar_api = _resolve_bar_api(health_bar, &"set_health")
 	_flow_bar_api = _resolve_bar_api(flow_bar, &"start_flow")
 	_on_health_changed(health, max_health)
-	if _flow_bar_api != null:
-		_flow_bar_api.success_window_start = flow_success_window_start
-		_flow_bar_api.success_window_end = flow_success_window_end
 	if flow_bar != null:
 		flow_bar.hide()
 	_apply_facing()
@@ -122,8 +111,6 @@ func _physics_process(delta: float) -> void:
 		_constrain_to_walk_area()
 	# Snap to whole pixels to prevent sub-pixel blur during movement.
 	position = position.round()
-	# Depth sort: lower on screen (higher Y) is drawn in front.
-	z_index = 1000 + roundi(global_position.y)
 
 
 ## Push this character away from source_position.
@@ -289,6 +276,7 @@ func die() -> void:
 	set_process_input(false)
 	set_process_unhandled_input(false)
 	if animated_sprite != null:
+		animated_sprite.stop()
 		animated_sprite.hide()
 	if health_bar != null:
 		health_bar.hide()
@@ -297,8 +285,9 @@ func die() -> void:
 	died.emit()
 	# Signal the level to spawn the death poof. Pass spawn_coin=false so only
 	# enemy deaths drop coins, not player deaths.
+	# Deferred so this never runs mid-physics-flush (e.g. triggered by a hitbox signal).
 	if get_tree().current_scene.has_method("on_entity_died"):
-		get_tree().current_scene.on_entity_died(global_position, false)
+		get_tree().current_scene.call_deferred("on_entity_died", global_position, false)
 
 
 ## Revive this character at the given world position, restoring full health.
@@ -327,19 +316,27 @@ func revive(at: Vector2) -> void:
 
 # ── Flow timing ────────────────────────────────────────────────────────────────
 
-func _start_flow(input_action: StringName, on_resolved: Callable) -> void:
+## Subclasses call this to begin a flow sequence.
+## window_center: normalized bar position (0=bottom, 1=top) for the midpoint of the green zone.
+## window_half: half-width of the green zone (full zone = center +/- half).
+## window_random: max random shift applied to the center each attack.
+func _start_flow(input_action: StringName, on_resolved: Callable,
+		fill_duration: float = 0.45, miss_multiplier: float = 0.6,
+		window_center: float = 0.5, window_half: float = 0.1,
+		window_random: float = 0.0) -> void:
 	_flow_input_action = input_action
 	_flow_on_resolved = on_resolved
+	_flow_fill_duration = fill_duration
+	_flow_miss_damage_multiplier = miss_multiplier
 	_flow_active = true
 	_flow_progress = 0.0
 	if flow_bar != null:
 		flow_bar.show()
 	if _flow_bar_api != null:
-		var _window_size: float = flow_success_window_end - flow_success_window_start
-		var _shift: float = randf_range(-flow_window_random_range, flow_window_random_range)
-		var _rand_start: float = clampf(flow_success_window_start + _shift, 0.0, 1.0 - _window_size)
-		_flow_bar_api.success_window_start = _rand_start
-		_flow_bar_api.success_window_end = _rand_start + _window_size
+		var _shift: float = randf_range(-window_random, window_random)
+		var _clamped_center: float = clampf(window_center + _shift, window_half, 1.0 - window_half)
+		_flow_bar_api.success_window_start = _clamped_center - window_half
+		_flow_bar_api.success_window_end = _clamped_center + window_half
 		if _flow_bar_api.has_method("start_flow"):
 			_flow_bar_api.start_flow()
 
@@ -361,9 +358,9 @@ func _update_flow(delta: float) -> void:
 		return
 	var reached_top: bool = false
 	if _flow_bar_api != null and _flow_bar_api.has_method("advance"):
-		reached_top = _flow_bar_api.advance(delta, flow_fill_duration)
+		reached_top = _flow_bar_api.advance(delta, _flow_fill_duration)
 	else:
-		_flow_progress = clampf(_flow_progress + delta / maxf(flow_fill_duration, 0.001), 0.0, 1.0)
+		_flow_progress = clampf(_flow_progress + delta / maxf(_flow_fill_duration, 0.001), 0.0, 1.0)
 		reached_top = _flow_progress >= 1.0
 	if reached_top:
 		if _flow_bar_api != null and _flow_bar_api.has_method("mark_missed"):
@@ -371,7 +368,7 @@ func _update_flow(delta: float) -> void:
 		var cb := _flow_on_resolved
 		_stop_flow()
 		if cb.is_valid():
-			cb.call(flow_miss_damage_multiplier)
+			cb.call(_flow_miss_damage_multiplier)
 
 
 ## Called when a PAUSED attack state is active. Pass the relevant input action.
