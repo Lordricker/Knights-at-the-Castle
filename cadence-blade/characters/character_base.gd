@@ -75,6 +75,26 @@ var _orig_layer: int = 0
 
 signal died()
 
+# ── Network multiplayer ────────────────────────────────────────────────────────
+## The Godot multiplayer peer ID that owns (controls) this character.
+## Set by RunManager at spawn time. 1 = host, 2 = joiner.
+## In offline / solo play this is always 1 and is_local_player() always returns true.
+var network_peer_id: int = 1
+
+## Network interpolation target (position received from remote peer).
+var _net_target_pos: Vector2 = Vector2.ZERO
+var _net_target_facing: float = 1.0
+var _net_target_anim: StringName = &"idle"
+## How many frames to wait before syncing position (every N physics frames).
+const _NET_SYNC_INTERVAL: int = 2
+var _net_sync_frame: int = 0
+
+## Returns true if this peer should read input for this character.
+func is_local_player() -> bool:
+	if not multiplayer.has_multiplayer_peer():
+		return true  # offline / solo mode
+	return multiplayer.get_unique_id() == network_peer_id
+
 
 func _ready() -> void:
 	_orig_layer = get_collision_layer()
@@ -101,6 +121,10 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if is_dead:
 		return
+	# Remote character: smoothly interpolate toward the last received network position.
+	if not is_local_player():
+		_network_interpolate(delta)
+		return
 	# Lazy lookup - retry until the level's Polygon2D is in the tree.
 	if walk_area == null:
 		var areas: Array[Node] = get_tree().get_nodes_in_group("walk_area")
@@ -115,7 +139,46 @@ func _physics_process(delta: float) -> void:
 		_constrain_to_walk_area()
 	# Snap to whole pixels to prevent sub-pixel blur during movement.
 	position = position.round()
+	# Broadcast position/state to remote peers (every _NET_SYNC_INTERVAL frames).
+	if multiplayer.has_multiplayer_peer():
+		_net_sync_frame = (_net_sync_frame + 1) % _NET_SYNC_INTERVAL
+		if _net_sync_frame == 0:
+			var anim: StringName = &"idle"
+			if animated_sprite != null:
+				anim = animated_sprite.animation
+			rpc("_net_sync_state", global_position, facing, anim)
 
+
+## Lerp the remote character toward the last received network position.
+func _network_interpolate(delta: float) -> void:
+	global_position = global_position.lerp(_net_target_pos, minf(10.0 * delta, 1.0))
+	if _net_target_facing != facing:
+		_set_facing(_net_target_facing)
+	if animated_sprite != null and animated_sprite.animation != _net_target_anim:
+		animated_sprite.play(_net_target_anim)
+
+## Received from the owning peer; updates this character's visual position on all others.
+@rpc("any_peer", "unreliable_ordered")
+func _net_sync_state(pos: Vector2, face: float, anim: StringName) -> void:
+	_net_target_pos = pos
+	_net_target_facing = face
+	_net_target_anim = anim
+
+## Called by the host (or the character's authority) to apply damage on all peers.
+@rpc("authority", "reliable", "call_local")
+func rpc_take_damage(amount: float) -> void:
+	take_damage(amount)
+
+## Called by the host to kill this character on all peers.
+@rpc("authority", "reliable", "call_local")
+func rpc_die_network() -> void:
+	if not is_dead:
+		die()
+
+## Called by the host to revive this character on all peers.
+@rpc("authority", "reliable", "call_local")
+func rpc_revive_network(at: Vector2) -> void:
+	revive(at)
 
 ## Push this character away from source_position.
 func apply_knockback(source_position: Vector2, force: float) -> void:

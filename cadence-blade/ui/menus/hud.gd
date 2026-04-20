@@ -1,4 +1,4 @@
-class_name GameOverScreen
+class_name HUD
 extends CanvasLayer
 
 # hud.gd — Live HUD (timer + coins) and game-over overlay (restart/quit).
@@ -24,6 +24,8 @@ extends CanvasLayer
 @export var hud_coins_label: Label
 ## Label that displays the all-time best survival time (loaded from browser localStorage).
 @export var hud_best_time_label: Label
+## Label showing the active multiplayer session ID. Leave empty for solo play.
+@export var session_id_label: Label
 ## Optional RunManager override. If left empty, the HUD finds it after the level loads.
 @export var run_manager: Node
 
@@ -65,6 +67,11 @@ func _ready() -> void:
 		_buttons.append(quit_button)
 	if hud_coins_label != null:
 		hud_coins_label.text = "0"
+	if session_id_label != null:
+		var sid: String = GameManager.session_id if "session_id" in GameManager else ""
+		session_id_label.visible = sid != ""
+		if sid != "":
+			session_id_label.text = "ID: " + sid
 	_try_connect_coins()
 	_refresh_best_time_label()
 
@@ -179,4 +186,4 @@ func _on_restart_pressed() -> void:
 
 
 func _on_quit_pressed() -> void:
-	get_tree().quit()
+	GameManager.leave_session()

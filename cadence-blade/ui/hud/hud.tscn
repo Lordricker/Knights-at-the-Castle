@@ -6,12 +6,30 @@
 [ext_resource type="Texture2D" uid="uid://dvnkegprvdxot" path="res://assets/sprites/UI/RestartButton.png" id="4_kwc50"]
 [ext_resource type="Texture2D" uid="uid://cukrmkf3jrgb8" path="res://assets/sprites/UI/QuitButton.png" id="5_o2lis"]
 [ext_resource type="FontFile" uid="uid://di588hyvkxc6w" path="res://assets/fonts/LATINWD.TTF" id="6_kwc50"]
+[ext_resource type="Texture2D" uid="uid://dcpm4pu8pp4k0" path="res://assets/sprites/UI/jButton.png" id="7_p3vm3"]
+[ext_resource type="Script" uid="uid://bidv0hafp4icx" path="res://ui/menus/hidenontouchscreen.gd" id="8_5uuaq"]
+[ext_resource type="Texture2D" uid="uid://grdosi1mtfpf" path="res://assets/sprites/UI/kButton.png" id="9_5mn0o"]
+[ext_resource type="Texture2D" uid="uid://bsg4yjiyid0si" path="res://assets/sprites/UI/lButton.png" id="10_cxhb7"]
+[ext_resource type="PackedScene" uid="uid://dmr0fcamx7t56" path="res://addons/virtual_joystick/virtual_joystick_scene.tscn" id="13_gv4gi"]
 
-[node name="HUD" type="CanvasLayer" unique_id=263715054 node_paths=PackedStringArray("hud_timer_label", "hud_coins_label", "hud_best_time_label", "game_over_control", "game_over_label", "game_over_time_label", "restart_button", "quit_button")]
+[sub_resource type="InputEventAction" id="InputEventAction_aixkq"]
+action = &"spin"
+
+[sub_resource type="Shortcut" id="Shortcut_cxhb7"]
+events = [SubResource("InputEventAction_aixkq")]
+
+[sub_resource type="InputEventAction" id="InputEventAction_5uuaq"]
+action = &"face_lock"
+
+[sub_resource type="Shortcut" id="Shortcut_p3vm3"]
+events = [SubResource("InputEventAction_5uuaq")]
+
+[node name="HUD" type="CanvasLayer" unique_id=263715054 node_paths=PackedStringArray("hud_timer_label", "hud_coins_label", "hud_best_time_label", "session_id_label", "game_over_control", "game_over_label", "game_over_time_label", "restart_button", "quit_button")]
 script = ExtResource("1_imuuq")
 hud_timer_label = NodePath("Control/Time")
 hud_coins_label = NodePath("Control/Coins")
 hud_best_time_label = NodePath("Control/Highscore")
+session_id_label = NodePath("Control/SessionID")
 game_over_control = NodePath("Control/gameoverscreen")
 game_over_label = NodePath("Control/gameoverscreen/FallenText")
 game_over_time_label = NodePath("Control/gameoverscreen/FinalTime")
@@ -40,6 +58,21 @@ theme_override_fonts/font = ExtResource("6_kwc50")
 theme_override_font_sizes/font_size = 30
 text = "1:40"
 
+[node name="SessionID" type="Label" parent="Control" unique_id=1407635361]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = 369.0
+offset_top = 25.0
+offset_right = 930.0
+offset_bottom = 75.0
+grow_horizontal = 2
+theme_override_fonts/font = ExtResource("6_kwc50")
+theme_override_font_sizes/font_size = 30
+text = "Session"
+horizontal_alignment = 2
+
 [node name="Time" type="Label" parent="Control" unique_id=145519178]
 layout_mode = 1
 anchors_preset = -1
@@ -66,6 +99,7 @@ scale = Vector2(2.5, 2.5)
 texture = ExtResource("3_kwc50")
 
 [node name="gameoverscreen" type="Control" parent="Control" unique_id=39879618]
+visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -149,3 +183,71 @@ grow_vertical = 2
 theme_override_fonts/font = ExtResource("6_kwc50")
 theme_override_font_sizes/font_size = 50
 text = "The Castle Has Fallen"
+
+[node name="Virtual joystick left" parent="Control" unique_id=255085118 instance=ExtResource("13_gv4gi")]
+layout_mode = 1
+visibility_mode = 1
+action_left = "move_left"
+action_right = "move_right"
+action_up = "move_up"
+action_down = "move_down"
+
+[node name="Control" type="Control" parent="Control" unique_id=1875255656]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -40.0
+offset_top = -40.0
+grow_horizontal = 0
+grow_vertical = 0
+script = ExtResource("8_5uuaq")
+
+[node name="Jbutton" type="Button" parent="Control/Control" unique_id=2045649429]
+layout_mode = 0
+offset_left = -536.0
+offset_top = -157.0
+offset_right = -228.0
+offset_bottom = 151.0
+scale = Vector2(0.5, 0.5)
+theme_override_font_sizes/font_size = 100
+action_mode = 0
+shortcut = SubResource("Shortcut_cxhb7")
+icon = ExtResource("7_p3vm3")
+
+[node name="Kbutton" type="Button" parent="Control/Control" unique_id=1938223561]
+layout_mode = 0
+offset_left = -357.0
+offset_top = -159.0
+offset_right = -49.0
+offset_bottom = 149.0
+scale = Vector2(0.5, 0.5)
+theme_override_font_sizes/font_size = 100
+action_mode = 0
+shortcut = SubResource("Shortcut_cxhb7")
+icon = ExtResource("9_5mn0o")
+
+[node name="Lbutton" type="Button" parent="Control/Control" unique_id=479324231]
+layout_mode = 0
+offset_left = -172.0
+offset_top = -162.0
+offset_right = 136.0
+offset_bottom = 146.0
+scale = Vector2(0.5, 0.5)
+theme_override_font_sizes/font_size = 100
+action_mode = 0
+shortcut = SubResource("Shortcut_cxhb7")
+icon = ExtResource("10_cxhb7")
+
+[node name="ShiftButton" type="Button" parent="Control/Control" unique_id=1294567627]
+layout_mode = 0
+offset_left = -260.0
+offset_top = -968.0
+offset_right = 18.0
+offset_bottom = -823.0
+theme_override_font_sizes/font_size = 100
+action_mode = 0
+shortcut = SubResource("Shortcut_p3vm3")
+text = "SHIFT"

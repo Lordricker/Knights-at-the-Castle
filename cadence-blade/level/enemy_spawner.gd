@@ -90,6 +90,9 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	# In multiplayer only the host runs the spawner; clients receive synced enemies.
+	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+		return
 	time_elapsed += delta
 	_spawn_timer -= delta
 	if _spawn_timer <= 0.0:

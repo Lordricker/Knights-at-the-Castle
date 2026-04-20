@@ -121,7 +121,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_xbqft")
 }],
-"loop": true,
+"loop": false,
 "name": &"running",
 "speed": 6.0
 }, {
@@ -182,21 +182,25 @@ flow_bar = NodePath("Pivot/FlowBar")
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="CharacterBody2D/Pivot" unique_id=1262161212]
 position = Vector2(0, 13.785)
 sprite_frames = SubResource("SpriteFrames_rvc6b")
-animation = &"shoot"
-frame = 2
+animation = &"running"
+frame = 5
+frame_progress = 1.0
 
 [node name="FlowBar" parent="CharacterBody2D/Pivot" unique_id=1635173476 instance=ExtResource("4_p72ps")]
+visible = false
 z_index = 5
 position = Vector2(-16, 38)
 rotation = -3.1415925
 scale = Vector2(1.0000002, -1)
 
 [node name="HPBar" parent="CharacterBody2D/Pivot" unique_id=1780535160 instance=ExtResource("5_jf3jw")]
+visible = false
 z_index = 3
 position = Vector2(-16, 38)
 rotation = -3.1415925
 scale = Vector2(1.0000002, -1)
 
 [node name="bodyBox" type="CollisionShape2D" parent="CharacterBody2D" unique_id=1370339960]
+visible = false
 position = Vector2(0, 14)
 shape = SubResource("RectangleShape2D_vh32c")

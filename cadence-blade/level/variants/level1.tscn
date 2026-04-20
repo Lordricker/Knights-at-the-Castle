@@ -14,6 +14,7 @@
 [ext_resource type="PackedScene" uid="uid://ondoaw0ikat3" path="res://characters/enemies/melee/greenKnight.tscn" id="11_gwq2p"]
 [ext_resource type="Script" uid="uid://cnpb6gsodu5ku" path="res://core/run_manager.gd" id="11_hah43"]
 [ext_resource type="PackedScene" uid="uid://cbhrtdam3e0k7" path="res://characters/Players/GreenArcher.tscn" id="13_gwq2p"]
+[ext_resource type="PackedScene" uid="uid://dbk1qvdllygxo" path="res://characters/Players/RedKnight.tscn" id="14_8ow3n"]
 [ext_resource type="Script" uid="uid://dcj5kusq32vwi" path="res://characters/castle_inside.gd" id="15_154h8"]
 [ext_resource type="Script" uid="uid://dpjae2t3dv3ia" path="res://core/level_camera.gd" id="15_lvlcam"]
 [ext_resource type="Script" uid="uid://cidykeebxaujw" path="res://core/Upgrades/upgrade_config.gd" id="16_edmi1"]
@@ -460,6 +461,8 @@ castle = NodePath("../Castle/Castlescript/Castle")
 spawner = NodePath("../EnemySpawner")
 game_over_screen = NodePath("../HUD")
 player_scenes = Array[PackedScene]([ExtResource("13_gwq2p")])
+red_knight_scene = ExtResource("14_8ow3n")
+green_archer_scene = ExtResource("13_gwq2p")
 respawn_delay_curve = SubResource("Curve_hah43")
 spawn_points = [NodePath("KnightSpawn"), NodePath("ArcherSpawn"), NodePath("RogueSpawn")]
 
