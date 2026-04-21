@@ -94,14 +94,14 @@ func _handle_movement() -> void:
 	var in_attack: bool = attack_state != AttackState.NONE
 	var speed_mult: float = shoot_move_mult if in_attack else 1.0
 
-	var dir_x: float = Input.get_axis("move_left", "move_right")
-	var dir_y: float = Input.get_axis("move_up", "move_down")
+	var dir_x: float = _get_axis("move_left", "move_right")
+	var dir_y: float = _get_axis("move_up", "move_down")
 
 	var effective_speed: float = move_speed + speed_bonus
 	velocity.x = dir_x * effective_speed * speed_mult
 	velocity.y = dir_y * effective_speed * speed_mult
 
-	if not Input.is_action_pressed("face_lock"):
+	if not _action_pressed("face_lock"):
 		if dir_x > 0.0:
 			_set_facing(1.0)
 		elif dir_x < 0.0:
@@ -132,10 +132,10 @@ func _handle_attack_input() -> void:
 	match attack_state:
 		AttackState.NONE:
 			if not attacks_locked:
-				if Input.is_action_just_pressed("shoot"):
+				if _action_just_pressed("action1"):
 					_begin_shoot()
 		AttackState.SHOOT_PAUSED:
-			_handle_flow_attempt(&"shoot")
+			_handle_flow_attempt(&"action1")
 
 
 func _begin_shoot() -> void:
@@ -159,7 +159,7 @@ func _on_frame_changed() -> void:
 						shoot_flow_window_size_curve,
 						shoot_flow_window_half_size,
 						shoot_flow_window_curve_max_time)
-				_start_flow(&"shoot",
+				_start_flow(&"action1",
 					func(mult: float):
 						_current_attack_damage_multiplier = mult
 						attack_state = AttackState.SHOOT_FINISH

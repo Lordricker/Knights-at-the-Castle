@@ -94,27 +94,18 @@ func _player_is_inside() -> bool:
 # ── Damage ────────────────────────────────────────────────────────────────────
 
 func take_damage(amount: float) -> void:
-	# Castle health is host-authoritative. Clients receive health via _rpc_sync_health.
-	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+	# Castle health is host-authoritative. Joiner enemies have physics disabled so
+	# this should only fire on the host, but guard defensively.
+	if GameManager.session_id != "" and not GameManager.is_host:
 		return
 	if health <= 0.0:
 		return
 	health = maxf(0.0, health - amount)
 	health_changed.emit(health, max_health)
-	# Sync updated health to all peers.
-	if multiplayer.has_multiplayer_peer():
-		rpc("_rpc_sync_health", health)
+	# Health is broadcast to joiner via the state snapshot (run_manager._broadcast_state).
 	if health == 0.0:
 		_on_died()
 
-@rpc("authority", "reliable", "call_local")
-func _rpc_sync_health(new_health: float) -> void:
-	if multiplayer.is_server():
-		return  # host already applied it above
-	health = new_health
-	health_changed.emit(health, max_health)
-	if health == 0.0 and not _died_emitted:
-		_on_died()
 
 
 func _on_died() -> void:

@@ -194,8 +194,8 @@ func _handle_movement() -> void:
 
 	var speed_mult: float = ATTACK_MOVE_MULT if (in_pause or in_finish) else 1.0
 
-	var dir_x: float = Input.get_axis("move_left", "move_right")
-	var dir_y: float = Input.get_axis("move_up", "move_down")
+	var dir_x: float = _get_axis("move_left", "move_right")
+	var dir_y: float = _get_axis("move_up", "move_down")
 
 	var effective_speed: float = move_speed + speed_bonus
 	velocity.x = dir_x * effective_speed * speed_mult
@@ -203,7 +203,7 @@ func _handle_movement() -> void:
 
 	# Facing: driven purely by input direction.
 	# Shift held = lock facing. Otherwise, pressing left/right sets direction.
-	if not Input.is_action_pressed("face_lock"):
+	if not _action_pressed("face_lock"):
 		if dir_x > 0.0:
 			_set_facing(1.0)
 		elif dir_x < 0.0:
@@ -249,21 +249,21 @@ func _handle_attack_input() -> void:
 		AttackState.NONE:
 			# Suppress new attacks while the player is at the blacksmith.
 			if not attacks_locked:
-				if Input.is_action_just_pressed("slash"):
+				if _action_just_pressed("action1"):
 					_begin_attack("slash", AttackState.SLASH_WINDUP)
-				elif Input.is_action_just_pressed("thrust"):
+				elif _action_just_pressed("action2"):
 					_begin_attack("thrust", AttackState.THRUST_WINDUP)
-				elif Input.is_action_just_pressed("spin"):
+				elif _action_just_pressed("action3"):
 					_begin_attack("spin", AttackState.SPIN_WINDUP)
 
 		AttackState.SLASH_PAUSED:
-			_handle_flow_attempt(&"slash")
+			_handle_flow_attempt(&"action1")
 
 		AttackState.THRUST_PAUSED:
-			_handle_flow_attempt(&"thrust")
+			_handle_flow_attempt(&"action2")
 
 		AttackState.SPIN_PAUSED:
-			_handle_flow_attempt(&"spin")
+			_handle_flow_attempt(&"action3")
 
 
 ## Disable hitboxes and reset attack state immediately on death,

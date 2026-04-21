@@ -45,9 +45,9 @@ func _ready() -> void:
 
 
 func connect_webrtc_signals() -> void:
-	WebRTCManager.mesh_ready.connect(_on_mesh_ready)
+	WebRTCManager.connected.connect(_on_connected)
 	WebRTCManager.connection_failed.connect(_on_connection_failed)
-	WebRTCManager.peer_disconnected.connect(_on_peer_disconnected)
+	WebRTCManager.disconnected.connect(_on_disconnected)
 	print("[GM] WebRTC signals connected")
 
 
@@ -133,39 +133,17 @@ static func generate_session_id() -> String:
 
 # ── WebRTC event handlers ──────────────────────────────────────────────────────
 
-func _on_mesh_ready() -> void:
+func _on_connected() -> void:
 	var role: String = "HOST" if is_host else "JOINER"
-	print("[GM] mesh_ready | role=%s peer_id=%d my_char=%s" % [role, multiplayer.get_unique_id(), my_character])
-	# Read the full player list from Firebase so peer_characters is complete on both sides.
-	FirebaseClient.get_sessions(func(_code: int, data: Variant) -> void:
-		if data != null and (data is Dictionary) and data.has(session_id):
-			var players: Variant = data[session_id].get("players", {})
-			if players is Dictionary:
-				for pid_str in players:
-					var pid: int = int(pid_str)
-					var entry: Variant = players[pid_str]
-					var ch: String = entry.get("character", "") if entry is Dictionary else ""
-					if not ch.is_empty():
-						peer_characters[pid] = ch
-		print("[GM] peer_characters=%s" % str(peer_characters))
-
-		if is_host:
-			# Host is already in the running level. Spawn the joiner's character there.
-			var joiner_id: int = 2
-			var joiner_char: String = peer_characters.get(joiner_id, "")
-			if joiner_char.is_empty():
-				push_warning("[GM] HOST: joiner character not found in Firebase")
-				return
-			var run_mgr: Node = get_tree().get_first_node_in_group(&"run_manager")
-			print("[GM] HOST: spawning joiner %d (%s) mid-game, run_mgr=%s" % [joiner_id, joiner_char, str(run_mgr != null)])
-			if run_mgr != null and run_mgr.has_method("spawn_peer_mid_game"):
-				run_mgr.spawn_peer_mid_game(joiner_id, joiner_char)
-			if session_id != "":
-				FirebaseClient.update_session(session_id, {"status": "in_game"}, func(_c, _d): pass)
-		else:
-			# Joiner: load the level. RunManager._ready() will request a state snapshot from host.
-			get_tree().change_scene_to_file(GAME_LEVEL_SCENE)
-	)
+	print("[GM] connected | role=%s my_char=%s" % [role, my_character])
+	if not is_host:
+		# Joiner loads the level. RunManager._ready will send a hello packet to the host.
+		get_tree().change_scene_to_file(GAME_LEVEL_SCENE)
+	else:
+		# Host is already in the level. RunManager is listening for the joiner's hello packet.
+		# Mark the session as in-game so the lobby hides it.
+		if session_id != "":
+			FirebaseClient.update_session(session_id, {"status": "in_game"}, func(_c, _d): pass)
 
 
 func _on_connection_failed(reason: String) -> void:
@@ -175,7 +153,7 @@ func _on_connection_failed(reason: String) -> void:
 	peer_characters = {}
 
 
-func _on_peer_disconnected(_peer_id: int) -> void:
+func _on_disconnected() -> void:
 	if session_id == "":
 		return  # leave_session() already cleaned up; nothing left to do.
 	# Partner disconnected unexpectedly — host cleans up the Firebase session.

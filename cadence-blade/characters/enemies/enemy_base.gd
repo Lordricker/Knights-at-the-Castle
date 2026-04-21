@@ -55,7 +55,6 @@ var _oscillate_time: float = 0.0
 var _net_target_pos: Vector2 = Vector2.ZERO
 ## True once the first position sync has arrived -- prevents lerping from origin.
 var _net_synced: bool = false
-var _net_sync_counter: int = 0
 
 signal died(enemy: EnemyBase)
 signal health_changed(new_health: float, max_hp: float)
@@ -83,7 +82,7 @@ func _physics_process(delta: float) -> void:
 		return
 
 	# Joiner: no local AI -- interpolate toward the host-authoritative position.
-	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+	if GameManager.session_id != "" and not GameManager.is_host:
 		if _net_synced:
 			var dist := global_position.distance_to(_net_target_pos)
 			if dist > 300.0:
@@ -106,12 +105,6 @@ func _physics_process(delta: float) -> void:
 	if walk_path != null:
 		_constrain_to_path()
 	position = position.round()
-
-	# Host: broadcast position and facing to joiner every 3 frames.
-	if multiplayer.has_multiplayer_peer():
-		_net_sync_counter = (_net_sync_counter + 1) % 3
-		if _net_sync_counter == 0:
-			rpc("_rpc_net_sync", global_position, facing)
 
 
 ## Push this character away from source_position.
@@ -148,14 +141,11 @@ func _get_targets_in_range() -> Array:
 func take_damage(amount: float, flow_success: bool = false) -> void:
 	if is_dead:
 		return
-	# Enemy health is host-authoritative. Joiner attacks forward to host via RPC.
-	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
-		rpc_id(1, "_rpc_take_damage", amount, flow_success)
+	# Enemy physics is disabled on joiner — this should not fire there, but guard anyway.
+	if GameManager.session_id != "" and not GameManager.is_host:
 		return
 	health = maxf(0.0, health - amount)
 	health_changed.emit(health, max_health)
-	if multiplayer.has_multiplayer_peer():
-		rpc("_rpc_sync_health_enemy", health)
 	if health == 0.0:
 		die(flow_success)
 
@@ -164,9 +154,6 @@ func die(flow_success: bool = false) -> void:
 	if is_dead:
 		return
 	is_dead = true
-	# Host broadcasts death so the joiner's copy also plays death effects and frees.
-	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
-		rpc("_rpc_die_net", flow_success)
 	set_collision_layer(0)
 	set_collision_mask(0)
 	set_physics_process(false)
@@ -178,7 +165,7 @@ func die(flow_success: bool = false) -> void:
 	# Signal the level so it can spawn the death poof and the correct coin.
 	# Only run on host (or offline) -- joiner must not duplicate coins.
 	# Deferred so this never runs mid-physics-flush (e.g. triggered by a hitbox signal).
-	if (not multiplayer.has_multiplayer_peer() or multiplayer.is_server()) and \
+	if (GameManager.session_id == "" or GameManager.is_host) and \
 			get_tree().current_scene.has_method("on_entity_died"):
 		var tier: int = coin_tier
 		if flow_success and flow_kill_coin_tier > 0:
@@ -270,37 +257,5 @@ func _sample_path_y(world_x: float) -> float:
 	return global_position.y
 
 
-# ── Network sync (multiplayer only) ───────────────────────────────────────────
-
-## Received on joiner every 3 frames: update interpolation target.
-@rpc("authority", "unreliable_ordered")
-func _rpc_net_sync(pos: Vector2, face: float) -> void:
-	_net_target_pos = pos
-	_net_synced = true
-	if face != facing:
-		_set_facing(face)
-
-
-## Received on joiner: enemy was damaged on host -- update health display.
-@rpc("authority", "reliable")
-func _rpc_sync_health_enemy(new_health: float) -> void:
-	if multiplayer.is_server():
-		return
-	health = new_health
-	health_changed.emit(health, max_health)
-
-
-## Received on host: joiner player hit this enemy. Host applies damage.
-@rpc("any_peer", "reliable")
-func _rpc_take_damage(amount: float, flow_success: bool) -> void:
-	if not multiplayer.is_server():
-		return
-	take_damage(amount, flow_success)
-
-
-## Received on joiner: this enemy died on the host -- play death effects and free.
-@rpc("authority", "reliable")
-func _rpc_die_net(flow_success: bool) -> void:
-	if multiplayer.is_server():
-		return
-	die(flow_success)
+# ── Network position (set by EnemySpawner.apply_enemy_state on joiner) ────────
+## _net_target_pos and _net_synced are set externally each state snapshot tick.

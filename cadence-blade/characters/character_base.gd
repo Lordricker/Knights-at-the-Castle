@@ -75,25 +75,18 @@ var _orig_layer: int = 0
 
 signal died()
 
-# ── Network multiplayer ────────────────────────────────────────────────────────
-## The Godot multiplayer peer ID that owns (controls) this character.
-## Set by RunManager at spawn time. 1 = host, 2 = joiner.
-## In offline / solo play this is always 1 and is_local_player() always returns true.
-var network_peer_id: int = 1
-
-## Network interpolation target (position received from remote peer).
-var _net_target_pos: Vector2 = Vector2.ZERO
-var _net_target_facing: float = 1.0
-var _net_target_anim: StringName = &"idle"
-## How many frames to wait before syncing position (every N physics frames).
-const _NET_SYNC_INTERVAL: int = 2
-var _net_sync_frame: int = 0
-
-## Returns true if this peer should read input for this character.
-func is_local_player() -> bool:
-	if not multiplayer.has_multiplayer_peer():
-		return true  # offline / solo mode
-	return multiplayer.get_unique_id() == network_peer_id
+# ── Player slot / input routing ───────────────────────────────────────────────
+## 1 = player 1 (default), 2 = player 2.
+## player_slot routes _action_* helpers to matching p2_ InputMap actions (local co-op).
+## In online mode, use_input_override takes priority and injects input via a dict,
+## which is more reliable than Input.action_press in HTML5 exports.
+var player_slot: int = 1
+## When true, _action_* helpers read from input_override instead of live Input.
+var use_input_override: bool = false
+## Keys are action names (e.g. "move_left", "action1"). Values: true = held this frame.
+var input_override: Dictionary = {}
+## Previous frame's snapshot — used to emulate is_action_just_pressed.
+var _prev_input_override: Dictionary = {}
 
 
 func _ready() -> void:
@@ -118,12 +111,40 @@ func _ready() -> void:
 	_apply_facing()
 
 
+## Advance the override snapshot. Call once per physics frame before _handle_movement.
+func tick_input_override() -> void:
+	_prev_input_override = input_override.duplicate()
+
+
+## Drop-in for Input.is_action_pressed. Dict override wins; then player_slot routing.
+func _action_pressed(action: StringName) -> bool:
+	if use_input_override:
+		return input_override.get(action, false)
+	if player_slot == 2:
+		return Input.is_action_pressed("p2_" + action)
+	return Input.is_action_pressed(action)
+
+
+## Drop-in for Input.is_action_just_pressed. Dict override uses prev-frame diff.
+func _action_just_pressed(action: StringName) -> bool:
+	if use_input_override:
+		return input_override.get(action, false) and not _prev_input_override.get(action, false)
+	if player_slot == 2:
+		return Input.is_action_just_pressed("p2_" + action)
+	return Input.is_action_just_pressed(action)
+
+
+## Drop-in for Input.get_axis. Dict override wins; then player_slot routing.
+func _get_axis(neg: StringName, pos: StringName) -> float:
+	if use_input_override:
+		return float(input_override.get(pos, false)) - float(input_override.get(neg, false))
+	if player_slot == 2:
+		return Input.get_axis("p2_" + neg, "p2_" + pos)
+	return Input.get_axis(neg, pos)
+
+
 func _physics_process(delta: float) -> void:
 	if is_dead:
-		return
-	# Remote character: smoothly interpolate toward the last received network position.
-	if not is_local_player():
-		_network_interpolate(delta)
 		return
 	# Lazy lookup - retry until the level's Polygon2D is in the tree.
 	if walk_area == null:
@@ -135,51 +156,15 @@ func _physics_process(delta: float) -> void:
 	velocity += knockback_velocity
 	move_and_slide()
 	knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, knockback_friction * delta)
+	# Snapshot input AFTER this frame's logic so next frame's just_pressed diff is correct.
+	# Must be after move_and_slide so the packet received in _process this frame is used
+	# by _handle_movement above, and then captured as "previous" for next frame.
+	if use_input_override:
+		tick_input_override()
 	if walk_area != null:
 		_constrain_to_walk_area()
 	# Snap to whole pixels to prevent sub-pixel blur during movement.
 	position = position.round()
-	# Broadcast position/state to remote peers (every _NET_SYNC_INTERVAL frames).
-	if multiplayer.has_multiplayer_peer():
-		_net_sync_frame = (_net_sync_frame + 1) % _NET_SYNC_INTERVAL
-		if _net_sync_frame == 0:
-			var anim: StringName = &"idle"
-			if animated_sprite != null:
-				anim = animated_sprite.animation
-			rpc("_net_sync_state", global_position, facing, anim)
-
-
-## Lerp the remote character toward the last received network position.
-func _network_interpolate(delta: float) -> void:
-	global_position = global_position.lerp(_net_target_pos, minf(10.0 * delta, 1.0))
-	if _net_target_facing != facing:
-		_set_facing(_net_target_facing)
-	if animated_sprite != null and animated_sprite.animation != _net_target_anim:
-		animated_sprite.play(_net_target_anim)
-
-## Received from the owning peer; updates this character's visual position on all others.
-@rpc("any_peer", "unreliable_ordered")
-func _net_sync_state(pos: Vector2, face: float, anim: StringName) -> void:
-	_net_target_pos = pos
-	_net_target_facing = face
-	_net_target_anim = anim
-
-## Called by the host (or the character's authority) to apply damage on all peers.
-@rpc("authority", "reliable", "call_local")
-func rpc_take_damage(amount: float) -> void:
-	take_damage(amount)
-
-## Called by the host to kill this character on all peers.
-@rpc("authority", "reliable", "call_local")
-func rpc_die_network() -> void:
-	if not is_dead:
-		die()
-
-## Called by the host to revive this character on all peers.
-@rpc("authority", "reliable", "call_local")
-func rpc_revive_network(at: Vector2) -> void:
-	revive(at)
-
 ## Push this character away from source_position.
 func apply_knockback(source_position: Vector2, force: float) -> void:
 	var dir := (global_position - source_position).normalized()
@@ -442,7 +427,7 @@ func _update_flow(delta: float) -> void:
 func _handle_flow_attempt(action_name: StringName) -> void:
 	if not _flow_active:
 		return
-	if not Input.is_action_just_pressed(action_name):
+	if not _action_just_pressed(action_name):
 		return
 	if _flow_bar_api == null or not _flow_bar_api.has_method("try_attempt"):
 		var cb := _flow_on_resolved

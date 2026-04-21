@@ -1,36 +1,45 @@
 # webrtc_manager.gd
-# Manages WebRTC peer-to-peer connection using Firebase Realtime Database for signaling.
+# Raw WebRTC data-channel transport + Firebase signaling.
 #
-# Once mesh_ready fires, multiplayer.multiplayer_peer is set and all @rpc calls
-# in the game work normally through the P2P connection.
+# Architecture:
+#   Two WebRTCDataChannels (negotiated, fixed ids):
+#       "reliable"   — ordered, guaranteed (spawn/despawn/gameover events)
+#       "unreliable" — unreliable ordered  (input + state snapshots)
+#   NO WebRTCMultiplayerPeer, NO @rpc, NO multiplayer.get_unique_id().
+#   Host runs all physics; joiner sends input and receives state.
+#   Firebase is signaling only — no gameplay traffic touches Firebase.
 #
-# LIMITATIONS (HTML5 / browser builds only):
-#   WebRTCPeerConnection is only available in HTML5 exports. In the Godot editor
-#   (which runs natively on desktop), you need the WebRTC GDExtension to test.
-#   See MULTIPLAYER_SETUP.md for details.
+# Public API:
+#   send_reliable(d: Dictionary)   — reliable ordered packet
+#   send_unreliable(d: Dictionary) — unreliable ordered packet
+#
+# Signals:
+#   connected()                    — both data channels are open
+#   disconnected()                 — peer dropped / connection failed
+#   packet_received(d: Dictionary) — inbound packet (either channel)
+#   debug_status(msg: String)      — live log line for UI / console
 #
 # Add as autoload: Project > Project Settings > Autoload
 #   Name: WebRTCManager   Path: res://core/webrtc_manager.gd
 
 extends Node
 
-signal mesh_ready()
+signal connected()
+signal disconnected()
+signal packet_received(data: Dictionary)
 signal connection_failed(reason: String)
-signal peer_disconnected(peer_id: int)
 ## Emitted at each signaling step so the UI can display live progress.
 signal debug_status(message: String)
 
 enum State { IDLE, SIGNALING, CONNECTED }
-
 var state: State = State.IDLE
 
 const ICE_SERVERS: Array = [
-	{"urls": "stun:stun.l.google.com:19302"},
-	{"urls": "stun:stun1.l.google.com:19302"},
-	{"urls": "stun:stun.cloudflare.com:3478"},
-	# Free public TURN relay — required for most mobile and carrier-NAT connections.
-	{"urls": "turn:openrelay.metered.ca:80",  "username": "openrelayproject", "credential": "openrelayproject"},
-	{"urls": "turn:openrelay.metered.ca:443", "username": "openrelayproject", "credential": "openrelayproject"},
+	{"urls": "stun:stun.relay.metered.ca:80"},
+	{"urls": "turn:global.relay.metered.ca:80",                    "username": "28a7d695fb2888e9055f8a30", "credential": "fGphVlenByKERTrN"},
+	{"urls": "turn:global.relay.metered.ca:80?transport=tcp",      "username": "28a7d695fb2888e9055f8a30", "credential": "fGphVlenByKERTrN"},
+	{"urls": "turn:global.relay.metered.ca:443",                   "username": "28a7d695fb2888e9055f8a30", "credential": "fGphVlenByKERTrN"},
+	{"urls": "turns:global.relay.metered.ca:443?transport=tcp",    "username": "28a7d695fb2888e9055f8a30", "credential": "fGphVlenByKERTrN"},
 ]
 
 ## How often (seconds) to poll Firebase for the remote SDP and ICE candidates.
@@ -42,8 +51,9 @@ const CONNECT_TIMEOUT: float = 40.0
 
 var _is_host: bool = false
 var _session_id: String = ""
-var _rtc_multi: WebRTCMultiplayerPeer = null
 var _peer_conn: WebRTCPeerConnection = null
+var _ch_reliable:   WebRTCDataChannel = null
+var _ch_unreliable: WebRTCDataChannel = null
 
 var _poll_timer: float = 0.0
 var _ice_batch_timer: float = 0.0
@@ -74,24 +84,19 @@ var _buffered_remote_ice: Array[Dictionary] = []
 
 
 func _ready() -> void:
-	# Wire up GameManager's handlers here — WebRTCManager loads after GameManager
-	# so GameManager is guaranteed to exist at this point.
 	GameManager.connect_webrtc_signals()
 	set_process(false)
 
 
 # ── Public ─────────────────────────────────────────────────────────────────────
 
-## Call after creating a Firebase session. Sets up the WebRTC host side and waits
-## for a joiner to send an offer.
-## Call after creating a Firebase session. Sets up the WebRTC host side and waits
-## for a joiner to send an offer.
+## Host side: set up the WebRTC connection and wait for a joiner's offer.
 func host_session(session_id: String) -> void:
 	if state != State.IDLE:
 		push_warning("WebRTCManager: host_session called while not IDLE")
 		return
 	if not ClassDB.class_exists("WebRTCPeerConnection"):
-		connection_failed.emit("WebRTCPeerConnection not available -- use an HTML5 export or install the WebRTC GDExtension for desktop testing.")
+		connection_failed.emit("WebRTCPeerConnection not available — use an HTML5 export or install the GDExtension.")
 		return
 	_session_id = session_id
 	_is_host = true
@@ -101,116 +106,179 @@ func host_session(session_id: String) -> void:
 	set_process(true)
 
 
-## Call after the player selects a session. Creates an offer and sends it to the host.
+## Joiner side: create an offer and send it to the host.
 func join_session(session_id: String) -> void:
 	if state != State.IDLE:
 		push_warning("WebRTCManager: join_session called while not IDLE")
 		return
 	if not ClassDB.class_exists("WebRTCPeerConnection"):
-		connection_failed.emit("WebRTCPeerConnection not available -- use an HTML5 export or install the WebRTC GDExtension for desktop testing.")
+		connection_failed.emit("WebRTCPeerConnection not available — use an HTML5 export or install the GDExtension.")
 		return
 	_session_id = session_id
 	_is_host = false
 	state = State.SIGNALING
 	_dbg("JOINER: Starting signaling for session '%s'" % session_id)
 	_setup_webrtc()
-	# Joiner creates and sends the WebRTC offer.
 	_dbg("JOINER: Calling create_offer()...")
 	var offer_err: int = _peer_conn.create_offer()
 	if offer_err != OK:
 		push_error("WebRTCManager: create_offer() failed: %d" % offer_err)
 		connection_failed.emit("create_offer() error %d" % offer_err)
-		_cleanup()
+		_cleanup(false)
 		return
 	set_process(true)
 
 
-## Disconnect and return to IDLE state.
+## Send a reliable ordered packet (spawn/despawn/gameover/quit events).
+func send_reliable(data: Dictionary) -> void:
+	if _ch_reliable == null or _ch_reliable.get_ready_state() != WebRTCDataChannel.STATE_OPEN:
+		push_warning("WebRTCManager: reliable channel not open — packet dropped")
+		return
+	_ch_reliable.put_packet(JSON.stringify(data).to_utf8_buffer())
+
+
+## Send an unreliable ordered packet (input/state snapshots — loss is acceptable).
+func send_unreliable(data: Dictionary) -> void:
+	if _ch_unreliable == null or _ch_unreliable.get_ready_state() != WebRTCDataChannel.STATE_OPEN:
+		return  # silently drop; caller will retry next frame
+	_ch_unreliable.put_packet(JSON.stringify(data).to_utf8_buffer())
+
+
+## Disconnect and return to IDLE.
 func disconnect_peer() -> void:
 	if GameManager.is_host and GameManager.session_id != "":
 		FirebaseClient.delete_session(GameManager.session_id, func(_c, _d): pass)
-	_cleanup()
+	_cleanup(false)
 
 
 # ── WebRTC setup ───────────────────────────────────────────────────────────────
 
 func _setup_webrtc() -> void:
-	_rtc_multi = WebRTCMultiplayerPeer.new()
-	if _is_host:
-		_rtc_multi.create_server()
-		_dbg("WebRTCMultiplayerPeer created as SERVER (peer ID 1)")
-	else:
-		# Client always receives peer ID 2 in a 2-player session.
-		_rtc_multi.create_client(2)
-		_dbg("WebRTCMultiplayerPeer created as CLIENT (peer ID 2)")
-
 	_peer_conn = WebRTCPeerConnection.new()
 	var init_err: int = _peer_conn.initialize({"iceServers": ICE_SERVERS})
 	if init_err != OK:
-		push_error("WebRTCManager: WebRTCPeerConnection.initialize() failed: %d" % init_err)
+		push_error("WebRTCManager: initialize() failed: %d" % init_err)
 		connection_failed.emit("WebRTC init error %d" % init_err)
-		_cleanup()
+		_cleanup(false)
 		return
 	_dbg("WebRTCPeerConnection initialized with %d ICE servers" % ICE_SERVERS.size())
 
 	_peer_conn.session_description_created.connect(_on_sdp_created)
 	_peer_conn.ice_candidate_created.connect(_on_ice_created)
+	# Joiner receives host-created channels via this signal.
+	_peer_conn.data_channel_received.connect(_on_data_channel_received)
 
-	# Host = peer ID 1, joiner = peer ID 2.
-	var remote_peer_id: int = 2 if _is_host else 1
-	_rtc_multi.add_peer(_peer_conn, remote_peer_id)
-	_dbg("Peer %d added to RTC mesh -- signals connected, waiting for SDP" % remote_peer_id)
-	_rtc_multi.peer_connected.connect(_on_rtc_peer_connected)
-	_rtc_multi.peer_disconnected.connect(_on_rtc_peer_disconnected)
+	if _is_host:
+		# Both sides create negotiated channels by id so no extra signaling is needed.
+		var opt_r: Dictionary = {"negotiated": true, "id": 0, "ordered": true}
+		var opt_u: Dictionary = {"negotiated": true, "id": 1, "ordered": true, "maxRetransmits": 0}
+		_ch_reliable   = _peer_conn.create_data_channel("reliable",   opt_r)
+		_ch_unreliable = _peer_conn.create_data_channel("unreliable", opt_u)
+		_dbg("HOST: negotiated data channels created (ids 0=reliable 1=unreliable)")
+	else:
+		# Joiner also creates its end of the negotiated channels.
+		var opt_r: Dictionary = {"negotiated": true, "id": 0, "ordered": true}
+		var opt_u: Dictionary = {"negotiated": true, "id": 1, "ordered": true, "maxRetransmits": 0}
+		_ch_reliable   = _peer_conn.create_data_channel("reliable",   opt_r)
+		_ch_unreliable = _peer_conn.create_data_channel("unreliable", opt_u)
+		_dbg("JOINER: negotiated data channels created (ids 0=reliable 1=unreliable)")
 
 
 # ── Process loop ───────────────────────────────────────────────────────────────
 
 func _process(delta: float) -> void:
-	if _rtc_multi != null:
-		_rtc_multi.poll()
+	if _peer_conn == null:
+		return
+	_peer_conn.poll()
+
+	# Drain inbound packets from both channels (works in SIGNALING and CONNECTED).
+	_poll_channels()
 
 	_connect_timer += delta
+
+	# Timeout guard during signaling.
 	if state == State.SIGNALING and _connect_timer >= CONNECT_TIMEOUT:
 		_print_debug_state()
 		connection_failed.emit("Connection timed out after %.0f seconds" % CONNECT_TIMEOUT)
-		_cleanup()
+		_cleanup(true)
 		return
 
-	# Detect and immediately log any WebRTC state transitions.
-	if _peer_conn != null:
-		var conn_names: Array = ["new", "connecting", "connected", "disconnected", "FAILED", "closed"]
-		var gather_names: Array = ["new", "gathering", "complete"]
-		var cs: int = _peer_conn.get_connection_state()
-		var gs: int = _peer_conn.get_gathering_state()
-		if cs != _last_conn_state:
-			_last_conn_state = cs
-			var cn: String = conn_names[cs] if cs < conn_names.size() else str(cs)
-			_dbg(">>> Connection state changed: %s" % cn)
-			if cs == 4: # FAILED
-				_print_debug_state()
-				connection_failed.emit("ICE connection FAILED (no working candidate pair found)")
-				_cleanup()
-				return
-		if gs != _last_gather_state:
-			_last_gather_state = gs
-			var gn: String = gather_names[gs] if gs < gather_names.size() else str(gs)
-			_dbg(">>> ICE gathering state changed: %s (local candidates so far: %d)" % [gn, _ice_local_count])
+	# Detect and log WebRTC state transitions.
+	var conn_names: Array = ["new", "connecting", "connected", "disconnected", "FAILED", "closed"]
+	var gather_names: Array = ["new", "gathering", "complete"]
+	var cs: int = _peer_conn.get_connection_state()
+	var gs: int = _peer_conn.get_gathering_state()
+	if cs != _last_conn_state:
+		_last_conn_state = cs
+		var cn: String = conn_names[cs] if cs < conn_names.size() else str(cs)
+		_dbg(">>> Connection state changed: %s" % cn)
+		if cs == 4:  # FAILED
+			_print_debug_state()
+			connection_failed.emit("ICE connection FAILED")
+			_cleanup(true)
+			return
+		if (cs == 3 or cs == 5) and state == State.CONNECTED:  # disconnected/closed
+			_cleanup(true)
+			return
+	if gs != _last_gather_state:
+		_last_gather_state = gs
+		var gn: String = gather_names[gs] if gs < gather_names.size() else str(gs)
+		_dbg(">>> ICE gathering state: %s (local candidates so far: %d)" % [gn, _ice_local_count])
 
-	_debug_timer += delta
-	if state == State.SIGNALING and _debug_timer >= 5.0:
-		_debug_timer = 0.0
-		_print_debug_state()
+	if state == State.SIGNALING:
+		_debug_timer += delta
+		if _debug_timer >= 5.0:
+			_debug_timer = 0.0
+			_print_debug_state()
 
-	_ice_batch_timer += delta
-	if _ice_batch_timer >= ICE_BATCH_INTERVAL:
-		_ice_batch_timer = 0.0
-		_flush_local_ice()
+		_ice_batch_timer += delta
+		if _ice_batch_timer >= ICE_BATCH_INTERVAL:
+			_ice_batch_timer = 0.0
+			_flush_local_ice()
 
-	_poll_timer += delta
-	if _poll_timer >= POLL_INTERVAL:
-		_poll_timer = 0.0
-		_do_signal_poll()
+		_poll_timer += delta
+		if _poll_timer >= POLL_INTERVAL:
+			_poll_timer = 0.0
+			_do_signal_poll()
+
+		# Check whether both data channels opened once the PeerConnection is up.
+		if cs == 2:  # "connected"
+			_check_channels_open()
+
+
+## Drain any waiting packets from both data channels and emit packet_received.
+func _poll_channels() -> void:
+	if _ch_reliable != null and _ch_reliable.get_ready_state() == WebRTCDataChannel.STATE_OPEN:
+		while _ch_reliable.get_available_packet_count() > 0:
+			_parse_and_emit(_ch_reliable.get_packet())
+	if _ch_unreliable != null and _ch_unreliable.get_ready_state() == WebRTCDataChannel.STATE_OPEN:
+		while _ch_unreliable.get_available_packet_count() > 0:
+			_parse_and_emit(_ch_unreliable.get_packet())
+
+
+func _parse_and_emit(raw: PackedByteArray) -> void:
+	var json := JSON.new()
+	if json.parse(raw.get_string_from_utf8()) == OK:
+		packet_received.emit(json.data)
+
+
+## Transition to CONNECTED once both data channels are open.
+func _check_channels_open() -> void:
+	var r_open: bool = _ch_reliable   != null and _ch_reliable.get_ready_state()   == WebRTCDataChannel.STATE_OPEN
+	var u_open: bool = _ch_unreliable != null and _ch_unreliable.get_ready_state() == WebRTCDataChannel.STATE_OPEN
+	if r_open and u_open:
+		state = State.CONNECTED
+		_dbg("Both data channels OPEN — P2P ready after %.1fs" % _connect_timer)
+		FirebaseClient.delete_signal_data(_session_id, func(_c, _d): pass)
+		connected.emit()
+
+
+# ── Data channel received (joiner only, non-negotiated fallback) ───────────────
+
+func _on_data_channel_received(channel: WebRTCDataChannel) -> void:
+	# With negotiated channels this fires as a secondary notification; we already
+	# hold references from create_data_channel() so we can safely ignore it.
+	_dbg("data_channel_received: '%s' (already stored via negotiated id)" % channel.get_label())
 
 
 func _do_signal_poll() -> void:
@@ -267,16 +335,13 @@ func _on_received_offer(_code: int, data: Variant) -> void:
 		_dbg("HOST: ERROR set_remote_description failed: %d" % set_err)
 	# Flag that the remote SDP is now set -- ICE candidates can be applied safely.
 	_remote_sdp_set = true
-	_dbg("HOST: Remote SDP set -- applying %d buffered ICE candidates, creating answer..." % _buffered_remote_ice.size())
+	_dbg("HOST: Remote SDP set -- applying %d buffered ICE candidates (answer auto-created by set_remote_description)" % _buffered_remote_ice.size())
 	_apply_buffered_ice()
 	# Immediately poll for the joiner's ICE candidates -- don't wait for the next timer tick.
 	_poll_timer = 0.0
 	_do_signal_poll()
-	# Creating the answer triggers session_description_created on success.
-	var ans_err: int = _peer_conn.create_answer()
-	if ans_err != OK:
-		push_error("WebRTCManager: create_answer() failed: %d" % ans_err)
-		_dbg("HOST: ERROR create_answer() failed: %d" % ans_err)
+	# NOTE: set_remote_description() with an offer automatically fires session_description_created
+	# with the answer -- no create_answer() call needed (it doesn't exist on WebRTCPeerConnectionJS).
 
 
 func _on_received_answer(_code: int, data: Variant) -> void:
@@ -365,33 +430,9 @@ func _apply_buffered_ice() -> void:
 	_buffered_remote_ice.clear()
 
 
-# ── Peer events ────────────────────────────────────────────────────────────────
-
-func _on_rtc_peer_connected(_id: int) -> void:
-	if state == State.CONNECTED:
-		return
-	_dbg("P2P CONNECTED! Peer %d joined -- mesh ready after %.1fs" % [_id, _connect_timer])
-	state = State.CONNECTED
-	# NOTE: do NOT call set_process(false) here.
-	# _rtc_multi.poll() must keep being called every frame so that WebRTC data
-	# channel packets (including @rpc calls) are actually received.
-	# All signaling timers below are already guarded by state == State.SIGNALING
-	# so no redundant Firebase polling will happen.
-	# Assign the WebRTC peer as Godot's multiplayer backend -- enables @rpc.
-	multiplayer.multiplayer_peer = _rtc_multi
-	# Tidy up signaling data from Firebase now that P2P is live.
-	FirebaseClient.delete_signal_data(_session_id, func(_c, _d): pass)
-	mesh_ready.emit()
-
-
-func _on_rtc_peer_disconnected(id: int) -> void:
-	peer_disconnected.emit(id)
-	_cleanup()
-
-
 # ── Cleanup ────────────────────────────────────────────────────────────────────
 
-func _cleanup() -> void:
+func _cleanup(emit_disc: bool) -> void:
 	set_process(false)
 	state = State.IDLE
 	_is_host = false
@@ -412,11 +453,13 @@ func _cleanup() -> void:
 	_ice_local_count = 0
 	_last_conn_state = -1
 	_last_gather_state = -1
-	# Restore offline multiplayer peer.
-	if multiplayer.multiplayer_peer != null:
-		multiplayer.multiplayer_peer = null
-	_rtc_multi = null
-	_peer_conn = null
+	_ch_reliable = null
+	_ch_unreliable = null
+	if _peer_conn != null:
+		_peer_conn.close()
+		_peer_conn = null
+	if emit_disc:
+		disconnected.emit()
 
 
 # ---- Debug helpers -----------------------------------------------------------

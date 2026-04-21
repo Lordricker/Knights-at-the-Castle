@@ -72,11 +72,10 @@ var _alive_counts: Dictionary = {}
 
 var _total_alive: int = 0
 ## Monotonically increasing ID assigned to each spawned enemy.
-## Used to give both peers' enemy nodes identical names for RPC routing.
 var _next_id: int = 0
 ## spawn_id -> {ti, vi, node} for all currently alive enemies on host.
-## Used to send a full enemy list to a joiner that joins mid-run.
-var _alive_enemy_map: Dictionary = {}
+## Public so RunManager can read positions for state broadcasts.
+var alive_enemy_map: Dictionary = {}
 
 
 # ── Lifecycle ─────────────────────────────────────────────────────────────────
@@ -96,8 +95,8 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	# In multiplayer only the host runs the spawner; clients receive synced enemies.
-	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+	# Only the host runs the spawner; joiner receives enemies via reliable packets.
+	if GameManager.session_id != "" and not GameManager.is_host:
 		return
 	time_elapsed += delta
 	_spawn_timer -= delta
@@ -220,7 +219,7 @@ func _spawn_variant(key: Vector2i) -> void:
 
 	_alive_counts[key] = _alive_counts.get(key, 0) + 1
 	_total_alive += 1
-	_alive_enemy_map[spawn_id] = {"ti": key.x, "vi": key.y, "node": instance}
+	alive_enemy_map[spawn_id] = {"ti": key.x, "vi": key.y, "node": instance}
 
 	# Propagate coin tier config to the enemy so it knows what to drop on death.
 	if "coin_tier" in signal_source:
@@ -228,21 +227,53 @@ func _spawn_variant(key: Vector2i) -> void:
 	if "flow_kill_coin_tier" in signal_source:
 		signal_source.flow_kill_coin_tier = vi_cfg.flow_kill_coin_tier
 
-	# Replicate spawn to the joiner so their scene has the same enemy node.
-	if multiplayer.has_multiplayer_peer():
-		rpc("_rpc_spawn_enemy", key.x, key.y, instance.global_position, spawn_id)
+	# Notify joiner so it can instantiate a matching node.
+	if GameManager.session_id != "" and GameManager.is_host:
+		WebRTCManager.send_reliable({
+			"t":  "spawn",
+			"id": spawn_id,
+			"ti": key.x,
+			"vi": key.y,
+			"x":  instance.global_position.x,
+			"y":  instance.global_position.y,
+		})
 
 
 func _on_enemy_died(key: Vector2i, spawn_id: int) -> void:
 	_alive_counts[key] = maxi(0, _alive_counts.get(key, 0) - 1)
 	_total_alive = maxi(0, _total_alive - 1)
-	_alive_enemy_map.erase(spawn_id)
+	alive_enemy_map.erase(spawn_id)
+	if GameManager.session_id != "" and GameManager.is_host:
+		WebRTCManager.send_reliable({"t": "despawn", "id": spawn_id})
 
 
-## Received on joiner: spawn a mirrored enemy node so host RPCs can reach it.
-@rpc("authority", "reliable")
-func _rpc_spawn_enemy(ti: int, vi: int, pos: Vector2, spawn_id: int) -> void:
-	if multiplayer.is_server():
+# ── Joiner-side packet handlers (called by RunManager._on_packet_received) ────
+
+## Host: send all currently alive enemies to the newly connected joiner.
+## Called once from RunManager.spawn_peer_mid_game so the joiner's screen
+## isn't empty for enemies that spawned before the connection was established.
+func send_all_alive_to_joiner() -> void:
+	print("[Spawner] Sending %d alive enemies to joiner." % alive_enemy_map.size())
+	for spawn_id: int in alive_enemy_map:
+		var info: Dictionary = alive_enemy_map[spawn_id]
+		var node: Node = info.get("node") as Node
+		if is_instance_valid(node):
+			WebRTCManager.send_reliable({
+				"t":  "spawn",
+				"id": spawn_id,
+				"ti": info["ti"],
+				"vi": info["vi"],
+				"x":  node.global_position.x,
+				"y":  node.global_position.y,
+			})
+
+
+## Joiner: instantiate a mirrored enemy from a reliable spawn packet.
+func on_spawn_packet(data: Dictionary) -> void:
+	var ti: int = int(data.get("ti", -1))
+	var vi: int = int(data.get("vi", -1))
+	var spawn_id: int = int(data.get("id", -1))
+	if ti < 0 or vi < 0 or spawn_id < 0:
 		return
 	if ti >= enemy_types.size():
 		return
@@ -252,39 +283,59 @@ func _rpc_spawn_enemy(ti: int, vi: int, pos: Vector2, spawn_id: int) -> void:
 	var vi_cfg: EnemyVariantConfig = type_cfg.variants[vi]
 	if vi_cfg == null or vi_cfg.scene == null:
 		return
-	# Don't double-spawn if this enemy already exists (e.g. received both via
-	# _rpc_spawn_enemy and _rpc_request_initial_enemies).
 	var existing_name: String = "En%d" % spawn_id
 	if enemy_container != null and enemy_container.has_node(existing_name):
 		return
 	var instance: Node = vi_cfg.scene.instantiate()
 	instance.name = existing_name
 	enemy_container.add_child(instance)
-	instance.global_position = pos
+	var initial_pos := Vector2(float(data.get("x", 0.0)), float(data.get("y", 0.0)))
+	instance.global_position = initial_pos
+	# Find the EnemyBase child (or root) so we can configure it.
 	var signal_source: Node = instance
 	if not instance.has_signal("died"):
 		for child in instance.get_children():
 			if child.has_signal("died"):
 				signal_source = child
 				break
+	# Seed the network-sync position so EnemyBase._physics_process can lerp immediately.
+	# Do NOT disable physics_process — EnemyBase already skips AI and lerps to
+	# _net_target_pos when (session_id != "" and not is_host).
+	if "_net_target_pos" in signal_source:
+		signal_source._net_target_pos = initial_pos
+		signal_source._net_synced = true
 	if "coin_tier" in signal_source:
 		signal_source.coin_tier = vi_cfg.coin_tier
 	if "flow_kill_coin_tier" in signal_source:
 		signal_source.flow_kill_coin_tier = vi_cfg.flow_kill_coin_tier
 
 
-## Joiner calls this on host to get all currently alive enemies when joining mid-run.
-@rpc("any_peer", "reliable")
-func _rpc_request_initial_enemies() -> void:
-	if not multiplayer.is_server():
+## Joiner: remove a dead enemy node from the scene.
+func on_despawn_packet(data: Dictionary) -> void:
+	var spawn_id: int = int(data.get("id", -1))
+	if spawn_id < 0:
 		return
-	var caller_id: int = multiplayer.get_remote_sender_id()
-	print("[Spawner] Sending %d alive enemies to peer %d" % [_alive_enemy_map.size(), caller_id])
-	for spawn_id in _alive_enemy_map:
-		var info: Dictionary = _alive_enemy_map[spawn_id]
-		var node: Node = info["node"]
-		if is_instance_valid(node):
-			rpc_id(caller_id, "_rpc_spawn_enemy", info["ti"], info["vi"], node.global_position, spawn_id)
+	var existing_name: String = "En%d" % spawn_id
+	if enemy_container != null and enemy_container.has_node(existing_name):
+		enemy_container.get_node(existing_name).queue_free()
+
+
+## Called by RunManager with the "e" section of a state snapshot.
+## Lerps joiner enemy nodes toward their host positions.
+func apply_enemy_state(e: Dictionary) -> void:
+	for eid_str in e:
+		var ed: Dictionary = e[eid_str]
+		var enemy_name: String = "En%s" % eid_str
+		if enemy_container == null or not enemy_container.has_node(enemy_name):
+			continue
+		var enemy_node: Node = enemy_container.get_node(enemy_name)
+		# Let enemy_base.gd lerp to _net_target_pos if available; otherwise snap.
+		var target := Vector2(float(ed.get("x", 0.0)), float(ed.get("y", 0.0)))
+		if "_net_target_pos" in enemy_node:
+			enemy_node._net_target_pos = target
+			enemy_node._net_synced = true
+		else:
+			enemy_node.global_position = target
 
 
 # ── Debug ─────────────────────────────────────────────────────────────────────

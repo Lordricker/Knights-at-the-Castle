@@ -65,6 +65,14 @@ var _players: Array[Node] = []
 var _game_over: bool = false
 var _heartbeat_timer: float = 0.0
 const _HEARTBEAT_INTERVAL: float = 5.0
+## Maps player slot (1 = host, 2 = joiner) to character key ("red_knight" etc.).
+## Used so respawn always uses the correct spawn point for that character.
+var _slot_char: Dictionary = {}
+## On host: the joiner's CharacterBase node (receives input_override each frame).
+var _joiner_char_node: Node = null
+## State snapshot broadcast counter.
+var _state_broadcast_frame: int = 0
+const _STATE_BROADCAST_EVERY: int = 6  # ≈10 snapshots per second at 60 fps
 
 
 # ── Lifecycle ─────────────────────────────────────────────────────────────────
@@ -75,34 +83,38 @@ func _ready() -> void:
 
 	_spawn_players.call_deferred()
 
-	# Resolve the Castle script node: if the assigned node has the signal use it
-	# directly; otherwise search children (handles the case where the scene root
-	# is a plain Node2D and castle.gd is on a child StaticBody2D).
 	var castle_node: Node = _resolve_castle(castle)
 	if castle_node != null:
 		castle_node.died.connect(_on_castle_died)
-		castle = castle_node  # keep the resolved reference for later use
+		castle = castle_node
 	else:
 		push_warning("RunManager: could not find a Castle node with a 'died' signal — game-over will never trigger.")
 
-	# Joiner: once the scene is ready, ask the host for a state snapshot
-	# (run time, castle HP) and all currently alive enemies.
-	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
-		call_deferred("_request_initial_state_from_host")
+	# Wire WebRTC packet handler for multiplayer runs.
+	if GameManager.session_id != "":
+		WebRTCManager.packet_received.connect(_on_packet_received)
 
 
 func _process(delta: float) -> void:
 	if _game_over:
 		return
 	time_elapsed += delta
-	# Host pushes elapsed time to Firebase so the lobby list shows live duration.
 	if GameManager.is_host and GameManager.session_id != "":
+		# Heartbeat: update Firebase so lobby shows live run duration.
 		_heartbeat_timer += delta
 		if _heartbeat_timer >= _HEARTBEAT_INTERVAL:
 			_heartbeat_timer = 0.0
 			FirebaseClient.update_session(GameManager.session_id,
 				{"elapsed_seconds": int(time_elapsed), "last_seen": int(Time.get_unix_time_from_system())},
 				func(_c, _d): pass)
+		# State broadcast to joiner every N frames.
+		_state_broadcast_frame += 1
+		if _state_broadcast_frame >= _STATE_BROADCAST_EVERY:
+			_state_broadcast_frame = 0
+			_broadcast_state()
+	elif not GameManager.is_host and GameManager.session_id != "":
+		# Joiner sends input every frame so host can drive character 2.
+		_send_input()
 
 
 # ── Castle resolution ─────────────────────────────────────────────────────────
@@ -147,81 +159,96 @@ func _spawn_players() -> void:
 		var scene: PackedScene = player_scenes[i]
 		if scene == null:
 			continue
-		_instantiate_player(scene, i, 1)  # peer_id=1 (local, single authority)
+		_instantiate_player(scene, i)
 
 
-## In multiplayer, both peers spawn ALL characters. The character whose
-## network_peer_id matches this peer's multiplayer ID responds to input;
-## the other character is driven by incoming sync_state RPCs.
+## In multiplayer each peer spawns ONLY its own character now.
+## The peer's character is spawned when a "hello" packet is received (P2P handshake).
+## This avoids any Firebase timing race for character lookup.
 func _spawn_players_networked() -> void:
-	# Map character key → scene.
-	var char_scenes: Dictionary = {}
-	if red_knight_scene != null:
-		char_scenes["red_knight"] = red_knight_scene
-	if green_archer_scene != null:
-		char_scenes["green_archer"] = green_archer_scene
-
-	print("RunManager: networked spawn | my_peer=%d | peer_characters=%s | registered_scenes=%s" % [
-		multiplayer.get_unique_id(), str(GameManager.peer_characters), str(char_scenes.keys())
-	])
+	var char_scenes: Dictionary = _char_scene_map()
 	if char_scenes.is_empty():
-		push_error("RunManager: both online character scenes are null. Open the level scene, select RunManager, and wire 'Red Knight Scene' and 'Green Archer Scene' under 'Players (Online)' in the Inspector.")
+		push_error("RunManager: no character scenes wired in the Inspector.")
 		return
 
-	# peer_characters is sorted by peer_id (1, 2) so spawn order is deterministic
-	# on both peers, giving both instances the same node name/path for RPC routing.
-	var sorted_peer_ids: Array = GameManager.peer_characters.keys()
-	sorted_peer_ids.sort()
+	var own_char: String = GameManager.my_character
+	var own_slot: int = 1 if GameManager.is_host else 2
+	_slot_char[own_slot] = own_char
 
-	var spawn_index: int = 0
-	for peer_id in sorted_peer_ids:
-		var char_key: String = GameManager.peer_characters[peer_id]
-		if not char_scenes.has(char_key):
-			push_warning("RunManager: no scene registered for character '%s'" % char_key)
-			spawn_index += 1
-			continue
-		var player_root: Node = _instantiate_player(char_scenes[char_key], spawn_index, peer_id)
-		if player_root != null:
-			# Set RPC authority to the owning peer so @rpc("authority") works correctly.
-			var character: Node = _resolve_character(player_root)
-			if character != null:
-				character.set_multiplayer_authority(peer_id)
-		spawn_index += 1
-
-
-## Called mid-run when a joiner connects after the host already started.
-## Spawns the joiner's character into the live scene.
-func spawn_peer_mid_game(peer_id: int, character_key: String) -> void:
-	var char_scenes: Dictionary = {}
-	if red_knight_scene != null:
-		char_scenes["red_knight"] = red_knight_scene
-	if green_archer_scene != null:
-		char_scenes["green_archer"] = green_archer_scene
-
-	if not char_scenes.has(character_key):
-		push_warning("RunManager: no scene for mid-game character '%s'" % character_key)
+	if not char_scenes.has(own_char):
+		push_error("RunManager: no scene for character '%s'" % own_char)
 		return
 
-	# spawn_index = position in sorted peer list (always index 1 since host is 0)
-	var sorted_peers: Array = GameManager.peer_characters.keys()
-	sorted_peers.sort()
-	var spawn_index: int = sorted_peers.find(peer_id)
-	if spawn_index < 0:
-		spawn_index = _players.size()
-
-	var player_root: Node = _instantiate_player(char_scenes[character_key], spawn_index, peer_id)
+	var player_root: Node = _instantiate_player(char_scenes[own_char], _char_spawn_index(own_char))
 	if player_root == null:
 		return
-	var character: Node = _resolve_character(player_root)
-	if character != null:
-		character.set_multiplayer_authority(peer_id)
-	print("RunManager: mid-game spawn of peer %d (%s)" % [peer_id, character_key])
+
+	var ch: Node = _resolve_character(player_root)
+	if ch != null:
+		ch.set("player_slot", own_slot)
+		if not GameManager.is_host:
+			# Joiner: physics disabled — positions come from host state snapshots.
+			ch.set_physics_process(false)
+
+	# Announce ourselves to the peer. On the joiner this reaches the host's live RunManager.
+	# On the host the packet is sent before any peer is connected and silently dropped.
+	WebRTCManager.send_reliable({"t": "hello", "char": own_char, "slot": own_slot})
+
+
+## Spawn a peer's character: either the joiner's char (on host) or the host's display
+## char (on joiner). slot 1 = host char, slot 2 = joiner char.
+func _spawn_peer_char(char_key: String, slot: int) -> void:
+	var char_scenes: Dictionary = _char_scene_map()
+	if not char_scenes.has(char_key):
+		push_warning("RunManager: no scene for character '%s'" % char_key)
+		return
+	_slot_char[slot] = char_key
+
+	var player_root: Node = _instantiate_player(char_scenes[char_key], _char_spawn_index(char_key))
+	if player_root == null:
+		return
+
+	var ch: Node = _resolve_character(player_root)
+	if ch == null:
+		return
+
+	ch.set("player_slot", slot)
+
+	if GameManager.is_host and slot == 2:
+		# Host: joiner's character runs physics driven by input_override dict.
+		ch.set("use_input_override", true)
+		_joiner_char_node = ch
+		print("RunManager: joiner char (%s) spawned as slot 2 with input override" % char_key)
+		# Flush all alive enemies so joiner's screen populates immediately.
+		if spawner != null and spawner.has_method("send_all_alive_to_joiner"):
+			spawner.send_all_alive_to_joiner()
+	else:
+		# Joiner: host char display — no physics, positions driven by state snapshots.
+		ch.set_physics_process(false)
+		print("RunManager: peer char (%s) spawned as slot %d display" % [char_key, slot])
+
+
+## Returns a dict mapping character key to PackedScene for all wired characters.
+func _char_scene_map() -> Dictionary:
+	var d: Dictionary = {}
+	if red_knight_scene != null:   d["red_knight"]   = red_knight_scene
+	if green_archer_scene != null: d["green_archer"] = green_archer_scene
+	return d
+
+
+## Maps character key to spawn_points index.
+## Knight=0, Archer=1, Rogue=2 (matching the user-configured Marker2D order).
+func _char_spawn_index(char_key: String) -> int:
+	match char_key:
+		"red_knight":   return 0
+		"green_archer": return 1
+		"rogue":        return 2
+	return 0
 
 
 ## Instantiates one player scene, positions it at spawn_index, and tracks it.
-## peer_id is stored on the character for input isolation.
 ## Returns the spawned root node (or null on failure).
-func _instantiate_player(scene: PackedScene, spawn_index: int, peer_id: int) -> Node:
+func _instantiate_player(scene: PackedScene, spawn_index: int) -> Node:
 	var player_root: Node = scene.instantiate()
 	if player_root == null:
 		push_warning("RunManager: failed to instantiate scene for spawn index %d" % spawn_index)
@@ -241,14 +268,10 @@ func _instantiate_player(scene: PackedScene, spawn_index: int, peer_id: int) -> 
 	if point != null:
 		character.global_position = point.global_position
 
-	# Tell the character which peer owns it (used for input isolation in multiplayer).
-	if character.has_method("set_network_peer_id") or "network_peer_id" in character:
-		character.network_peer_id = peer_id
-
 	_players.append(player_root)
 	character.add_to_group("players")
 	character.died.connect(_on_player_died.bind(player_root))
-	print("RunManager: spawned '%s' (peer %d) at %s" % [player_root.name, peer_id, character.global_position])
+	print("RunManager: spawned '%s' at %s" % [player_root.name, character.global_position])
 	return player_root
 
 
@@ -276,52 +299,191 @@ func _sample_respawn_delay() -> float:
 func _on_castle_died() -> void:
 	if _game_over:
 		return
-	# In multiplayer, only the host triggers game-over; it broadcasts to all peers.
-	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+	# Only the host can trigger game-over (it is the sole simulation authority).
+	if GameManager.session_id != "" and not GameManager.is_host:
 		return
-	rpc("_rpc_game_over", time_elapsed)
+	# In multiplayer, broadcast game-over to the joiner.
+	if GameManager.session_id != "":
+		WebRTCManager.send_reliable({"t": "gameover", "elapsed": time_elapsed})
+	_trigger_game_over(time_elapsed)
 
 
-# ── Initial state sync (joiner join mid-run) ──────────────────────────────────
+# ── Multiplayer packet handling ───────────────────────────────────────────────
 
-## Joiner calls this once the level scene is fully ready.
-## Sends two requests: run state (time + castle HP) and alive enemies.
-func _request_initial_state_from_host() -> void:
-	print("[RM] JOINER: requesting initial state from host")
-	rpc_id(1, "_rpc_request_initial_state")
-	if spawner != null and spawner.has_method("_rpc_request_initial_enemies"):
-		spawner.rpc_id(1, "_rpc_request_initial_enemies")
+## Handles all inbound WebRTC data-channel packets.
+func _on_packet_received(data: Dictionary) -> void:
+	var t: String = data.get("t", "")
+	match t:
+		"hello":
+			_on_hello_packet(data)
+		"hello_ack":
+			_on_hello_ack_packet(data)
+		"inp":
+			_apply_p2_input(data)
+		"spawn":
+			if spawner != null and spawner.has_method("on_spawn_packet"):
+				spawner.on_spawn_packet(data)
+		"despawn":
+			if spawner != null and spawner.has_method("on_despawn_packet"):
+				spawner.on_despawn_packet(data)
+		"state":
+			_apply_state_snapshot(data)
+		"gameover":
+			_trigger_game_over(float(data.get("elapsed", time_elapsed)))
 
 
-## Host receives this from joiner and replies with current run time and castle HP.
-@rpc("any_peer", "reliable")
-func _rpc_request_initial_state() -> void:
-	if not multiplayer.is_server():
+## Host receives "hello" from joiner — spawn the joiner's character and reply.
+func _on_hello_packet(data: Dictionary) -> void:
+	if not GameManager.is_host:
+		# Shouldn't happen, but safe-guard.
 		return
-	var caller_id: int = multiplayer.get_remote_sender_id()
-	var castle_hp: float = castle.health if castle != null and "health" in castle else -1.0
-	var castle_max: float = castle.max_health if castle != null and "max_health" in castle else 500.0
-	print("[RM] HOST: sending state to peer %d: time=%.1f castle_hp=%.1f" % [caller_id, time_elapsed, castle_hp])
-	rpc_id(caller_id, "_rpc_receive_initial_state", time_elapsed, castle_hp, castle_max)
-
-
-## Joiner receives current run state from host and applies it.
-@rpc("authority", "reliable")
-func _rpc_receive_initial_state(host_time: float, castle_hp: float, castle_max: float) -> void:
-	if multiplayer.is_server():
+	var char_key: String = data.get("char", "")
+	var slot: int = int(data.get("slot", 2))
+	if char_key.is_empty():
+		push_warning("RunManager: received hello packet with no char key")
 		return
-	print("[RM] JOINER: received state: time=%.1f castle_hp=%.1f/%.1f" % [host_time, castle_hp, castle_max])
-	time_elapsed = host_time
+	print("RunManager HOST: got hello from joiner char=%s slot=%d" % [char_key, slot])
+	_spawn_peer_char(char_key, slot)
+	# Tell the joiner our character so they can spawn our display.
+	WebRTCManager.send_reliable({"t": "hello_ack", "char": GameManager.my_character, "slot": 1})
+
+
+## Joiner receives "hello_ack" from host — spawn the host's display character.
+func _on_hello_ack_packet(data: Dictionary) -> void:
+	if GameManager.is_host:
+		return
+	var char_key: String = data.get("char", "")
+	var slot: int = int(data.get("slot", 1))
+	if char_key.is_empty():
+		push_warning("RunManager: received hello_ack packet with no char key")
+		return
+	print("RunManager JOINER: got hello_ack from host char=%s slot=%d" % [char_key, slot])
+	_spawn_peer_char(char_key, slot)
+
+
+## Host: apply received joiner input to the joiner's character input_override dict.
+## Using a dict is more reliable than Input.action_press in HTML5 exports.
+func _apply_p2_input(data: Dictionary) -> void:
+	if _joiner_char_node == null:
+		return
+	_joiner_char_node.set("input_override", {
+		"move_left":  bool(data.get("l",  false)),
+		"move_right": bool(data.get("r",  false)),
+		"move_up":    bool(data.get("u",  false)),
+		"move_down":  bool(data.get("d",  false)),
+		"face_lock":  bool(data.get("fl", false)),
+		"action1":    bool(data.get("a1", false)),
+		"action2":    bool(data.get("a2", false)),
+		"action3":    bool(data.get("a3", false)),
+	})
+
+
+## Joiner sends its local input state to the host every _process() frame.
+func _send_input() -> void:
+	WebRTCManager.send_unreliable({
+		"t":  "inp",
+		"l":  Input.is_action_pressed("move_left"),
+		"r":  Input.is_action_pressed("move_right"),
+		"u":  Input.is_action_pressed("move_up"),
+		"d":  Input.is_action_pressed("move_down"),
+		"fl": Input.is_action_pressed("face_lock"),
+		"a1": Input.is_action_pressed("action1"),
+		"a2": Input.is_action_pressed("action2"),
+		"a3": Input.is_action_pressed("action3"),
+	})
+
+
+## Host builds and sends a state snapshot to the joiner.
+## Character positions are keyed by player_slot ("1" or "2") so ordering in _players
+## does not need to match between host and joiner.
+func _broadcast_state() -> void:
+	var char_data: Dictionary = {}
+	for player_root in _players:
+		var ch: Node = _resolve_character(player_root)
+		if ch == null:
+			continue
+		var slot: int = int(ch.get("player_slot")) if "player_slot" in ch else 1
+		var anim_spr := ch.get("animated_sprite") as AnimatedSprite2D
+		char_data[str(slot)] = {
+			"x":  ch.global_position.x,
+			"y":  ch.global_position.y,
+			"f":  ch.get("facing") if "facing" in ch else 1.0,
+			"hp": ch.health if "health" in ch else 0.0,
+			"an": anim_spr.animation if anim_spr != null else "",
+		}
+
+	var enemy_data: Dictionary = {}
+	if spawner != null and "alive_enemy_map" in spawner:
+		for eid in spawner.alive_enemy_map:
+			var info: Dictionary = spawner.alive_enemy_map[eid]
+			var enemy: Node = info.get("node") as Node
+			if is_instance_valid(enemy):
+				enemy_data[str(eid)] = {
+					"x":  enemy.global_position.x,
+					"y":  enemy.global_position.y,
+					"hp": enemy.health if "health" in enemy else 0.0,
+				}
+
+	WebRTCManager.send_unreliable({
+		"t":        "state",
+		"c":        char_data,
+		"e":        enemy_data,
+		"castle_hp": castle.health if "health" in castle else 0.0,
+		"elapsed":  time_elapsed,
+	})
+
+
+## Joiner applies a state snapshot to local display nodes.
+func _apply_state_snapshot(data: Dictionary) -> void:
+	time_elapsed = float(data.get("elapsed", time_elapsed))
+
+	# Update spawner's timer so difficulty curve stays in sync.
 	if spawner != null and "time_elapsed" in spawner:
-		spawner.time_elapsed = host_time
-	if castle != null and "health" in castle and castle_hp >= 0.0:
-		castle.health = castle_hp
-		if castle.has_signal("health_changed"):
-			castle.emit_signal("health_changed", castle_hp, castle_max)
+		spawner.time_elapsed = time_elapsed
+
+	# Update character positions and facing.
+	# char_data is keyed by player_slot string ("1" or "2") so ordering doesn't matter.
+	var char_data: Dictionary = data.get("c", {})
+	for player_root in _players:
+		var ch: Node = _resolve_character(player_root)
+		if ch == null:
+			continue
+		var slot_str: String = str(int(ch.get("player_slot")) if "player_slot" in ch else 1)
+		if not char_data.has(slot_str):
+			continue
+		var cd: Dictionary = char_data[slot_str]
+		ch.global_position = Vector2(float(cd.get("x", ch.global_position.x)),
+									 float(cd.get("y", ch.global_position.y)))
+		# Sync facing.
+		if cd.has("f") and "facing" in ch:
+			var f := float(cd["f"])
+			if ch.get("facing") != f:
+				ch.set("facing", f)
+				if ch.has_method("_apply_facing"):
+					ch.call("_apply_facing")
+		# Sync animation — play only when it changes to avoid resetting mid-loop.
+		if cd.has("an"):
+			var spr := ch.get("animated_sprite") as AnimatedSprite2D
+			var anim: StringName = cd["an"]
+			if spr != null and not anim.is_empty() and spr.animation != anim:
+				spr.play(anim)
+
+	# Update castle HP.
+	if castle != null and data.has("castle_hp") and "health" in castle:
+		var new_hp: float = float(data["castle_hp"])
+		if castle.health != new_hp:
+			castle.health = new_hp
+			if castle.has_signal("health_changed"):
+				castle.emit_signal("health_changed", new_hp,
+					castle.max_health if "max_health" in castle else 500.0)
+
+	# Route enemy positions to spawner for lerp application.
+	if spawner != null and spawner.has_method("apply_enemy_state"):
+		spawner.apply_enemy_state(data.get("e", {}))
 
 
-@rpc("authority", "reliable", "call_local")
-func _rpc_game_over(elapsed: float) -> void:
+## Final common path for ending the run on both host and joiner.
+func _trigger_game_over(elapsed: float) -> void:
 	if _game_over:
 		return
 	_game_over = true
@@ -361,15 +523,18 @@ func _respawn_player(player: Node) -> void:
 	if _game_over:
 		return
 
-	var idx: int = _players.find(player)
-	var point: Marker2D = _get_spawn_point(idx if idx >= 0 else 0)
+	# Use the character's slot to look up which spawn point to use.
+	var character: Node = _resolve_character(player)
+	var slot: int = int(character.get("player_slot")) if character != null and "player_slot" in character else 1
+	var char_key: String = _slot_char.get(slot, "")
+	var spawn_idx: int = _char_spawn_index(char_key) if not char_key.is_empty() else 0
+	var point: Marker2D = _get_spawn_point(spawn_idx)
 	if point == null:
 		return
 
-	var character: Node = _resolve_character(player)
 	if character != null and character.has_method(&"revive"):
 		character.revive(point.global_position)
-		print("RunManager: revived player '%s' at %s" % [player.name, point.global_position])
+		print("RunManager: revived player '%s' (slot %d) at %s" % [player.name, slot, point.global_position])
 	elif player.has_method(&"revive"):
 		player.revive(point.global_position)
 		print("RunManager: revived player '%s' at %s" % [player.name, point.global_position])
