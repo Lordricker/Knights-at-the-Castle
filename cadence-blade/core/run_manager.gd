@@ -85,6 +85,11 @@ func _ready() -> void:
 	else:
 		push_warning("RunManager: could not find a Castle node with a 'died' signal — game-over will never trigger.")
 
+	# Joiner: once the scene is ready, ask the host for a state snapshot
+	# (run time, castle HP) and all currently alive enemies.
+	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+		call_deferred("_request_initial_state_from_host")
+
 
 func _process(delta: float) -> void:
 	if _game_over:
@@ -275,6 +280,44 @@ func _on_castle_died() -> void:
 	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
 		return
 	rpc("_rpc_game_over", time_elapsed)
+
+
+# ── Initial state sync (joiner join mid-run) ──────────────────────────────────
+
+## Joiner calls this once the level scene is fully ready.
+## Sends two requests: run state (time + castle HP) and alive enemies.
+func _request_initial_state_from_host() -> void:
+	print("[RM] JOINER: requesting initial state from host")
+	rpc_id(1, "_rpc_request_initial_state")
+	if spawner != null and spawner.has_method("_rpc_request_initial_enemies"):
+		spawner.rpc_id(1, "_rpc_request_initial_enemies")
+
+
+## Host receives this from joiner and replies with current run time and castle HP.
+@rpc("any_peer", "reliable")
+func _rpc_request_initial_state() -> void:
+	if not multiplayer.is_server():
+		return
+	var caller_id: int = multiplayer.get_remote_sender_id()
+	var castle_hp: float = castle.health if castle != null and "health" in castle else -1.0
+	var castle_max: float = castle.max_health if castle != null and "max_health" in castle else 500.0
+	print("[RM] HOST: sending state to peer %d: time=%.1f castle_hp=%.1f" % [caller_id, time_elapsed, castle_hp])
+	rpc_id(caller_id, "_rpc_receive_initial_state", time_elapsed, castle_hp, castle_max)
+
+
+## Joiner receives current run state from host and applies it.
+@rpc("authority", "reliable")
+func _rpc_receive_initial_state(host_time: float, castle_hp: float, castle_max: float) -> void:
+	if multiplayer.is_server():
+		return
+	print("[RM] JOINER: received state: time=%.1f castle_hp=%.1f/%.1f" % [host_time, castle_hp, castle_max])
+	time_elapsed = host_time
+	if spawner != null and "time_elapsed" in spawner:
+		spawner.time_elapsed = host_time
+	if castle != null and "health" in castle and castle_hp >= 0.0:
+		castle.health = castle_hp
+		if castle.has_signal("health_changed"):
+			castle.emit_signal("health_changed", castle_hp, castle_max)
 
 
 @rpc("authority", "reliable", "call_local")

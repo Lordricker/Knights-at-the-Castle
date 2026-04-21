@@ -67,10 +67,16 @@ var time_elapsed: float = 0.0
 
 var _spawn_timer: float = 0.0
 
-## Vector2i(type_index, variant_index) → int  (alive count)
+## Vector2i(type_index, variant_index) -> int  (alive count)
 var _alive_counts: Dictionary = {}
 
 var _total_alive: int = 0
+## Monotonically increasing ID assigned to each spawned enemy.
+## Used to give both peers' enemy nodes identical names for RPC routing.
+var _next_id: int = 0
+## spawn_id -> {ti, vi, node} for all currently alive enemies on host.
+## Used to send a full enemy list to a joiner that joins mid-run.
+var _alive_enemy_map: Dictionary = {}
 
 
 # ── Lifecycle ─────────────────────────────────────────────────────────────────
@@ -188,7 +194,12 @@ func _build_pool(t: float) -> Array[Vector2i]:
 func _spawn_variant(key: Vector2i) -> void:
 	var vi_cfg: EnemyVariantConfig = enemy_types[key.x].variants[key.y]
 
+	# Assign a deterministic name so both peers' nodes share the same path for RPC routing.
+	var spawn_id := _next_id
+	_next_id += 1
+
 	var instance: Node = vi_cfg.scene.instantiate()
+	instance.name = "En%d" % spawn_id
 	enemy_container.add_child(instance)
 
 	# Pick a spawn point at random.
@@ -204,10 +215,12 @@ func _spawn_variant(key: Vector2i) -> void:
 				signal_source = child
 				break
 	if signal_source.has_signal("died"):
-		signal_source.died.connect(func(_e: Node) -> void: _on_enemy_died(key))
+		var sid := spawn_id
+		signal_source.died.connect(func(_e: Node) -> void: _on_enemy_died(key, sid))
 
 	_alive_counts[key] = _alive_counts.get(key, 0) + 1
 	_total_alive += 1
+	_alive_enemy_map[spawn_id] = {"ti": key.x, "vi": key.y, "node": instance}
 
 	# Propagate coin tier config to the enemy so it knows what to drop on death.
 	if "coin_tier" in signal_source:
@@ -215,10 +228,63 @@ func _spawn_variant(key: Vector2i) -> void:
 	if "flow_kill_coin_tier" in signal_source:
 		signal_source.flow_kill_coin_tier = vi_cfg.flow_kill_coin_tier
 
+	# Replicate spawn to the joiner so their scene has the same enemy node.
+	if multiplayer.has_multiplayer_peer():
+		rpc("_rpc_spawn_enemy", key.x, key.y, instance.global_position, spawn_id)
 
-func _on_enemy_died(key: Vector2i) -> void:
+
+func _on_enemy_died(key: Vector2i, spawn_id: int) -> void:
 	_alive_counts[key] = maxi(0, _alive_counts.get(key, 0) - 1)
 	_total_alive = maxi(0, _total_alive - 1)
+	_alive_enemy_map.erase(spawn_id)
+
+
+## Received on joiner: spawn a mirrored enemy node so host RPCs can reach it.
+@rpc("authority", "reliable")
+func _rpc_spawn_enemy(ti: int, vi: int, pos: Vector2, spawn_id: int) -> void:
+	if multiplayer.is_server():
+		return
+	if ti >= enemy_types.size():
+		return
+	var type_cfg: EnemyTypeConfig = enemy_types[ti]
+	if vi >= type_cfg.variants.size():
+		return
+	var vi_cfg: EnemyVariantConfig = type_cfg.variants[vi]
+	if vi_cfg == null or vi_cfg.scene == null:
+		return
+	# Don't double-spawn if this enemy already exists (e.g. received both via
+	# _rpc_spawn_enemy and _rpc_request_initial_enemies).
+	var existing_name: String = "En%d" % spawn_id
+	if enemy_container != null and enemy_container.has_node(existing_name):
+		return
+	var instance: Node = vi_cfg.scene.instantiate()
+	instance.name = existing_name
+	enemy_container.add_child(instance)
+	instance.global_position = pos
+	var signal_source: Node = instance
+	if not instance.has_signal("died"):
+		for child in instance.get_children():
+			if child.has_signal("died"):
+				signal_source = child
+				break
+	if "coin_tier" in signal_source:
+		signal_source.coin_tier = vi_cfg.coin_tier
+	if "flow_kill_coin_tier" in signal_source:
+		signal_source.flow_kill_coin_tier = vi_cfg.flow_kill_coin_tier
+
+
+## Joiner calls this on host to get all currently alive enemies when joining mid-run.
+@rpc("any_peer", "reliable")
+func _rpc_request_initial_enemies() -> void:
+	if not multiplayer.is_server():
+		return
+	var caller_id: int = multiplayer.get_remote_sender_id()
+	print("[Spawner] Sending %d alive enemies to peer %d" % [_alive_enemy_map.size(), caller_id])
+	for spawn_id in _alive_enemy_map:
+		var info: Dictionary = _alive_enemy_map[spawn_id]
+		var node: Node = info["node"]
+		if is_instance_valid(node):
+			rpc_id(caller_id, "_rpc_spawn_enemy", info["ti"], info["vi"], node.global_position, spawn_id)
 
 
 # ── Debug ─────────────────────────────────────────────────────────────────────

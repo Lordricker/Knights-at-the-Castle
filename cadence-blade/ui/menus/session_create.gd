@@ -133,6 +133,10 @@ func _ready() -> void:
 
 	# Listen for connection failure.
 	WebRTCManager.connection_failed.connect(_on_connection_failed)
+	# Show live signaling steps in the status label while waiting for a joiner.
+	WebRTCManager.debug_status.connect(func(msg: String) -> void:
+		if _waiting:
+			_status_label.text = msg)
 
 
 func _make_portrait_button(color: Color, label: String, index: int) -> Button:
@@ -188,8 +192,9 @@ func _on_start_pressed() -> void:
 				_waiting = false
 				_start_btn.disabled = false
 				return
-			# Start the game immediately as solo. WebRTC host stays active in the
-			# background — another player can join mid-run.
+			# Load the game immediately as solo. WebRTC host signaling runs in the
+			# background -- when a joiner connects, game_manager._on_mesh_ready
+			# spawns them into the already-running level.
 			GameManager.begin_hosting(_selected_character)
 			get_tree().change_scene_to_file(GameManager.GAME_LEVEL_SCENE)
 	)

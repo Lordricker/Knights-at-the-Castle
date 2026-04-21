@@ -111,6 +111,10 @@ func _ready() -> void:
 
 	# WebRTC events.
 	WebRTCManager.connection_failed.connect(_on_connection_failed)
+	# Show live signaling steps in the status label while waiting to connect.
+	WebRTCManager.debug_status.connect(func(msg: String) -> void:
+		if _waiting:
+			_status_label.text = msg)
 
 	# Start polling immediately.
 	_refresh_sessions()

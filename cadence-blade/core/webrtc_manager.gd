@@ -17,6 +17,8 @@ extends Node
 signal mesh_ready()
 signal connection_failed(reason: String)
 signal peer_disconnected(peer_id: int)
+## Emitted at each signaling step so the UI can display live progress.
+signal debug_status(message: String)
 
 enum State { IDLE, SIGNALING, CONNECTED }
 
@@ -46,6 +48,12 @@ var _peer_conn: WebRTCPeerConnection = null
 var _poll_timer: float = 0.0
 var _ice_batch_timer: float = 0.0
 var _connect_timer: float = 0.0
+var _debug_timer: float = 0.0
+## Total local ICE candidates generated this session.
+var _ice_local_count: int = 0
+## Last known connection/gathering states -- used to detect transitions.
+var _last_conn_state: int = -1
+var _last_gather_state: int = -1
 
 var _offer_sent: bool = false
 var _offer_received: bool = false
@@ -66,6 +74,9 @@ var _buffered_remote_ice: Array[Dictionary] = []
 
 
 func _ready() -> void:
+	# Wire up GameManager's handlers here — WebRTCManager loads after GameManager
+	# so GameManager is guaranteed to exist at this point.
+	GameManager.connect_webrtc_signals()
 	set_process(false)
 
 
@@ -73,16 +84,19 @@ func _ready() -> void:
 
 ## Call after creating a Firebase session. Sets up the WebRTC host side and waits
 ## for a joiner to send an offer.
+## Call after creating a Firebase session. Sets up the WebRTC host side and waits
+## for a joiner to send an offer.
 func host_session(session_id: String) -> void:
 	if state != State.IDLE:
 		push_warning("WebRTCManager: host_session called while not IDLE")
 		return
 	if not ClassDB.class_exists("WebRTCPeerConnection"):
-		connection_failed.emit("WebRTCPeerConnection not available — use an HTML5 export or install the WebRTC GDExtension for desktop testing.")
+		connection_failed.emit("WebRTCPeerConnection not available -- use an HTML5 export or install the WebRTC GDExtension for desktop testing.")
 		return
 	_session_id = session_id
 	_is_host = true
 	state = State.SIGNALING
+	_dbg("HOST: Starting signaling for session '%s'" % session_id)
 	_setup_webrtc()
 	set_process(true)
 
@@ -93,13 +107,15 @@ func join_session(session_id: String) -> void:
 		push_warning("WebRTCManager: join_session called while not IDLE")
 		return
 	if not ClassDB.class_exists("WebRTCPeerConnection"):
-		connection_failed.emit("WebRTCPeerConnection not available — use an HTML5 export or install the WebRTC GDExtension for desktop testing.")
+		connection_failed.emit("WebRTCPeerConnection not available -- use an HTML5 export or install the WebRTC GDExtension for desktop testing.")
 		return
 	_session_id = session_id
 	_is_host = false
 	state = State.SIGNALING
+	_dbg("JOINER: Starting signaling for session '%s'" % session_id)
 	_setup_webrtc()
 	# Joiner creates and sends the WebRTC offer.
+	_dbg("JOINER: Calling create_offer()...")
 	var offer_err: int = _peer_conn.create_offer()
 	if offer_err != OK:
 		push_error("WebRTCManager: create_offer() failed: %d" % offer_err)
@@ -122,9 +138,11 @@ func _setup_webrtc() -> void:
 	_rtc_multi = WebRTCMultiplayerPeer.new()
 	if _is_host:
 		_rtc_multi.create_server()
+		_dbg("WebRTCMultiplayerPeer created as SERVER (peer ID 1)")
 	else:
 		# Client always receives peer ID 2 in a 2-player session.
 		_rtc_multi.create_client(2)
+		_dbg("WebRTCMultiplayerPeer created as CLIENT (peer ID 2)")
 
 	_peer_conn = WebRTCPeerConnection.new()
 	var init_err: int = _peer_conn.initialize({"iceServers": ICE_SERVERS})
@@ -133,6 +151,7 @@ func _setup_webrtc() -> void:
 		connection_failed.emit("WebRTC init error %d" % init_err)
 		_cleanup()
 		return
+	_dbg("WebRTCPeerConnection initialized with %d ICE servers" % ICE_SERVERS.size())
 
 	_peer_conn.session_description_created.connect(_on_sdp_created)
 	_peer_conn.ice_candidate_created.connect(_on_ice_created)
@@ -140,6 +159,7 @@ func _setup_webrtc() -> void:
 	# Host = peer ID 1, joiner = peer ID 2.
 	var remote_peer_id: int = 2 if _is_host else 1
 	_rtc_multi.add_peer(_peer_conn, remote_peer_id)
+	_dbg("Peer %d added to RTC mesh -- signals connected, waiting for SDP" % remote_peer_id)
 	_rtc_multi.peer_connected.connect(_on_rtc_peer_connected)
 	_rtc_multi.peer_disconnected.connect(_on_rtc_peer_disconnected)
 
@@ -152,9 +172,35 @@ func _process(delta: float) -> void:
 
 	_connect_timer += delta
 	if state == State.SIGNALING and _connect_timer >= CONNECT_TIMEOUT:
+		_print_debug_state()
 		connection_failed.emit("Connection timed out after %.0f seconds" % CONNECT_TIMEOUT)
 		_cleanup()
 		return
+
+	# Detect and immediately log any WebRTC state transitions.
+	if _peer_conn != null:
+		var conn_names: Array = ["new", "connecting", "connected", "disconnected", "FAILED", "closed"]
+		var gather_names: Array = ["new", "gathering", "complete"]
+		var cs: int = _peer_conn.get_connection_state()
+		var gs: int = _peer_conn.get_gathering_state()
+		if cs != _last_conn_state:
+			_last_conn_state = cs
+			var cn: String = conn_names[cs] if cs < conn_names.size() else str(cs)
+			_dbg(">>> Connection state changed: %s" % cn)
+			if cs == 4: # FAILED
+				_print_debug_state()
+				connection_failed.emit("ICE connection FAILED (no working candidate pair found)")
+				_cleanup()
+				return
+		if gs != _last_gather_state:
+			_last_gather_state = gs
+			var gn: String = gather_names[gs] if gs < gather_names.size() else str(gs)
+			_dbg(">>> ICE gathering state changed: %s (local candidates so far: %d)" % [gn, _ice_local_count])
+
+	_debug_timer += delta
+	if state == State.SIGNALING and _debug_timer >= 5.0:
+		_debug_timer = 0.0
+		_print_debug_state()
 
 	_ice_batch_timer += delta
 	if _ice_batch_timer >= ICE_BATCH_INTERVAL:
@@ -192,46 +238,61 @@ func _on_sdp_created(type: String, sdp: String) -> void:
 	# Joiner writes "offer"; host writes "answer".
 	if not _is_host and not _offer_sent:
 		_offer_sent = true
-		print("WebRTCManager [joiner]: writing offer to Firebase")
+		_dbg("JOINER: Local SDP ready (type=%s, %d chars) -- writing offer to Firebase" % [type, sdp.length()])
 		FirebaseClient.write_signal_data(_session_id, "offer", {"type": type, "sdp": sdp},
-			func(_c, _d): pass)
+			func(c: int, _d: Variant) -> void:
+				if c == 200:
+					_dbg("JOINER: Offer written OK (HTTP 200) -- waiting for host answer")
+				else:
+					_dbg("JOINER: WARNING -- offer write returned HTTP %d" % c))
 	elif _is_host and not _answer_sent:
 		_answer_sent = true
-		print("WebRTCManager [host]: writing answer to Firebase")
+		_dbg("HOST: Local SDP ready (type=%s, %d chars) -- writing answer to Firebase" % [type, sdp.length()])
 		FirebaseClient.write_signal_data(_session_id, "answer", {"type": type, "sdp": sdp},
-			func(_c, _d): pass)
+			func(c: int, _d: Variant) -> void:
+				if c == 200:
+					_dbg("HOST: Answer written OK (HTTP 200) -- waiting for ICE to settle")
+				else:
+					_dbg("HOST: WARNING -- answer write returned HTTP %d" % c))
 
 
 func _on_received_offer(_code: int, data: Variant) -> void:
 	if _offer_received or data == null or not (data is Dictionary) or not data.has("sdp"):
 		return
 	_offer_received = true
-	print("WebRTCManager [host]: received offer, setting remote description")
+	_dbg("HOST: Received joiner offer (%d chars) -- setting remote description" % (data["sdp"] as String).length())
 	var set_err: int = _peer_conn.set_remote_description(data.get("type", "offer"), data["sdp"])
 	if set_err != OK:
 		push_error("WebRTCManager: set_remote_description(offer) failed: %d" % set_err)
-	# Flag that the remote SDP is now set — ICE candidates can be applied safely.
+		_dbg("HOST: ERROR set_remote_description failed: %d" % set_err)
+	# Flag that the remote SDP is now set -- ICE candidates can be applied safely.
 	_remote_sdp_set = true
+	_dbg("HOST: Remote SDP set -- applying %d buffered ICE candidates, creating answer..." % _buffered_remote_ice.size())
 	_apply_buffered_ice()
-	# Immediately poll for the joiner's ICE candidates — don't wait for the next timer tick.
+	# Immediately poll for the joiner's ICE candidates -- don't wait for the next timer tick.
 	_poll_timer = 0.0
 	_do_signal_poll()
 	# Creating the answer triggers session_description_created on success.
 	var ans_err: int = _peer_conn.create_answer()
 	if ans_err != OK:
 		push_error("WebRTCManager: create_answer() failed: %d" % ans_err)
+		_dbg("HOST: ERROR create_answer() failed: %d" % ans_err)
 
 
 func _on_received_answer(_code: int, data: Variant) -> void:
 	if _answer_received or data == null or not (data is Dictionary) or not data.has("sdp"):
 		return
 	_answer_received = true
-	print("WebRTCManager [joiner]: received answer, setting remote description")
-	_peer_conn.set_remote_description(data.get("type", "answer"), data["sdp"])
-	# Flag that the remote SDP is now set — ICE candidates can be applied safely.
+	_dbg("JOINER: Received host answer (%d chars) -- setting remote description" % (data["sdp"] as String).length())
+	var set_err: int = _peer_conn.set_remote_description(data.get("type", "answer"), data["sdp"])
+	if set_err != OK:
+		push_error("WebRTCManager: set_remote_description(answer) failed: %d" % set_err)
+		_dbg("JOINER: ERROR set_remote_description failed: %d" % set_err)
+	# Flag that the remote SDP is now set -- ICE candidates can be applied safely.
 	_remote_sdp_set = true
+	_dbg("JOINER: Remote SDP set -- applying %d buffered ICE candidates" % _buffered_remote_ice.size())
 	_apply_buffered_ice()
-	# Immediately poll for the host's ICE candidates — don't wait for the next timer tick.
+	# Immediately poll for the host's ICE candidates -- don't wait for the next timer tick.
 	_poll_timer = 0.0
 	_do_signal_poll()
 
@@ -243,17 +304,30 @@ func _on_ice_created(media: String, index: int, name: String) -> void:
 	var candidate := {"media": media, "index": index, "name": name}
 	_pending_local_ice.append(candidate)
 	_all_local_ice.append(candidate)
+	_ice_local_count += 1
+	# Parse the candidate type from the SDP string (host / srflx / relay).
+	var ctype: String = "unknown"
+	for part in name.split(" "):
+		if part == "host" or part == "srflx" or part == "relay" or part == "prflx":
+			ctype = part
+			break
+	_dbg("ICE #%d: type=%s media=%s" % [_ice_local_count, ctype, media])
 
 
-## Write all accumulated local ICE candidates to Firebase (single overwrite — no read needed).
+## Write all accumulated local ICE candidates to Firebase (single overwrite -- no read needed).
 func _flush_local_ice() -> void:
 	if _pending_local_ice.is_empty():
 		return
+	var flush_count: int = _pending_local_ice.size()
 	_pending_local_ice.clear()
 	var my_ice_key: String = "ice_host" if _is_host else "ice_joiner"
-	# Overwrite with the full running list — remote only applies candidates it hasn't seen yet.
+	_dbg("Flushing %d new ICE candidates to Firebase (total: %d)" % [flush_count, _all_local_ice.size()])
+	# Overwrite with the full running list -- remote only applies candidates it hasn't seen yet.
 	FirebaseClient.write_signal_data(_session_id, my_ice_key,
-		{"candidates": _all_local_ice}, func(_rc, _rd): pass)
+		{"candidates": _all_local_ice},
+		func(c: int, _rd: Variant) -> void:
+			if c != 200:
+				_dbg("WARNING: ICE flush returned HTTP %d" % c))
 
 
 ## Apply any new remote ICE candidates we haven't seen yet.
@@ -262,13 +336,19 @@ func _on_received_ice_batch(_code: int, data: Variant) -> void:
 	if data == null or not (data is Dictionary) or not data.has("candidates"):
 		return
 	var candidates: Array = data["candidates"]
+	var new_count: int = candidates.size() - _remote_ice_applied
 	if not _remote_sdp_set:
 		# Store all unseen candidates; _apply_buffered_ice() will apply them later.
+		var prev_buffered: int = _buffered_remote_ice.size()
 		for i in range(_buffered_remote_ice.size(), candidates.size()):
 			var c: Variant = candidates[i]
 			if c is Dictionary:
 				_buffered_remote_ice.append(c)
+		if _buffered_remote_ice.size() > prev_buffered:
+			_dbg("Buffering %d remote ICE candidates (remote SDP not set yet)" % _buffered_remote_ice.size())
 		return
+	if new_count > 0:
+		_dbg("Received %d remote ICE candidates, applying %d new (total seen: %d)" % [candidates.size(), new_count, candidates.size()])
 	for i in range(_remote_ice_applied, candidates.size()):
 		var c: Variant = candidates[i]
 		if c is Dictionary and c.has("media") and c.has("index") and c.has("name"):
@@ -290,10 +370,14 @@ func _apply_buffered_ice() -> void:
 func _on_rtc_peer_connected(_id: int) -> void:
 	if state == State.CONNECTED:
 		return
-	print("WebRTCManager: peer %d connected — P2P mesh ready!" % _id)
+	_dbg("P2P CONNECTED! Peer %d joined -- mesh ready after %.1fs" % [_id, _connect_timer])
 	state = State.CONNECTED
-	set_process(false)
-	# Assign the WebRTC peer as Godot's multiplayer backend — enables @rpc.
+	# NOTE: do NOT call set_process(false) here.
+	# _rtc_multi.poll() must keep being called every frame so that WebRTC data
+	# channel packets (including @rpc calls) are actually received.
+	# All signaling timers below are already guarded by state == State.SIGNALING
+	# so no redundant Firebase polling will happen.
+	# Assign the WebRTC peer as Godot's multiplayer backend -- enables @rpc.
 	multiplayer.multiplayer_peer = _rtc_multi
 	# Tidy up signaling data from Firebase now that P2P is live.
 	FirebaseClient.delete_signal_data(_session_id, func(_c, _d): pass)
@@ -324,8 +408,42 @@ func _cleanup() -> void:
 	_poll_timer = 0.0
 	_ice_batch_timer = 0.0
 	_connect_timer = 0.0
+	_debug_timer = 0.0
+	_ice_local_count = 0
+	_last_conn_state = -1
+	_last_gather_state = -1
 	# Restore offline multiplayer peer.
 	if multiplayer.multiplayer_peer != null:
 		multiplayer.multiplayer_peer = null
 	_rtc_multi = null
 	_peer_conn = null
+
+
+# ---- Debug helpers -----------------------------------------------------------
+
+## Print msg to the console AND emit debug_status so the UI can show it.
+func _dbg(msg: String) -> void:
+	print("[WebRTC] " + msg)
+	debug_status.emit(msg)
+
+
+## Dump the current WebRTC peer connection states to console and UI.
+func _print_debug_state() -> void:
+	if _peer_conn == null:
+		_dbg("[dump] No peer connection object yet")
+		return
+	var conn_names: Array = ["new", "connecting", "connected", "disconnected", "FAILED", "closed"]
+	var gather_names: Array = ["new", "gathering", "complete"]
+	var sig_names: Array = ["stable", "have-local-offer", "have-remote-offer", "have-local-pranswer", "have-remote-pranswer", "closed"]
+	var cs: int = _peer_conn.get_connection_state()
+	var gs: int = _peer_conn.get_gathering_state()
+	var ss: int = _peer_conn.get_signaling_state()
+	var cn: String = conn_names[cs] if cs < conn_names.size() else str(cs)
+	var gn: String = gather_names[gs] if gs < gather_names.size() else str(gs)
+	var sn: String = sig_names[ss] if ss < sig_names.size() else str(ss)
+	_dbg("[dump t=%.0fs] conn=%s gather=%s sig=%s | offer(sent=%s recv=%s) answer(sent=%s recv=%s) | local_ice=%d remote_ice=%d buffered=%d" % [
+		_connect_timer, cn, gn, sn,
+		str(_offer_sent), str(_offer_received),
+		str(_answer_sent), str(_answer_received),
+		_all_local_ice.size(), _remote_ice_applied, _buffered_remote_ice.size()
+	])

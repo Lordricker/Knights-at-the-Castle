@@ -24,8 +24,8 @@ var session_id: String = ""
 var is_host: bool = false
 ## The character key this player chose. "red_knight" | "green_archer"
 var my_character: String = ""
-## peer_id (int) → character key (String) for all peers in the session.
-## Populated via _rpc_announce_character after WebRTC connects.
+## peer_id (int) -> character key (String) for all peers in the session.
+## Populated from Firebase when mesh_ready fires.
 var peer_characters: Dictionary = {}
 
 ## Path to the game level scene loaded when a session starts.
@@ -41,16 +41,14 @@ const _HS_KEY: String = "cadence_blade_best_time"
 
 func _ready() -> void:
 	_load_best_time()
-	# Connect WebRTC events once WebRTCManager is available (it loads after us).
-	call_deferred("_connect_webrtc_signals")
+	# Signal wiring is done from WebRTCManager._ready() because it loads after us.
 
 
-func _connect_webrtc_signals() -> void:
-	if not has_node("/root/WebRTCManager"):
-		return
+func connect_webrtc_signals() -> void:
 	WebRTCManager.mesh_ready.connect(_on_mesh_ready)
 	WebRTCManager.connection_failed.connect(_on_connection_failed)
 	WebRTCManager.peer_disconnected.connect(_on_peer_disconnected)
+	print("[GM] WebRTC signals connected")
 
 
 func change_state(new_state: GameState) -> void:
@@ -136,8 +134,38 @@ static func generate_session_id() -> String:
 # ── WebRTC event handlers ──────────────────────────────────────────────────────
 
 func _on_mesh_ready() -> void:
-	# Tell everyone which character we chose.
-	rpc("_rpc_announce_character", my_character)
+	var role: String = "HOST" if is_host else "JOINER"
+	print("[GM] mesh_ready | role=%s peer_id=%d my_char=%s" % [role, multiplayer.get_unique_id(), my_character])
+	# Read the full player list from Firebase so peer_characters is complete on both sides.
+	FirebaseClient.get_sessions(func(_code: int, data: Variant) -> void:
+		if data != null and (data is Dictionary) and data.has(session_id):
+			var players: Variant = data[session_id].get("players", {})
+			if players is Dictionary:
+				for pid_str in players:
+					var pid: int = int(pid_str)
+					var entry: Variant = players[pid_str]
+					var ch: String = entry.get("character", "") if entry is Dictionary else ""
+					if not ch.is_empty():
+						peer_characters[pid] = ch
+		print("[GM] peer_characters=%s" % str(peer_characters))
+
+		if is_host:
+			# Host is already in the running level. Spawn the joiner's character there.
+			var joiner_id: int = 2
+			var joiner_char: String = peer_characters.get(joiner_id, "")
+			if joiner_char.is_empty():
+				push_warning("[GM] HOST: joiner character not found in Firebase")
+				return
+			var run_mgr: Node = get_tree().get_first_node_in_group(&"run_manager")
+			print("[GM] HOST: spawning joiner %d (%s) mid-game, run_mgr=%s" % [joiner_id, joiner_char, str(run_mgr != null)])
+			if run_mgr != null and run_mgr.has_method("spawn_peer_mid_game"):
+				run_mgr.spawn_peer_mid_game(joiner_id, joiner_char)
+			if session_id != "":
+				FirebaseClient.update_session(session_id, {"status": "in_game"}, func(_c, _d): pass)
+		else:
+			# Joiner: load the level. RunManager._ready() will request a state snapshot from host.
+			get_tree().change_scene_to_file(GAME_LEVEL_SCENE)
+	)
 
 
 func _on_connection_failed(reason: String) -> void:
@@ -193,48 +221,6 @@ func _register_beforeunload_cleanup() -> void:
 		})();
 	""" % url)
 
-
-# Sent by each peer after WebRTC connects so both sides know who plays which character.
-@rpc("any_peer", "reliable", "call_local")
-func _rpc_announce_character(character: String) -> void:
-	var sender_id: int = multiplayer.get_remote_sender_id()
-	if sender_id == 0:
-		sender_id = multiplayer.get_unique_id()
-	peer_characters[sender_id] = character
-
-	if not is_host or peer_characters.size() < 2:
-		return
-
-	if current_state == GameState.PLAYING:
-		# Host is already in a run — spawn the joiner's character into the live game.
-		var joiner_id: int = sender_id
-		var joiner_char: String = peer_characters.get(joiner_id, "")
-		if joiner_char.is_empty():
-			return
-		var run_mgr: Node = get_tree().get_first_node_in_group(&"run_manager")
-		if run_mgr != null and run_mgr.has_method("spawn_peer_mid_game"):
-			run_mgr.spawn_peer_mid_game(joiner_id, joiner_char)
-		# Mark session as in_game so it leaves the lobby list.
-		if session_id != "":
-			FirebaseClient.update_session(session_id, {"status": "in_game"}, func(_c, _d): pass)
-		# Tell only the joiner to load the level (host is already in it).
-		rpc_id(joiner_id, "_rpc_join_running_game")
-	else:
-		# Both peers are still in menus — load the level for everyone.
-		rpc("_rpc_load_level")
-
-
-## Loads the level on both peers simultaneously (used when neither peer is in-game yet).
-@rpc("authority", "reliable", "call_local")
-func _rpc_load_level() -> void:
-	get_tree().change_scene_to_file(GAME_LEVEL_SCENE)
-
-
-## Loads the level on the joiner only (host is already playing).
-## No call_local so it does NOT execute on the host.
-@rpc("authority", "reliable")
-func _rpc_join_running_game() -> void:
-	get_tree().change_scene_to_file(GAME_LEVEL_SCENE)
 
 
 # ── High score ─────────────────────────────────────────────────────────────────
