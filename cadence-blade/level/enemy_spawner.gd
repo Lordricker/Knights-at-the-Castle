@@ -367,6 +367,14 @@ func apply_enemy_state(e: Dictionary) -> void:
 				enemy_node.set("facing", f)
 				if enemy_node.has_method("_apply_facing"):
 					enemy_node.call("_apply_facing")
+		# Sync HP so health bar updates visually on joiner.
+		if ed.has("hp") and "health" in enemy_node:
+			var new_hp: float = float(ed["hp"])
+			if enemy_node.health != new_hp:
+				enemy_node.health = new_hp
+				if enemy_node.has_signal("health_changed"):
+					enemy_node.health_changed.emit(new_hp,
+						enemy_node.max_health if "max_health" in enemy_node else 100.0)
 
 
 # ── Debug ─────────────────────────────────────────────────────────────────────

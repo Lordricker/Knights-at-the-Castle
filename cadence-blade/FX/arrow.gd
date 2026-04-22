@@ -13,21 +13,41 @@ extends Area2D
 #   Arrow (Area2D, this script)
 #   +-- CollisionShape2D   (set collision_mask to match enemy layer)
 #   +-- Sprite2D           (assign your arrow texture; rotation auto-applied)
+#   +-- CPUParticles2D     (optional; tinted by combo streak via set_combo_color)
 #
 # The arrow despawns when it hits an enemy body or its lifetime expires.
+# Pierce arrows pass through enemies and deal damage to all in their path.
+
+## Emitted when the arrow despawns without having dealt damage to any enemy.
+## Archer connects this to reset the combo streak.
+signal missed
 
 ## Seconds before the arrow despawns automatically.
 @export var lifetime: float = 2.0
 ## Downward acceleration in pixels/sec^2 applied every physics frame.
 @export var drop_gravity: float = 0.0
 
+@export_group("Combo Particle Colors")
+## Particle color when the archer is on combo hit 1 (first streak hit).
+@export var combo_color_1: Color = Color(1.0, 0.65, 0.0, 1.0)  # orange
+## Particle color when the archer is on combo hit 2+ (full streak).
+@export var combo_color_2: Color = Color(0.2, 0.8, 1.0, 1.0)   # cyan
+@export_group("")
+
 var _velocity: Vector2 = Vector2.ZERO
 var _damage: float = 0.0
 var _knockback_force: float = 0.0
 var _configured: bool = false
 var _age: float = 0.0
+## When true the arrow passes through enemies and hits all in its path.
+var pierce: bool = false
+## Tracks which enemies have already been hit this flight (pierce mode).
+var _hit_enemies: Array[Node] = []
+## Set to true the first time any enemy is hit; used to decide whether to emit missed.
+var _hit_any: bool = false
 
 @onready var _sprite: Sprite2D = find_child("Sprite2D") as Sprite2D
+@onready var _particles: CPUParticles2D = find_child("CPUParticles2D") as CPUParticles2D
 
 
 ## Call this before add_child(). Sets spawn position and all combat values.
@@ -37,17 +57,31 @@ func configure(spawn_pos: Vector2, direction: Vector2, speed: float,
 	_damage = damage
 	_knockback_force = knockback_force
 	_velocity = direction.normalized() * speed
-	# Store the spawn position as the local position; _ready() will have a
-	# parent by the time it runs, making global_position usable.
 	global_position = spawn_pos
 	_configured = true
 
 
+## Tint the CPUParticles2D to the given combo color.
+## Call after configure() and before add_child() so color is set from frame 0.
+func set_combo_color(c: Color) -> void:
+	if _particles != null:
+		_particles.color = c
+	else:
+		# Particles may not be ready yet if called before _ready; store for _ready.
+		_pending_particle_color = c
+		_pending_color_set = true
+
+var _pending_particle_color: Color = Color.WHITE
+var _pending_color_set: bool = false
+
+
 func _ready() -> void:
-	# Orient sprite to face the direction of travel.
 	if _sprite != null and _velocity != Vector2.ZERO:
 		rotation = _velocity.angle()
 	body_entered.connect(_on_body_entered)
+	if _pending_color_set and _particles != null:
+		_particles.color = _pending_particle_color
+	tree_exiting.connect(_on_tree_exiting)
 
 
 func _physics_process(delta: float) -> void:
@@ -63,9 +97,28 @@ func _physics_process(delta: float) -> void:
 		rotation = _velocity.angle()
 
 
+func _on_tree_exiting() -> void:
+	if not _hit_any:
+		missed.emit()
+
+
 func _on_body_entered(body: Node2D) -> void:
-	if body.has_method("take_damage"):
-		body.take_damage(_damage, true)
-	if body.has_method("apply_knockback"):
-		body.apply_knockback(global_position, _knockback_force)
-	queue_free()
+	if pierce:
+		# Piercing: damage each enemy only once per flight, then keep going.
+		if body in _hit_enemies:
+			return
+		_hit_enemies.append(body)
+		_hit_any = true
+		if body.has_method("take_damage"):
+			body.take_damage(_damage, true)
+		if body.has_method("apply_knockback"):
+			body.apply_knockback(global_position, _knockback_force)
+		# Do NOT queue_free — keep flying.
+	else:
+		# Normal arrow: stop on first hit.
+		_hit_any = true
+		if body.has_method("take_damage"):
+			body.take_damage(_damage, true)
+		if body.has_method("apply_knockback"):
+			body.apply_knockback(global_position, _knockback_force)
+		queue_free()

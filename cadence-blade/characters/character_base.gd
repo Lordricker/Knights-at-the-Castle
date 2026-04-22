@@ -106,6 +106,8 @@ func _ready() -> void:
 	_health_bar_api = _resolve_bar_api(health_bar, &"set_health")
 	_flow_bar_api = _resolve_bar_api(flow_bar, &"start_flow")
 	_on_health_changed(health, max_health)
+	if health_bar != null:
+		health_bar.show()
 	if flow_bar != null:
 		flow_bar.hide()
 	_apply_facing()

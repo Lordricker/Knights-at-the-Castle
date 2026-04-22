@@ -150,9 +150,7 @@ shape = SubResource("RectangleShape2D_xsjc2")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="CharacterBody2D/Pivot" unique_id=1220205241]
 sprite_frames = SubResource("SpriteFrames_ma6qb")
-animation = &"running"
-frame = 3
-frame_progress = 0.8092881
+animation = &"slash"
 
 [node name="SlashHitbox" type="Area2D" parent="CharacterBody2D/Pivot" unique_id=1169559059]
 position = Vector2(17, 0)

@@ -211,7 +211,7 @@ position = Vector2(-400, -157)
 scale = Vector2(0.5, 0.5)
 texture_normal = ExtResource("9_5mn0o")
 texture_pressed = ExtResource("12_olkg6")
-action = "action1"
+action = "action2"
 visibility_mode = 1
 
 [node name="Lbutton" type="TouchScreenButton" parent="Control/Control" unique_id=1561218012]
@@ -219,7 +219,7 @@ position = Vector2(-200, -157)
 scale = Vector2(0.5, 0.5)
 texture_normal = ExtResource("10_cxhb7")
 texture_pressed = ExtResource("14_hk13k")
-action = "action1"
+action = "action3"
 visibility_mode = 1
 
 [node name="shiftbutton" type="TouchScreenButton" parent="Control/Control" unique_id=1878120617]

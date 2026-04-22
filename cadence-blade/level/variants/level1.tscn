@@ -556,7 +556,4 @@ offset_bottom = -109.0
 texture = ExtResource("18_gwq2p")
 expand_mode = 1
 
-[node name="Node2D" parent="." unique_id=1417772890 instance=ExtResource("23_154h8")]
-position = Vector2(-695, 156)
-
 [node name="HUD" parent="." unique_id=263715054 instance=ExtResource("20_h2mhx")]

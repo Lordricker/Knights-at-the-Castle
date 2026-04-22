@@ -132,9 +132,20 @@ func mark_missed() -> void:
 
 ## Joiner display-only sync. Shows the bar and sets visual progress without
 ## running the timing loop or consuming an attempt. Call every state snapshot.
-func display_sync(progress: float) -> void:
+## ws/we: normalized window start/end (-1 = keep current). missed: show grey fill.
+func display_sync(progress: float, ws: float = -1.0, we: float = -1.0, missed: bool = false) -> void:
 	_active = true
 	_progress = clampf(progress, 0.0, 1.0)
+	if ws >= 0.0:
+		success_window_start = ws
+	if we >= 0.0:
+		success_window_end = we
+	if missed:
+		_current_fill_color = missed_fill_color
+	else:
+		# Only reset to yellow if the bar hasn't been marked missed yet.
+		if _current_fill_color != missed_fill_color:
+			_current_fill_color = waiting_fill_color
 	if fill_window != null:
 		fill_window.show()
 	_redraw()

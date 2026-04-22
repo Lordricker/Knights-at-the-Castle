@@ -74,6 +74,16 @@ var _joiner_char_node: Node = null
 var _state_broadcast_frame: int = 0
 const _STATE_BROADCAST_EVERY: int = 6  # ≈10 snapshots per second at 60 fps
 
+## Joiner: target positions received from state snapshots, keyed by player_slot int.
+## Characters lerp toward these each frame for smooth display.
+var _char_net_targets: Dictionary = {}
+## Constant pixels-per-second speed used to move display characters toward network targets.
+## Unlike lerp this does not decelerate near the target, so motion feels instant with no acceleration.
+const _MOVE_SPEED: float = 350.0
+## Host: tracks per-slot flow active state from last frame to detect transitions.
+## When flow goes true→false, a reliable "flow_done" packet is sent immediately.
+var _prev_flow_states: Dictionary = {}
+
 
 # ── Lifecycle ─────────────────────────────────────────────────────────────────
 
@@ -107,14 +117,47 @@ func _process(delta: float) -> void:
 			FirebaseClient.update_session(GameManager.session_id,
 				{"elapsed_seconds": int(time_elapsed), "last_seen": int(Time.get_unix_time_from_system())},
 				func(_c, _d): pass)
-		# State broadcast to joiner every N frames.
+		# Detect flow-state transitions per slot and broadcast "flow_done" immediately
+		# so the joiner hides the bar without waiting for the next state snapshot.
+		for _pr2 in _players:
+			var _ch2: Node = _resolve_character(_pr2)
+			if _ch2 == null:
+				continue
+			var _slot2: int = int(_ch2.get("player_slot")) if "player_slot" in _ch2 else 1
+			var _flow_now: bool = bool(_ch2.get("_flow_active")) if "_flow_active" in _ch2 else false
+			var _flow_prev: bool = _prev_flow_states.get(_slot2, false)
+			if _flow_prev and not _flow_now:
+				WebRTCManager.send_reliable({"t": "flow_done", "slot": _slot2})
+			_prev_flow_states[_slot2] = _flow_now
+		# State broadcast to joiner every N frames;
+		# bumps to every frame when any character has flow active for immediate visual feedback.
 		_state_broadcast_frame += 1
-		if _state_broadcast_frame >= _STATE_BROADCAST_EVERY:
+		var rate: int = _STATE_BROADCAST_EVERY
+		for _pr in _players:
+			var _ch: Node = _resolve_character(_pr)
+			if _ch != null and "_flow_active" in _ch and bool(_ch.get("_flow_active")):
+				rate = 1
+				break
+		if _state_broadcast_frame >= rate:
 			_state_broadcast_frame = 0
 			_broadcast_state()
 	elif not GameManager.is_host and GameManager.session_id != "":
 		# Joiner sends input every frame so host can drive character 2.
 		_send_input()
+		# Lerp display characters toward their network target positions.
+		for player_root in _players:
+			var ch: Node = _resolve_character(player_root)
+			if ch == null:
+				continue
+			var slot: int = int(ch.get("player_slot")) if "player_slot" in ch else 1
+			if not _char_net_targets.has(slot):
+				continue
+			var target: Vector2 = _char_net_targets[slot]
+			var dist: float = ch.global_position.distance_to(target)
+			if dist > 300.0:
+				ch.global_position = target  # teleport if too far off
+			else:
+				ch.global_position = ch.global_position.move_toward(target, _MOVE_SPEED * delta)
 
 
 # ── Castle resolution ─────────────────────────────────────────────────────────
@@ -330,6 +373,39 @@ func _on_packet_received(data: Dictionary) -> void:
 			_apply_state_snapshot(data)
 		"gameover":
 			_trigger_game_over(float(data.get("elapsed", time_elapsed)))
+		"restart":
+			# Host has restarted — joiner reloads to match.
+			if not GameManager.is_host:
+				get_tree().reload_current_scene()
+		"coins_add":
+			# Host collected a coin — add to all joiner-side players (shared pool) and remove display coin.
+			if not GameManager.is_host:
+				var v: int = int(data.get("v", 1))
+				for player_root in _players:
+					var ch: Node = _resolve_character(player_root)
+					if ch != null and ch.has_method("add_coins"):
+						ch.add_coins(v)
+						break  # add once — HUD connects to first player only
+				# Remove the joiner-side display coin.
+				var coin_id: int = int(data.get("coin_id", -1))
+				if coin_id >= 0:
+					var scene := get_tree().current_scene
+					if scene != null and scene.has_method("despawn_display_coin"):
+						scene.call("despawn_display_coin", coin_id)
+		"arrow":
+			# Host fired an arrow — spawn a display-only arrow on joiner.
+			if not GameManager.is_host:
+				_spawn_display_arrow(data)
+		"flow_done":
+			# Host resolved a flow bar — update joiner display immediately.
+			if not GameManager.is_host:
+				_apply_flow_done(data)
+		"coin_spawn":
+			# Host spawned a coin — show it visually on joiner.
+			if not GameManager.is_host:
+				var scene := get_tree().current_scene
+				if scene != null and scene.has_method("spawn_display_coin"):
+					scene.call("spawn_display_coin", data)
 
 
 ## Host receives "hello" from joiner — spawn the joiner's character and reply.
@@ -407,10 +483,21 @@ func _broadcast_state() -> void:
 		# Flow bar state: read from the bar node's internal progress if available.
 		var flow_active: bool = bool(ch.get("_flow_active")) if "_flow_active" in ch else false
 		var flow_progress: float = 0.0
+		var flow_ws: float = 0.45  # window start default
+		var flow_we: float = 0.60  # window end default
+		var flow_missed: bool = false
 		if flow_active:
 			var fba: Node = ch.get("_flow_bar_api") as Node
-			if fba != null and "_progress" in fba:
-				flow_progress = float(fba.get("_progress"))
+			if fba != null:
+				if "_progress" in fba:
+					flow_progress = float(fba.get("_progress"))
+				if "success_window_start" in fba:
+					flow_ws = float(fba.get("success_window_start"))
+				if "success_window_end" in fba:
+					flow_we = float(fba.get("success_window_end"))
+				# Detect missed state by checking if fill color is no longer the waiting color.
+				if "_attempt_used" in fba and bool(fba.get("_attempt_used")):
+					flow_missed = true
 			elif "_flow_progress" in ch:
 				flow_progress = float(ch.get("_flow_progress"))
 		char_data[str(slot)] = {
@@ -423,6 +510,9 @@ func _broadcast_state() -> void:
 			"sp": 1 if (anim_spr != null and not anim_spr.is_playing()) else 0,
 			"fl": 1 if flow_active else 0,
 			"fp": flow_progress,
+			"fws": flow_ws,
+			"fwe": flow_we,
+			"fm": 1 if flow_missed else 0,
 		}
 
 	var enemy_data: Dictionary = {}
@@ -472,8 +562,10 @@ func _apply_state_snapshot(data: Dictionary) -> void:
 		if not char_data.has(slot_str):
 			continue
 		var cd: Dictionary = char_data[slot_str]
-		ch.global_position = Vector2(float(cd.get("x", ch.global_position.x)),
-									 float(cd.get("y", ch.global_position.y)))
+		# Store target for lerp; don't snap directly (lerp happens in _process).
+		_char_net_targets[int(slot_str)] = Vector2(
+			float(cd.get("x", ch.global_position.x)),
+			float(cd.get("y", ch.global_position.y)))
 		# Sync HP — emit health_changed so both the sprite bar and any HUD bar update.
 		if cd.has("hp") and "health" in ch:
 			var new_hp: float = float(cd["hp"])
@@ -505,20 +597,25 @@ func _apply_state_snapshot(data: Dictionary) -> void:
 				elif not spr.is_playing():
 					spr.play(anim)
 		# Sync flow bar visibility and fill progress.
+		# flow_bar points to the FlowBar root Node2D (no script).
+		# _flow_bar_api points to the FlowTimingBar child (has display_sync/stop_flow).
 		var flow_active: bool = int(cd.get("fl", 0)) == 1
 		var flow_progress: float = float(cd.get("fp", 0.0))
-		var fb: Node = ch.get("flow_bar") as Node
-		if fb != null:
-			if flow_active:
-				if fb.has_method("display_sync"):
-					fb.display_sync(flow_progress)
-				else:
-					fb.show()
-			else:
-				if fb.has_method("stop_flow"):
-					fb.stop_flow()
-				else:
-					fb.hide()
+		var flow_ws: float = float(cd.get("fws", 0.45))
+		var flow_we: float = float(cd.get("fwe", 0.60))
+		var flow_missed: bool = int(cd.get("fm", 0)) == 1
+		var fb_root: Node = ch.get("flow_bar") as Node
+		var fba: Node = ch.get("_flow_bar_api") as Node
+		if flow_active:
+			if fb_root != null:
+				fb_root.show()
+			if fba != null and fba.has_method("display_sync"):
+				fba.display_sync(flow_progress, flow_ws, flow_we, flow_missed)
+		else:
+			if fba != null and fba.has_method("stop_flow"):
+				fba.stop_flow()
+			if fb_root != null:
+				fb_root.hide()
 
 	# Update castle HP.
 	if castle != null and data.has("castle_hp") and "health" in castle:
@@ -592,3 +689,61 @@ func _respawn_player(player: Node) -> void:
 		print("RunManager: revived player '%s' at %s" % [player.name, point.global_position])
 	else:
 		push_warning("RunManager: player '%s' has no revive() method." % player.name)
+
+
+## Joiner: spawn a visual-only arrow (no collision, no damage) from an "arrow" packet.
+func _spawn_display_arrow(data: Dictionary) -> void:
+	# Find the arrow scene from any spawned archer character (avoids needing a separate export).
+	var scene: PackedScene
+	for player_root in _players:
+		var ch := _resolve_character(player_root)
+		if ch != null and "arrow_scene" in ch:
+			var found := ch.get("arrow_scene") as PackedScene
+			if found != null:
+				scene = found
+				break
+	if scene == null:
+		return
+	var arrow := scene.instantiate() as Arrow
+	if arrow == null:
+		return
+	var pos := Vector2(float(data.get("x", 0.0)), float(data.get("y", 0.0)))
+	var dir := Vector2(float(data.get("dx", 1.0)), 0.0)
+	var spd: float = float(data.get("sp", 600.0))
+	# Configure position/velocity before entering the tree; damage is 0 so no harm on hit.
+	arrow.configure(pos, dir, spd, 0.0, 0.0)
+	# Set pierce flag so it doesn't stop (display arrows have no collision anyway,
+	# but setting it keeps behaviour consistent if collision mask is ever changed).
+	if int(data.get("pi", 0)) == 1:
+		arrow.pierce = true
+	# Apply combo particle color so the joiner sees the same tint.
+	var combo_hits: int = int(data.get("cc", 0))
+	if combo_hits >= 2:
+		arrow.set_combo_color(arrow.combo_color_2)
+	elif combo_hits == 1:
+		arrow.set_combo_color(arrow.combo_color_1)
+	# Strip collision so body_entered never fires on the joiner side.
+	arrow.set_collision_layer(0)
+	arrow.set_collision_mask(0)
+	# Arrow._physics_process handles movement visually; lifetime timer auto-frees it.
+	get_tree().current_scene.call_deferred("add_child", arrow)
+
+
+## Joiner: immediately hide the flow bar when the host reports flow has resolved.
+## Sent via reliable channel so it arrives even if a state snapshot is delayed.
+func _apply_flow_done(data: Dictionary) -> void:
+	var slot: int = int(data.get("slot", 0))
+	for player_root in _players:
+		var ch: Node = _resolve_character(player_root)
+		if ch == null:
+			continue
+		var ch_slot: int = int(ch.get("player_slot")) if "player_slot" in ch else 1
+		if ch_slot != slot:
+			continue
+		var fb_root: Node = ch.get("flow_bar") as Node
+		var fba: Node = ch.get("_flow_bar_api") as Node
+		if fba != null and fba.has_method("stop_flow"):
+			fba.stop_flow()
+		if fb_root != null:
+			fb_root.hide()
+		break

@@ -163,7 +163,7 @@ script = ExtResource("1_gshrq")
 arrow_scene = ExtResource("2_8kpke")
 arrow_damage = 25.0
 arrow_knockback_force = 50.0
-shoot_move_mult = 0.16
+shoot_move_mult = 0.17
 shoot_flow_fill_duration = 0.7
 shoot_flow_miss_multiplier = 0.8
 shoot_flow_window_center = 0.4
@@ -171,6 +171,14 @@ shoot_flow_window_half_size = 0.07
 shoot_flow_window_random_range = 0.0
 shoot_flow_window_size_curve = SubResource("Curve_6qwqa")
 shoot_flow_window_curve_max_time = 60.0
+pierce_damage = 40.0
+pierce_speed = 900.0
+pierce_move_mult = 0.16
+pierce_flow_fill_duration = 1.5
+pierce_flow_miss_multiplier = 0.8
+pierce_flow_window_center = 0.6
+pierce_flow_window_half_size = 0.03
+pierce_flow_window_random_range = 0.0
 body_box = NodePath("bodyBox")
 max_health = 70.0
 facing_pivot = NodePath("Pivot")
@@ -192,13 +200,11 @@ rotation = -3.1415925
 scale = Vector2(1.0000002, -1)
 
 [node name="HPBar" parent="CharacterBody2D/Pivot" unique_id=1780535160 instance=ExtResource("5_jf3jw")]
-visible = false
 z_index = 3
 position = Vector2(-16, 38)
 rotation = -3.1415925
 scale = Vector2(1.0000002, -1)
 
 [node name="bodyBox" type="CollisionShape2D" parent="CharacterBody2D" unique_id=1370339960]
-visible = false
 position = Vector2(0, 14)
 shape = SubResource("RectangleShape2D_vh32c")

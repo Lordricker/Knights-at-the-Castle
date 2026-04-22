@@ -38,8 +38,23 @@ func _ready() -> void:
 
 func _on_body_entered(body: Node2D) -> void:
 	if body is CharacterBase:
-		(body as CharacterBase).add_coins(coin_value)
+		# Guard: joiner should not collect coins directly — host is authoritative.
+		if GameManager.session_id != "" and not GameManager.is_host:
+			return
+		# Add coins to every local player so the pool is shared.
+		_distribute_coins()
+		# Tell the joiner to add the same amount and remove their display coin.
+		if GameManager.session_id != "":
+			var coin_id: int = int(get_meta(&"coin_id", -1))
+			WebRTCManager.send_reliable({"t": "coins_add", "v": coin_value, "coin_id": coin_id})
 		queue_free()
+
+
+func _distribute_coins() -> void:
+	var players: Array[Node] = get_tree().get_nodes_in_group(&"players")
+	for p in players:
+		if p.has_method("add_coins"):
+			p.add_coins(coin_value)
 
 
 func _on_animation_finished() -> void:

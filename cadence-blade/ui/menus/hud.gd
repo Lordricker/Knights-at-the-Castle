@@ -182,7 +182,16 @@ func _refresh_best_time_label() -> void:
 # ── Button callbacks ──────────────────────────────────────────────────────────
 
 func _on_restart_pressed() -> void:
-	get_tree().reload_current_scene()
+	if GameManager.session_id == "" or GameManager.is_host:
+		# Solo or host: if host, tell joiner to restart before reloading.
+		if GameManager.session_id != "" and GameManager.is_host:
+			WebRTCManager.send_reliable({"t": "restart"})
+		get_tree().reload_current_scene()
+	else:
+		# Joiner: cannot restart on their own — wait for the host to restart.
+		if restart_button != null:
+			restart_button.text = "Waiting for host..."
+			restart_button.disabled = true
 
 
 func _on_quit_pressed() -> void:
