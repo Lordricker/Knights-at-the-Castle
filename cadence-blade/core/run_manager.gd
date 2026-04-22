@@ -404,12 +404,25 @@ func _broadcast_state() -> void:
 			continue
 		var slot: int = int(ch.get("player_slot")) if "player_slot" in ch else 1
 		var anim_spr := ch.get("animated_sprite") as AnimatedSprite2D
+		# Flow bar state: read from the bar node's internal progress if available.
+		var flow_active: bool = bool(ch.get("_flow_active")) if "_flow_active" in ch else false
+		var flow_progress: float = 0.0
+		if flow_active:
+			var fba: Node = ch.get("_flow_bar_api") as Node
+			if fba != null and "_progress" in fba:
+				flow_progress = float(fba.get("_progress"))
+			elif "_flow_progress" in ch:
+				flow_progress = float(ch.get("_flow_progress"))
 		char_data[str(slot)] = {
 			"x":  ch.global_position.x,
 			"y":  ch.global_position.y,
 			"f":  ch.get("facing") if "facing" in ch else 1.0,
 			"hp": ch.health if "health" in ch else 0.0,
 			"an": anim_spr.animation if anim_spr != null else "",
+			"fr": anim_spr.frame if anim_spr != null else 0,
+			"sp": 1 if (anim_spr != null and not anim_spr.is_playing()) else 0,
+			"fl": 1 if flow_active else 0,
+			"fp": flow_progress,
 		}
 
 	var enemy_data: Dictionary = {}
@@ -418,11 +431,18 @@ func _broadcast_state() -> void:
 			var info: Dictionary = spawner.alive_enemy_map[eid]
 			var enemy: Node = info.get("node") as Node
 			if is_instance_valid(enemy):
-				enemy_data[str(eid)] = {
+				var ed: Dictionary = {
 					"x":  enemy.global_position.x,
 					"y":  enemy.global_position.y,
 					"hp": enemy.health if "health" in enemy else 0.0,
+					"f":  enemy.get("facing") if "facing" in enemy else 1.0,
 				}
+				# Only add animation key when non-default to keep packet small.
+				# Absence of "a" means "running" on the joiner side.
+				var e_spr := enemy.get("animated_sprite") as AnimatedSprite2D
+				if e_spr != null and e_spr.animation != &"running" and e_spr.animation != &"":
+					ed["a"] = e_spr.animation
+				enemy_data[str(eid)] = ed
 
 	WebRTCManager.send_unreliable({
 		"t":        "state",
@@ -454,6 +474,13 @@ func _apply_state_snapshot(data: Dictionary) -> void:
 		var cd: Dictionary = char_data[slot_str]
 		ch.global_position = Vector2(float(cd.get("x", ch.global_position.x)),
 									 float(cd.get("y", ch.global_position.y)))
+		# Sync HP — emit health_changed so both the sprite bar and any HUD bar update.
+		if cd.has("hp") and "health" in ch:
+			var new_hp: float = float(cd["hp"])
+			if ch.health != new_hp:
+				ch.health = new_hp
+				var max_hp: float = ch.max_health if "max_health" in ch else 100.0
+				ch.health_changed.emit(new_hp, max_hp)
 		# Sync facing.
 		if cd.has("f") and "facing" in ch:
 			var f := float(cd["f"])
@@ -462,11 +489,36 @@ func _apply_state_snapshot(data: Dictionary) -> void:
 				if ch.has_method("_apply_facing"):
 					ch.call("_apply_facing")
 		# Sync animation — play only when it changes to avoid resetting mid-loop.
+		# Also sync the frame and paused state so attack windups display correctly.
 		if cd.has("an"):
 			var spr := ch.get("animated_sprite") as AnimatedSprite2D
 			var anim: StringName = cd["an"]
-			if spr != null and not anim.is_empty() and spr.animation != anim:
-				spr.play(anim)
+			var target_frame: int = int(cd.get("fr", 0))
+			var is_paused: bool = int(cd.get("sp", 0)) == 1
+			if spr != null and not anim.is_empty():
+				if spr.animation != anim:
+					spr.play(anim)
+				if is_paused:
+					# Snap to the broadcasted frame then pause so the windup holds.
+					spr.frame = target_frame
+					spr.pause()
+				elif not spr.is_playing():
+					spr.play(anim)
+		# Sync flow bar visibility and fill progress.
+		var flow_active: bool = int(cd.get("fl", 0)) == 1
+		var flow_progress: float = float(cd.get("fp", 0.0))
+		var fb: Node = ch.get("flow_bar") as Node
+		if fb != null:
+			if flow_active:
+				if fb.has_method("display_sync"):
+					fb.display_sync(flow_progress)
+				else:
+					fb.show()
+			else:
+				if fb.has_method("stop_flow"):
+					fb.stop_flow()
+				else:
+					fb.hide()
 
 	# Update castle HP.
 	if castle != null and data.has("castle_hp") and "health" in castle:

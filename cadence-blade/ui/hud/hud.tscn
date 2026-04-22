@@ -7,22 +7,15 @@
 [ext_resource type="Texture2D" uid="uid://cukrmkf3jrgb8" path="res://assets/sprites/UI/QuitButton.png" id="5_o2lis"]
 [ext_resource type="FontFile" uid="uid://di588hyvkxc6w" path="res://assets/fonts/LATINWD.TTF" id="6_kwc50"]
 [ext_resource type="Texture2D" uid="uid://dcpm4pu8pp4k0" path="res://assets/sprites/UI/jButton.png" id="7_p3vm3"]
-[ext_resource type="Script" uid="uid://bidv0hafp4icx" path="res://ui/menus/hidenontouchscreen.gd" id="8_5uuaq"]
+[ext_resource type="Script" path="res://ui/menus/hidenontouchscreen.gd" id="8_5uuaq"]
 [ext_resource type="Texture2D" uid="uid://grdosi1mtfpf" path="res://assets/sprites/UI/kButton.png" id="9_5mn0o"]
+[ext_resource type="Texture2D" uid="uid://diam66u6tlex8" path="res://assets/sprites/UI/jButtonpressed.png" id="10_6gxmt"]
 [ext_resource type="Texture2D" uid="uid://bsg4yjiyid0si" path="res://assets/sprites/UI/lButton.png" id="10_cxhb7"]
+[ext_resource type="Texture2D" uid="uid://18dwykgyg5fi" path="res://assets/sprites/UI/kButtonpressed.png" id="12_olkg6"]
 [ext_resource type="PackedScene" uid="uid://dmr0fcamx7t56" path="res://addons/virtual_joystick/virtual_joystick_scene.tscn" id="13_gv4gi"]
-
-[sub_resource type="InputEventAction" id="InputEventAction_aixkq"]
-action = &"spin"
-
-[sub_resource type="Shortcut" id="Shortcut_cxhb7"]
-events = [SubResource("InputEventAction_aixkq")]
-
-[sub_resource type="InputEventAction" id="InputEventAction_5uuaq"]
-action = &"face_lock"
-
-[sub_resource type="Shortcut" id="Shortcut_p3vm3"]
-events = [SubResource("InputEventAction_5uuaq")]
+[ext_resource type="Texture2D" uid="uid://c64gob7ecs2ve" path="res://assets/sprites/UI/lButtonpressed.png" id="14_hk13k"]
+[ext_resource type="Texture2D" uid="uid://b3qx6fqovdkk3" path="res://assets/sprites/UI/shiftButtonpng.png" id="15_uyo40"]
+[ext_resource type="Texture2D" uid="uid://cg85gm1scmvng" path="res://assets/sprites/UI/shiftButtonpressed.png" id="16_m6r7j"]
 
 [node name="HUD" type="CanvasLayer" unique_id=263715054 node_paths=PackedStringArray("hud_timer_label", "hud_coins_label", "hud_best_time_label", "session_id_label", "game_over_control", "game_over_label", "game_over_time_label", "restart_button", "quit_button")]
 script = ExtResource("1_imuuq")
@@ -205,49 +198,34 @@ grow_horizontal = 0
 grow_vertical = 0
 script = ExtResource("8_5uuaq")
 
-[node name="Jbutton" type="Button" parent="Control/Control" unique_id=2045649429]
-layout_mode = 0
-offset_left = -536.0
-offset_top = -157.0
-offset_right = -228.0
-offset_bottom = 151.0
+[node name="Jbutton" type="TouchScreenButton" parent="Control/Control" unique_id=1195568340]
+position = Vector2(-600, -157)
 scale = Vector2(0.5, 0.5)
-theme_override_font_sizes/font_size = 100
-action_mode = 0
-shortcut = SubResource("Shortcut_cxhb7")
-icon = ExtResource("7_p3vm3")
+texture_normal = ExtResource("7_p3vm3")
+texture_pressed = ExtResource("10_6gxmt")
+action = "action1"
+visibility_mode = 1
 
-[node name="Kbutton" type="Button" parent="Control/Control" unique_id=1938223561]
-layout_mode = 0
-offset_left = -357.0
-offset_top = -159.0
-offset_right = -49.0
-offset_bottom = 149.0
+[node name="Kbutton" type="TouchScreenButton" parent="Control/Control" unique_id=708063580]
+position = Vector2(-400, -157)
 scale = Vector2(0.5, 0.5)
-theme_override_font_sizes/font_size = 100
-action_mode = 0
-shortcut = SubResource("Shortcut_cxhb7")
-icon = ExtResource("9_5mn0o")
+texture_normal = ExtResource("9_5mn0o")
+texture_pressed = ExtResource("12_olkg6")
+action = "action1"
+visibility_mode = 1
 
-[node name="Lbutton" type="Button" parent="Control/Control" unique_id=479324231]
-layout_mode = 0
-offset_left = -172.0
-offset_top = -162.0
-offset_right = 136.0
-offset_bottom = 146.0
+[node name="Lbutton" type="TouchScreenButton" parent="Control/Control" unique_id=1561218012]
+position = Vector2(-200, -157)
 scale = Vector2(0.5, 0.5)
-theme_override_font_sizes/font_size = 100
-action_mode = 0
-shortcut = SubResource("Shortcut_cxhb7")
-icon = ExtResource("10_cxhb7")
+texture_normal = ExtResource("10_cxhb7")
+texture_pressed = ExtResource("14_hk13k")
+action = "action1"
+visibility_mode = 1
 
-[node name="ShiftButton" type="Button" parent="Control/Control" unique_id=1294567627]
-layout_mode = 0
-offset_left = -260.0
-offset_top = -968.0
-offset_right = 18.0
-offset_bottom = -823.0
-theme_override_font_sizes/font_size = 100
-action_mode = 0
-shortcut = SubResource("Shortcut_p3vm3")
-text = "SHIFT"
+[node name="shiftbutton" type="TouchScreenButton" parent="Control/Control" unique_id=1878120617]
+position = Vector2(-427, -1000.99994)
+scale = Vector2(1.25, 1.25)
+texture_normal = ExtResource("15_uyo40")
+texture_pressed = ExtResource("16_m6r7j")
+action = "face_lock"
+visibility_mode = 1

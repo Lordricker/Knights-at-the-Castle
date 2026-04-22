@@ -121,7 +121,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_xbqft")
 }],
-"loop": false,
+"loop": true,
 "name": &"running",
 "speed": 6.0
 }, {
@@ -182,9 +182,7 @@ flow_bar = NodePath("Pivot/FlowBar")
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="CharacterBody2D/Pivot" unique_id=1262161212]
 position = Vector2(0, 13.785)
 sprite_frames = SubResource("SpriteFrames_rvc6b")
-animation = &"running"
-frame = 5
-frame_progress = 1.0
+animation = &"idle"
 
 [node name="FlowBar" parent="CharacterBody2D/Pivot" unique_id=1635173476 instance=ExtResource("4_p72ps")]
 visible = false

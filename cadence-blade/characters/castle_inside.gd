@@ -229,10 +229,10 @@ func _handle_blacksmith_refresh(delta: float) -> void:
 func _handle_upgrade_input() -> void:
 	if not _player_in_blacksmith_zone or _player == null:
 		return
-	# J = slash action → buy slot 0.  K = thrust action → buy slot 1.
-	if Input.is_action_just_pressed(&"slash"):
+	# action1 → buy left upgrade (slot 0).  action2 → buy right upgrade (slot 1).
+	if Input.is_action_just_pressed(&"action1"):
 		_try_purchase(0)
-	elif Input.is_action_just_pressed(&"thrust"):
+	elif Input.is_action_just_pressed(&"action2"):
 		_try_purchase(1)
 
 

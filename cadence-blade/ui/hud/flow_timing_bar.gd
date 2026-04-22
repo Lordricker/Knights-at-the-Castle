@@ -130,6 +130,16 @@ func mark_missed() -> void:
 	_redraw()
 
 
+## Joiner display-only sync. Shows the bar and sets visual progress without
+## running the timing loop or consuming an attempt. Call every state snapshot.
+func display_sync(progress: float) -> void:
+	_active = true
+	_progress = clampf(progress, 0.0, 1.0)
+	if fill_window != null:
+		fill_window.show()
+	_redraw()
+
+
 # ── Internal ───────────────────────────────────────────────────────────────────
 
 func _redraw() -> void:

@@ -219,7 +219,9 @@ func _spawn_variant(key: Vector2i) -> void:
 
 	_alive_counts[key] = _alive_counts.get(key, 0) + 1
 	_total_alive += 1
-	alive_enemy_map[spawn_id] = {"ti": key.x, "vi": key.y, "node": instance}
+	# Store signal_source (the actual EnemyBase CharacterBody2D), not the wrapper Node2D.
+	# The wrapper never moves — move_and_slide() moves the CharacterBody2D child.
+	alive_enemy_map[spawn_id] = {"ti": key.x, "vi": key.y, "node": signal_source}
 
 	# Propagate coin tier config to the enemy so it knows what to drop on death.
 	if "coin_tier" in signal_source:
@@ -229,6 +231,7 @@ func _spawn_variant(key: Vector2i) -> void:
 
 	# Notify joiner so it can instantiate a matching node.
 	if GameManager.session_id != "" and GameManager.is_host:
+		var e_spr := signal_source.get("animated_sprite") as AnimatedSprite2D
 		WebRTCManager.send_reliable({
 			"t":  "spawn",
 			"id": spawn_id,
@@ -236,6 +239,7 @@ func _spawn_variant(key: Vector2i) -> void:
 			"vi": key.y,
 			"x":  instance.global_position.x,
 			"y":  instance.global_position.y,
+			"an": e_spr.animation if e_spr != null else "",
 		})
 
 
@@ -258,6 +262,7 @@ func send_all_alive_to_joiner() -> void:
 		var info: Dictionary = alive_enemy_map[spawn_id]
 		var node: Node = info.get("node") as Node
 		if is_instance_valid(node):
+			var e_spr := node.get("animated_sprite") as AnimatedSprite2D
 			WebRTCManager.send_reliable({
 				"t":  "spawn",
 				"id": spawn_id,
@@ -265,6 +270,7 @@ func send_all_alive_to_joiner() -> void:
 				"vi": info["vi"],
 				"x":  node.global_position.x,
 				"y":  node.global_position.y,
+				"an": e_spr.animation if e_spr != null else "",
 			})
 
 
@@ -308,6 +314,12 @@ func on_spawn_packet(data: Dictionary) -> void:
 		signal_source.coin_tier = vi_cfg.coin_tier
 	if "flow_kill_coin_tier" in signal_source:
 		signal_source.flow_kill_coin_tier = vi_cfg.flow_kill_coin_tier
+	# Apply the initial animation from the spawn packet so the enemy looks correct.
+	var spawn_anim: String = data.get("an", "")
+	if not spawn_anim.is_empty():
+		var e_spr := signal_source.get("animated_sprite") as AnimatedSprite2D
+		if e_spr != null:
+			e_spr.play(spawn_anim)
 
 
 ## Joiner: remove a dead enemy node from the scene.
@@ -328,14 +340,33 @@ func apply_enemy_state(e: Dictionary) -> void:
 		var enemy_name: String = "En%s" % eid_str
 		if enemy_container == null or not enemy_container.has_node(enemy_name):
 			continue
-		var enemy_node: Node = enemy_container.get_node(enemy_name)
-		# Let enemy_base.gd lerp to _net_target_pos if available; otherwise snap.
+		var enemy_root: Node = enemy_container.get_node(enemy_name)
+		# Scene root may be a Node2D wrapper; find the actual EnemyBase child.
+		var enemy_node: Node = enemy_root
+		if "_net_target_pos" not in enemy_root:
+			for child in enemy_root.get_children():
+				if "_net_target_pos" in child:
+					enemy_node = child
+					break
 		var target := Vector2(float(ed.get("x", 0.0)), float(ed.get("y", 0.0)))
 		if "_net_target_pos" in enemy_node:
 			enemy_node._net_target_pos = target
 			enemy_node._net_synced = true
 		else:
 			enemy_node.global_position = target
+		# Sync animation. "a" key is only present when non-default (not "running").
+		var e_spr := enemy_node.get("animated_sprite") as AnimatedSprite2D
+		if e_spr != null:
+			var anim: StringName = ed.get("a", &"running")
+			if e_spr.animation != anim:
+				e_spr.play(anim)
+		# Sync facing.
+		if ed.has("f") and "facing" in enemy_node:
+			var f := float(ed["f"])
+			if enemy_node.get("facing") != f:
+				enemy_node.set("facing", f)
+				if enemy_node.has_method("_apply_facing"):
+					enemy_node.call("_apply_facing")
 
 
 # ── Debug ─────────────────────────────────────────────────────────────────────
