@@ -6,9 +6,15 @@
 [ext_resource type="PackedScene" uid="uid://dh7thuuxwk7x1" path="res://ui/hud/FlowBar.tscn" id="4_p72ps"]
 [ext_resource type="PackedScene" uid="uid://bkyw3pybjuqjs" path="res://ui/hud/HPBar.tscn" id="5_jf3jw"]
 
-[sub_resource type="Curve" id="Curve_6qwqa"]
+[sub_resource type="Curve" id="Curve_8kpke"]
 _limits = [0.0, 0.1, 0.0, 10.0]
 _data = [Vector2(0, 0.092752606), 0.0, -0.007177999, 0, 0, Vector2(4.924812, 0.016655043), -0.012393036, 0.0, 0, 0]
+point_count = 2
+metadata/_snap_count = 100
+
+[sub_resource type="Curve" id="Curve_6qwqa"]
+_limits = [0.0, 0.1, 0.0, 10.0]
+_data = [Vector2(0, 0.03486798), 0.0, -0.002548457, 0, 0, Vector2(4.924812, 0.016655043), -0.0038561288, 0.0, 0, 0]
 point_count = 2
 metadata/_snap_count = 100
 
@@ -161,7 +167,7 @@ y_sort_enabled = true
 y_sort_enabled = true
 script = ExtResource("1_gshrq")
 arrow_scene = ExtResource("2_8kpke")
-arrow_damage = 25.0
+arrow_damage = 20.0
 arrow_knockback_force = 50.0
 shoot_move_mult = 0.17
 shoot_flow_fill_duration = 0.7
@@ -169,7 +175,7 @@ shoot_flow_miss_multiplier = 0.8
 shoot_flow_window_center = 0.4
 shoot_flow_window_half_size = 0.07
 shoot_flow_window_random_range = 0.0
-shoot_flow_window_size_curve = SubResource("Curve_6qwqa")
+shoot_flow_window_size_curve = SubResource("Curve_8kpke")
 shoot_flow_window_curve_max_time = 60.0
 pierce_damage = 40.0
 pierce_speed = 900.0
@@ -179,6 +185,8 @@ pierce_flow_miss_multiplier = 0.8
 pierce_flow_window_center = 0.6
 pierce_flow_window_half_size = 0.03
 pierce_flow_window_random_range = 0.0
+pierce_flow_window_size_curve = SubResource("Curve_6qwqa")
+pierce_flow_window_curve_max_time = 60.0
 body_box = NodePath("bodyBox")
 max_health = 70.0
 facing_pivot = NodePath("Pivot")
