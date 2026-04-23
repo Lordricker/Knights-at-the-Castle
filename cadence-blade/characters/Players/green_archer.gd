@@ -152,6 +152,8 @@ func _handle_movement() -> void:
 
 
 func _update_animation(dir_x: float, dir_y: float) -> void:
+	if has_network_animation_override():
+		return
 	if attack_state != AttackState.NONE:
 		return
 	if healing_locked:
@@ -260,9 +262,10 @@ func _queue_fire_arrow(is_pierce: bool) -> void:
 	var base_dmg: float = pierce_damage if is_pierce else arrow_damage
 	var base_speed: float = pierce_speed if is_pierce else arrow_speed
 	var base_kb: float = pierce_knockback_force if is_pierce else arrow_knockback_force
+	var flow_success: bool = _current_attack_damage_multiplier >= 1.0
 	# Damage = (base + upgrade bonus) * flow_multiplier * combo_multiplier
 	var dmg := (base_dmg + attack_bonus) * _current_attack_damage_multiplier * _combo_multiplier()
-	arrow.configure(global_position, Vector2(facing, 0.0), base_speed, dmg, base_kb)
+	arrow.configure(global_position, Vector2(facing, 0.0), base_speed, dmg, base_kb, flow_success)
 	if is_pierce:
 		arrow.pierce = true
 	# Apply combo particle color before adding to tree.

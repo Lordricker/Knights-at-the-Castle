@@ -87,6 +87,10 @@ var use_input_override: bool = false
 var input_override: Dictionary = {}
 ## Previous frame's snapshot — used to emulate is_action_just_pressed.
 var _prev_input_override: Dictionary = {}
+var disable_local_attack_input: bool = false
+## Joiner-only visual lock used when the host is currently driving a non-locomotion animation.
+## While this is set, local movement code leaves the sprite animation alone.
+var network_animation_override: StringName = &""
 
 
 func _ready() -> void:
@@ -118,10 +122,32 @@ func tick_input_override() -> void:
 	_prev_input_override = input_override.duplicate()
 
 
+func _is_attack_input_action(action: StringName) -> bool:
+	return action == &"action1" or action == &"action2" or action == &"action3"
+
+
+func _ignore_client_side_gameplay() -> bool:
+	return GameManager.session_id != "" and not GameManager.is_host
+
+
+func has_network_animation_override() -> bool:
+	return not network_animation_override.is_empty()
+
+
+func set_network_animation_override(anim_name: StringName) -> void:
+	network_animation_override = anim_name
+
+
+func clear_network_animation_override() -> void:
+	network_animation_override = &""
+
+
 ## Drop-in for Input.is_action_pressed. Dict override wins; then player_slot routing.
 func _action_pressed(action: StringName) -> bool:
 	if use_input_override:
 		return input_override.get(action, false)
+	if disable_local_attack_input and _is_attack_input_action(action):
+		return false
 	if player_slot == 2:
 		return Input.is_action_pressed("p2_" + action)
 	return Input.is_action_pressed(action)
@@ -131,6 +157,8 @@ func _action_pressed(action: StringName) -> bool:
 func _action_just_pressed(action: StringName) -> bool:
 	if use_input_override:
 		return input_override.get(action, false) and not _prev_input_override.get(action, false)
+	if disable_local_attack_input and _is_attack_input_action(action):
+		return false
 	if player_slot == 2:
 		return Input.is_action_just_pressed("p2_" + action)
 	return Input.is_action_just_pressed(action)
@@ -169,6 +197,8 @@ func _physics_process(delta: float) -> void:
 	position = position.round()
 ## Push this character away from source_position.
 func apply_knockback(source_position: Vector2, force: float) -> void:
+	if _ignore_client_side_gameplay():
+		return
 	var dir := (global_position - source_position).normalized()
 	knockback_velocity = dir * force
 
@@ -250,6 +280,8 @@ func _nearest_point_on_segment(p: Vector2, a: Vector2, b: Vector2) -> Vector2:
 func take_damage(amount: float, _flow_success: bool = false) -> void:
 	if is_dead:
 		return
+	if _ignore_client_side_gameplay():
+		return
 	health = maxf(0.0, health - amount)
 	health_changed.emit(health, max_health)
 	if health == 0.0:
@@ -323,6 +355,7 @@ func die() -> void:
 	if is_dead:
 		return
 	is_dead = true
+	clear_network_animation_override()
 	set_collision_layer(0)
 	set_collision_mask(0)
 	set_physics_process(false)
@@ -350,6 +383,7 @@ func revive(at: Vector2) -> void:
 	if not is_dead:
 		return
 	is_dead = false
+	clear_network_animation_override()
 	health = max_health
 	global_position = at
 	knockback_velocity = Vector2.ZERO

@@ -6,14 +6,18 @@
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
 size = Vector2(22, 3)
 
+[sub_resource type="Curve" id="Curve_ysyot"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.4819277, 0.45508975), 0.0, 0.0, 0, 0]
+point_count = 2
+
 [node name="Arrow" type="Area2D" unique_id=373780750]
 z_index = 2
 collision_layer = 0
 collision_mask = 2
 script = ExtResource("1_arrow")
 drop_gravity = 500.0
-combo_color_1 = Color(0.13174722, 0.8764308, 0.4423653, 1)
-combo_color_2 = Color(0.7185607, 0.29908288, 1, 1)
+combo_color_1 = Color(0.1352641, 0.5565698, 0.08921417, 1)
+combo_color_2 = Color(0.452147, 0.0016226801, 0.67251647, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=175036218]
 position = Vector2(1, -0.5)
@@ -30,12 +34,13 @@ randomness = 1.0
 direction = Vector2(-1, 0.3)
 spread = 0.0
 gravity = Vector2(0, 0)
-initial_velocity_min = 229.23
-initial_velocity_max = 229.23
-tangential_accel_min = 100.0
-tangential_accel_max = 200.0
-scale_amount_min = 2.0
-scale_amount_max = 2.0
+initial_velocity_min = 150.0
+initial_velocity_max = 150.0
+tangential_accel_min = 400.0
+tangential_accel_max = 600.0
+scale_amount_min = 3.0
+scale_amount_max = 3.0
+scale_amount_curve = SubResource("Curve_ysyot")
 
 [node name="CPUParticles2D2" type="CPUParticles2D" parent="Sprite2D" unique_id=1936177430]
 position = Vector2(15, 0)
@@ -47,7 +52,8 @@ spread = 0.0
 gravity = Vector2(0, 0)
 initial_velocity_min = 229.22
 initial_velocity_max = 229.22
-tangential_accel_min = -200.0
-tangential_accel_max = -100.0
-scale_amount_min = 2.0
-scale_amount_max = 2.0
+tangential_accel_min = -600.0
+tangential_accel_max = -400.0
+scale_amount_min = 3.0
+scale_amount_max = 3.0
+scale_amount_curve = SubResource("Curve_ysyot")

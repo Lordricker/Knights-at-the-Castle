@@ -37,6 +37,7 @@ signal missed
 var _velocity: Vector2 = Vector2.ZERO
 var _damage: float = 0.0
 var _knockback_force: float = 0.0
+var _flow_success: bool = false
 var _configured: bool = false
 var _age: float = 0.0
 ## When true the arrow passes through enemies and hits all in its path.
@@ -48,14 +49,16 @@ var _hit_any: bool = false
 
 @onready var _sprite: Sprite2D = find_child("Sprite2D") as Sprite2D
 @onready var _particles: CPUParticles2D = find_child("CPUParticles2D") as CPUParticles2D
+@onready var _particles_2: CPUParticles2D = find_child("CPUParticles2D2") as CPUParticles2D
 
 
 ## Call this before add_child(). Sets spawn position and all combat values.
 ## Arrow._ready() reads these to initialize itself once in the scene tree.
 func configure(spawn_pos: Vector2, direction: Vector2, speed: float,
-		damage: float, knockback_force: float) -> void:
+		damage: float, knockback_force: float, flow_success: bool = false) -> void:
 	_damage = damage
 	_knockback_force = knockback_force
+	_flow_success = flow_success
 	_velocity = direction.normalized() * speed
 	global_position = spawn_pos
 	_configured = true
@@ -64,8 +67,8 @@ func configure(spawn_pos: Vector2, direction: Vector2, speed: float,
 ## Tint the CPUParticles2D to the given combo color.
 ## Call after configure() and before add_child() so color is set from frame 0.
 func set_combo_color(c: Color) -> void:
-	if _particles != null:
-		_particles.color = c
+	if _particles != null or _particles_2 != null:
+		_apply_particle_color(c)
 	else:
 		# Particles may not be ready yet if called before _ready; store for _ready.
 		_pending_particle_color = c
@@ -75,12 +78,19 @@ var _pending_particle_color: Color = Color.WHITE
 var _pending_color_set: bool = false
 
 
+func _apply_particle_color(c: Color) -> void:
+	if _particles != null:
+		_particles.color = c
+	if _particles_2 != null:
+		_particles_2.color = c
+
+
 func _ready() -> void:
 	if _sprite != null and _velocity != Vector2.ZERO:
 		rotation = _velocity.angle()
 	body_entered.connect(_on_body_entered)
-	if _pending_color_set and _particles != null:
-		_particles.color = _pending_particle_color
+	if _pending_color_set and (_particles != null or _particles_2 != null):
+		_apply_particle_color(_pending_particle_color)
 	tree_exiting.connect(_on_tree_exiting)
 
 
@@ -110,7 +120,7 @@ func _on_body_entered(body: Node2D) -> void:
 		_hit_enemies.append(body)
 		_hit_any = true
 		if body.has_method("take_damage"):
-			body.take_damage(_damage, true)
+			body.take_damage(_damage, _flow_success)
 		if body.has_method("apply_knockback"):
 			body.apply_knockback(global_position, _knockback_force)
 		# Do NOT queue_free — keep flying.
@@ -118,7 +128,7 @@ func _on_body_entered(body: Node2D) -> void:
 		# Normal arrow: stop on first hit.
 		_hit_any = true
 		if body.has_method("take_damage"):
-			body.take_damage(_damage, true)
+			body.take_damage(_damage, _flow_success)
 		if body.has_method("apply_knockback"):
 			body.apply_knockback(global_position, _knockback_force)
 		queue_free()

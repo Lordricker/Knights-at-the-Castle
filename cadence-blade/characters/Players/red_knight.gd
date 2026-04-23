@@ -224,6 +224,8 @@ func _physics_process(delta: float) -> void:
 
 
 func _update_animation(dir_x: float, dir_y: float) -> void:
+	if has_network_animation_override():
+		return
 	# Attack animations own the sprite — hands off.
 	if attack_state != AttackState.NONE:
 		return

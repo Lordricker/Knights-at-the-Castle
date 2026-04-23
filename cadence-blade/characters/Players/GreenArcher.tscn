@@ -8,13 +8,13 @@
 
 [sub_resource type="Curve" id="Curve_8kpke"]
 _limits = [0.0, 0.1, 0.0, 10.0]
-_data = [Vector2(0, 0.092752606), 0.0, -0.007177999, 0, 0, Vector2(4.924812, 0.016655043), -0.012393036, 0.0, 0, 0]
+_data = [Vector2(0, 0.092752606), 0.0, -0.007177999, 0, 0, Vector2(1.2349398, 0.027604781), -0.012393036, 0.0, 0, 0]
 point_count = 2
 metadata/_snap_count = 100
 
 [sub_resource type="Curve" id="Curve_6qwqa"]
 _limits = [0.0, 0.1, 0.0, 10.0]
-_data = [Vector2(0, 0.03486798), 0.0, -0.002548457, 0, 0, Vector2(4.924812, 0.016655043), -0.0038561288, 0.0, 0, 0]
+_data = [Vector2(0, 0.03486798), 0.0, -0.002548457, 0, 0, Vector2(2.5, 0.020598799), -0.0038561288, 0.0, 0, 0]
 point_count = 2
 metadata/_snap_count = 100
 

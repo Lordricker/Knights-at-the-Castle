@@ -358,7 +358,7 @@ func apply_enemy_state(e: Dictionary) -> void:
 		var e_spr := enemy_node.get("animated_sprite") as AnimatedSprite2D
 		if e_spr != null:
 			var anim: StringName = ed.get("a", &"running")
-			if e_spr.animation != anim:
+			if e_spr.animation != anim or not e_spr.is_playing():
 				e_spr.play(anim)
 		# Sync facing.
 		if ed.has("f") and "facing" in enemy_node:

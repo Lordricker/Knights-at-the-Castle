@@ -70,19 +70,23 @@ const _HEARTBEAT_INTERVAL: float = 5.0
 var _slot_char: Dictionary = {}
 ## On host: the joiner's CharacterBase node (receives input_override each frame).
 var _joiner_char_node: Node = null
-## State snapshot broadcast counter.
-var _state_broadcast_frame: int = 0
-const _STATE_BROADCAST_EVERY: int = 6  # ≈10 snapshots per second at 60 fps
-
+var _state_snapshot_timer: float = 0.0
+const _STATE_SNAPSHOT_INTERVAL: float = 1.0 / 20.0
+const _FLOW_STATE_SNAPSHOT_INTERVAL: float = 1.0 / 30.0
 ## Joiner: target positions received from state snapshots, keyed by player_slot int.
-## Characters lerp toward these each frame for smooth display.
+## Remote characters interpolate toward these; the locally owned joiner slot
+## only uses them for server correction.
 var _char_net_targets: Dictionary = {}
-## Constant pixels-per-second speed used to move display characters toward network targets.
-## Unlike lerp this does not decelerate near the target, so motion feels instant with no acceleration.
-const _MOVE_SPEED: float = 350.0
+const _REMOTE_MOVE_SPEED: float = 600.0
+const _OWNED_RECONCILE_BLEND: float = 12.0
+const _OWNED_RECONCILE_SNAP_DISTANCE: float = 96.0
 ## Host: tracks per-slot flow active state from last frame to detect transitions.
 ## When flow goes true→false, a reliable "flow_done" packet is sent immediately.
 var _prev_flow_states: Dictionary = {}
+var _joiner_last_input_seq: int = -1
+var _next_input_seq: int = 0
+var _last_acked_input_seq: int = -1
+var _pending_inputs: Array[Dictionary] = []
 
 
 # ── Lifecycle ─────────────────────────────────────────────────────────────────
@@ -129,22 +133,18 @@ func _process(delta: float) -> void:
 			if _flow_prev and not _flow_now:
 				WebRTCManager.send_reliable({"t": "flow_done", "slot": _slot2})
 			_prev_flow_states[_slot2] = _flow_now
-		# State broadcast to joiner every N frames;
-		# bumps to every frame when any character has flow active for immediate visual feedback.
-		_state_broadcast_frame += 1
-		var rate: int = _STATE_BROADCAST_EVERY
-		for _pr in _players:
-			var _ch: Node = _resolve_character(_pr)
-			if _ch != null and "_flow_active" in _ch and bool(_ch.get("_flow_active")):
-				rate = 1
-				break
-		if _state_broadcast_frame >= rate:
-			_state_broadcast_frame = 0
+		# Use a time-based snapshot cadence so network updates stay stable even if
+		# the host render framerate fluctuates. Flow-active attacks get a faster rate.
+		_state_snapshot_timer += delta
+		var snapshot_interval: float = _FLOW_STATE_SNAPSHOT_INTERVAL if _any_flow_active() else _STATE_SNAPSHOT_INTERVAL
+		while _state_snapshot_timer >= snapshot_interval:
+			_state_snapshot_timer -= snapshot_interval
 			_broadcast_state()
 	elif not GameManager.is_host and GameManager.session_id != "":
-		# Joiner sends input every frame so host can drive character 2.
+		# Joiner sends sequenced input every frame so the host can acknowledge it.
 		_send_input()
-		# Lerp display characters toward their network target positions.
+		# Remote characters interpolate toward host snapshots; the locally controlled
+		# joiner character only applies small host corrections on top of local physics.
 		for player_root in _players:
 			var ch: Node = _resolve_character(player_root)
 			if ch == null:
@@ -154,10 +154,15 @@ func _process(delta: float) -> void:
 				continue
 			var target: Vector2 = _char_net_targets[slot]
 			var dist: float = ch.global_position.distance_to(target)
-			if dist > 300.0:
+			if _is_locally_owned_slot(slot):
+				if dist > _OWNED_RECONCILE_SNAP_DISTANCE:
+					ch.global_position = target
+				elif dist > 2.0:
+					ch.global_position = ch.global_position.lerp(target, minf(_OWNED_RECONCILE_BLEND * delta, 1.0))
+			elif dist > 300.0:
 				ch.global_position = target  # teleport if too far off
 			else:
-				ch.global_position = ch.global_position.move_toward(target, _MOVE_SPEED * delta)
+				ch.global_position = ch.global_position.move_toward(target, _REMOTE_MOVE_SPEED * delta)
 
 
 # ── Castle resolution ─────────────────────────────────────────────────────────
@@ -230,8 +235,8 @@ func _spawn_players_networked() -> void:
 	if ch != null:
 		ch.set("player_slot", own_slot)
 		if not GameManager.is_host:
-			# Joiner: physics disabled — positions come from host state snapshots.
-			ch.set_physics_process(false)
+			# Joiner: movement is predicted locally; attack initiation stays host-authoritative for now.
+			ch.set("disable_local_attack_input", true)
 
 	# Announce ourselves to the peer. On the joiner this reaches the host's live RunManager.
 	# On the host the packet is sent before any peer is connected and silently dropped.
@@ -335,6 +340,30 @@ func _sample_respawn_delay() -> float:
 	if respawn_delay_curve == null:
 		return 3.0
 	return maxf(0.5, respawn_delay_curve.sample_baked(_normalized_time()))
+
+
+func _is_locally_owned_slot(slot: int) -> bool:
+	return GameManager.session_id != "" and not GameManager.is_host and slot == 2
+
+
+func _any_flow_active() -> bool:
+	for player_root in _players:
+		var ch: Node = _resolve_character(player_root)
+		if ch != null and "_flow_active" in ch and bool(ch.get("_flow_active")):
+			return true
+	return false
+
+
+func _trim_acked_inputs(ack_seq: int) -> void:
+	while not _pending_inputs.is_empty():
+		var first_seq: int = int(_pending_inputs[0].get("seq", -1))
+		if first_seq > ack_seq:
+			break
+		_pending_inputs.remove_at(0)
+
+
+func _is_locomotion_animation(anim: StringName) -> bool:
+	return anim.is_empty() or anim == &"idle" or anim == &"running" or anim == &"heal"
 
 
 # ── Event handlers ────────────────────────────────────────────────────────────
@@ -442,6 +471,11 @@ func _on_hello_ack_packet(data: Dictionary) -> void:
 func _apply_p2_input(data: Dictionary) -> void:
 	if _joiner_char_node == null:
 		return
+	var seq: int = int(data.get("seq", -1))
+	if seq >= 0:
+		if seq <= _joiner_last_input_seq:
+			return
+		_joiner_last_input_seq = seq
 	_joiner_char_node.set("input_override", {
 		"move_left":  bool(data.get("l",  false)),
 		"move_right": bool(data.get("r",  false)),
@@ -456,8 +490,14 @@ func _apply_p2_input(data: Dictionary) -> void:
 
 ## Joiner sends its local input state to the host every _process() frame.
 func _send_input() -> void:
+	var seq: int = _next_input_seq
+	_next_input_seq += 1
+	_pending_inputs.append({"seq": seq})
+	if _pending_inputs.size() > 180:
+		_pending_inputs.remove_at(0)
 	WebRTCManager.send_unreliable({
 		"t":  "inp",
+		"seq": seq,
 		"l":  Input.is_action_pressed("move_left"),
 		"r":  Input.is_action_pressed("move_right"),
 		"u":  Input.is_action_pressed("move_up"),
@@ -538,6 +578,7 @@ func _broadcast_state() -> void:
 		"t":        "state",
 		"c":        char_data,
 		"e":        enemy_data,
+		"ack":      _joiner_last_input_seq,
 		"castle_hp": castle.health if "health" in castle else 0.0,
 		"elapsed":  time_elapsed,
 	})
@@ -546,6 +587,10 @@ func _broadcast_state() -> void:
 ## Joiner applies a state snapshot to local display nodes.
 func _apply_state_snapshot(data: Dictionary) -> void:
 	time_elapsed = float(data.get("elapsed", time_elapsed))
+	var ack_seq: int = int(data.get("ack", -1))
+	if ack_seq > _last_acked_input_seq:
+		_last_acked_input_seq = ack_seq
+		_trim_acked_inputs(ack_seq)
 
 	# Update spawner's timer so difficulty curve stays in sync.
 	if spawner != null and "time_elapsed" in spawner:
@@ -562,16 +607,20 @@ func _apply_state_snapshot(data: Dictionary) -> void:
 		if not char_data.has(slot_str):
 			continue
 		var cd: Dictionary = char_data[slot_str]
-		# Store target for lerp; don't snap directly (lerp happens in _process).
+		# Store the host position for either remote interpolation or local correction.
 		_char_net_targets[int(slot_str)] = Vector2(
 			float(cd.get("x", ch.global_position.x)),
 			float(cd.get("y", ch.global_position.y)))
 		# Sync HP — emit health_changed so both the sprite bar and any HUD bar update.
 		if cd.has("hp") and "health" in ch:
 			var new_hp: float = float(cd["hp"])
+			var max_hp: float = ch.max_health if "max_health" in ch else 100.0
+			if "is_dead" in ch and bool(ch.get("is_dead")) and new_hp > 0.0 and ch.has_method(&"revive"):
+				ch.revive(_char_net_targets[int(slot_str)])
+			elif "is_dead" in ch and not bool(ch.get("is_dead")) and new_hp <= 0.0 and ch.has_method(&"die"):
+				ch.die()
 			if ch.health != new_hp:
 				ch.health = new_hp
-				var max_hp: float = ch.max_health if "max_health" in ch else 100.0
 				ch.health_changed.emit(new_hp, max_hp)
 		# Sync facing.
 		if cd.has("f") and "facing" in ch:
@@ -587,15 +636,26 @@ func _apply_state_snapshot(data: Dictionary) -> void:
 			var anim: StringName = cd["an"]
 			var target_frame: int = int(cd.get("fr", 0))
 			var is_paused: bool = int(cd.get("sp", 0)) == 1
+			var is_local_owned: bool = _is_locally_owned_slot(int(slot_str))
+			if is_local_owned:
+				if _is_locomotion_animation(anim):
+					if ch.has_method("clear_network_animation_override"):
+						ch.call("clear_network_animation_override")
+				elif ch.has_method("set_network_animation_override"):
+					ch.call("set_network_animation_override", anim)
 			if spr != null and not anim.is_empty():
-				if spr.animation != anim:
-					spr.play(anim)
-				if is_paused:
-					# Snap to the broadcasted frame then pause so the windup holds.
-					spr.frame = target_frame
-					spr.pause()
-				elif not spr.is_playing():
-					spr.play(anim)
+				if is_local_owned and _is_locomotion_animation(anim):
+					pass
+				else:
+					var should_restart: bool = spr.animation != anim
+					if not should_restart and not is_paused and not spr.is_playing():
+						should_restart = true
+					if should_restart:
+						spr.play(anim)
+					if is_paused:
+						# Snap to the broadcasted frame then pause so the windup holds.
+						spr.frame = target_frame
+						spr.pause()
 		# Sync flow bar visibility and fill progress.
 		# flow_bar points to the FlowBar root Node2D (no script).
 		# _flow_bar_api points to the FlowTimingBar child (has display_sync/stop_flow).
@@ -655,6 +715,8 @@ func _trigger_game_over(elapsed: float) -> void:
 func _on_player_died(player: Node) -> void:
 	if _game_over:
 		return
+	if GameManager.session_id != "" and not GameManager.is_host:
+		return
 
 	if spawn_points.is_empty():
 		push_warning("RunManager: spawn_points is empty — player cannot respawn. Add Marker2D children and assign them in the Inspector.")
@@ -691,7 +753,8 @@ func _respawn_player(player: Node) -> void:
 		push_warning("RunManager: player '%s' has no revive() method." % player.name)
 
 
-## Joiner: spawn a visual-only arrow (no collision, no damage) from an "arrow" packet.
+## Joiner: spawn a visual-only arrow from an "arrow" packet.
+## Damage stays at 0, but collision remains active so non-piercing arrows stop on first enemy visually.
 func _spawn_display_arrow(data: Dictionary) -> void:
 	# Find the arrow scene from any spawned archer character (avoids needing a separate export).
 	var scene: PackedScene
@@ -722,9 +785,6 @@ func _spawn_display_arrow(data: Dictionary) -> void:
 		arrow.set_combo_color(arrow.combo_color_2)
 	elif combo_hits == 1:
 		arrow.set_combo_color(arrow.combo_color_1)
-	# Strip collision so body_entered never fires on the joiner side.
-	arrow.set_collision_layer(0)
-	arrow.set_collision_mask(0)
 	# Arrow._physics_process handles movement visually; lifetime timer auto-frees it.
 	get_tree().current_scene.call_deferred("add_child", arrow)
 
