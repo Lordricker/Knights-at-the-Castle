@@ -1,0 +1,182 @@
+[gd_scene format=3 uid="uid://bqd7aeac31hoi"]
+
+[ext_resource type="Texture2D" uid="uid://dt3pc0a30aw2k" path="res://assets/sprites/UI/longbanner.png" id="1_ahvrw"]
+[ext_resource type="Script" uid="uid://dhdri0qxr5u5q" path="res://ui/menus/session_entry.gd" id="1_rl1jp"]
+[ext_resource type="Texture2D" uid="uid://dtj4438rmcngb" path="res://assets/sprites/PortraitRedKnight.png" id="2_rl1jp"]
+[ext_resource type="Texture2D" uid="uid://bs8la5exnhu68" path="res://assets/sprites/PortraitGreenArcher.png" id="3_rwuya"]
+[ext_resource type="FontFile" uid="uid://di588hyvkxc6w" path="res://assets/fonts/LATINWD.TTF" id="4_mnm16"]
+[ext_resource type="Texture2D" uid="uid://ca3ky24q4td38" path="res://assets/sprites/UI/SmallRedRoundButton_Pressed.png" id="5_fmhd3"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_ahvrw"]
+texture = ExtResource("5_fmhd3")
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_rl1jp"]
+texture = ExtResource("5_fmhd3")
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ahvrw"]
+bg_color = Color(1, 0.5, 0, 0)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mnm16"]
+bg_color = Color(0.95000005, 1, 0, 0.6745098)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0, 0, 0, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rwuya"]
+bg_color = Color(1, 0.5, 0, 0.49803922)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rl1jp"]
+bg_color = Color(0.95000005, 1, 0, 1)
+
+[node name="SessionEntry" type="Control" unique_id=1428386207 node_paths=PackedStringArray("play_button", "join_button", "private_toggle", "session_id_label", "character_buttons", "character_covers")]
+custom_minimum_size = Vector2(320, 936)
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_rl1jp")
+play_button = NodePath("PlayButton")
+join_button = NodePath("JoinButton")
+private_toggle = NodePath("privateToggle")
+session_id_label = NodePath("sessionID")
+character_buttons = [NodePath("knightbutton"), NodePath("archerbutton")]
+character_covers = [NodePath("KnightCover"), NodePath("ArcherCover")]
+
+[node name="Longbanner" type="Sprite2D" parent="." unique_id=797657117]
+position = Vector2(468, 203)
+scale = Vector2(1.05, 1)
+texture = ExtResource("1_ahvrw")
+
+[node name="PlayButton" type="Button" parent="." unique_id=1820798610]
+layout_mode = 0
+offset_left = 63.0
+offset_top = 147.0
+offset_right = 146.0
+offset_bottom = 208.5
+scale = Vector2(2, 2)
+theme_override_fonts/font = ExtResource("4_mnm16")
+theme_override_font_sizes/font_size = 10
+text = "PLAY
+"
+icon = ExtResource("5_fmhd3")
+flat = true
+icon_alignment = 1
+expand_icon = true
+
+[node name="JoinButton" type="Button" parent="." unique_id=1862022843]
+visible = false
+layout_mode = 0
+offset_left = 63.0
+offset_top = 147.0
+offset_right = 146.0
+offset_bottom = 208.5
+scale = Vector2(2, 2)
+theme_override_colors/font_color = Color(0.875, 0.875, 0.875, 1)
+theme_override_fonts/font = ExtResource("4_mnm16")
+theme_override_font_sizes/font_size = 10
+theme_override_styles/normal = SubResource("StyleBoxTexture_ahvrw")
+theme_override_styles/hover = SubResource("StyleBoxTexture_rl1jp")
+text = "JOIN
+"
+icon = ExtResource("5_fmhd3")
+flat = true
+icon_alignment = 1
+expand_icon = true
+
+[node name="knightbutton" type="Button" parent="." unique_id=1887066309]
+layout_mode = 0
+offset_left = 738.0
+offset_top = 121.0
+offset_right = 901.0
+offset_bottom = 284.0
+theme_override_styles/normal = SubResource("StyleBoxFlat_ahvrw")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_mnm16")
+theme_override_styles/hover = SubResource("StyleBoxFlat_rwuya")
+theme_override_styles/hover_pressed = SubResource("StyleBoxFlat_rl1jp")
+toggle_mode = true
+icon_alignment = 1
+vertical_icon_alignment = 0
+expand_icon = true
+
+[node name="PortraitRedKnight" type="Sprite2D" parent="." unique_id=62984681]
+position = Vector2(818.9995, 203)
+scale = Vector2(1.4999999, 1.5)
+texture = ExtResource("2_rl1jp")
+
+[node name="KnightCover" type="ColorRect" parent="." unique_id=1121187871]
+visible = false
+layout_mode = 0
+offset_left = 739.0
+offset_top = 123.0
+offset_right = 899.0
+offset_bottom = 282.0
+color = Color(0.1, 0.1, 0.1, 0.76862746)
+
+[node name="archerbutton" type="Button" parent="." unique_id=1942249815]
+layout_mode = 0
+offset_left = 568.0
+offset_top = 122.0
+offset_right = 731.0
+offset_bottom = 285.0
+theme_override_styles/normal = SubResource("StyleBoxFlat_ahvrw")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_mnm16")
+theme_override_styles/hover = SubResource("StyleBoxFlat_rwuya")
+theme_override_styles/hover_pressed = SubResource("StyleBoxFlat_rl1jp")
+toggle_mode = true
+icon_alignment = 1
+vertical_icon_alignment = 0
+expand_icon = true
+
+[node name="PortraitGreenArcher" type="Sprite2D" parent="." unique_id=417919323]
+position = Vector2(649, 203)
+scale = Vector2(1.4999999, 1.5)
+texture = ExtResource("3_rwuya")
+
+[node name="ArcherCover" type="ColorRect" parent="." unique_id=809875263]
+visible = false
+layout_mode = 0
+offset_left = 569.0
+offset_top = 123.0
+offset_right = 729.0
+offset_bottom = 282.0
+color = Color(0.1, 0.1, 0.1, 0.76862746)
+
+[node name="privateToggle" type="CheckButton" parent="." unique_id=1592998372]
+layout_mode = 0
+offset_left = 228.6
+offset_top = 235.0
+offset_right = 331.6
+offset_bottom = 274.0
+scale = Vector2(1.535, 1.535)
+theme_override_colors/font_color = Color(0.17, 0, 0.0056666615, 1)
+theme_override_font_sizes/font_size = 16
+text = "Private"
+
+[node name="Label" type="Label" parent="." unique_id=904521607]
+layout_mode = 0
+offset_left = 238.6
+offset_top = 127.0
+offset_right = 356.6
+offset_bottom = 161.0
+theme_override_colors/font_color = Color(0.15, 0, 0, 1)
+theme_override_font_sizes/font_size = 22
+text = "Session ID-"
+
+[node name="sessionID" type="Label" parent="." unique_id=847163625]
+layout_mode = 0
+offset_left = 237.6
+offset_top = 150.0
+offset_right = 355.6
+offset_bottom = 184.0
+theme_override_colors/font_color = Color(0.15, 0, 0, 1)
+theme_override_font_sizes/font_size = 22
+text = "aftw23"
+horizontal_alignment = 1

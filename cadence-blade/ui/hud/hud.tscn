@@ -179,6 +179,12 @@ text = "The Castle Has Fallen"
 
 [node name="Virtual joystick left" parent="Control" unique_id=255085118 instance=ExtResource("13_gv4gi")]
 layout_mode = 1
+offset_left = 52.0
+offset_top = -379.0
+offset_right = 352.0
+offset_bottom = -79.0
+clampzone_size = 76.0
+joystick_mode = 1
 visibility_mode = 1
 action_left = "move_left"
 action_right = "move_right"

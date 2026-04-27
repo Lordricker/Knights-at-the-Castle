@@ -1,130 +1,287 @@
 # main_menu.gd
-# Programmatic main menu. All child nodes are built in _ready() from code
-# so the .tscn file stays minimal and needs no visual editor work.
+# Scene-driven main menu.
 #
-# Buttons:
-#   PLAY  → session_create.tscn  (character select + create session)
-#   JOIN  → session_join.tscn    (browse and join active sessions)
-#   HELP  → shows a simple instructions overlay
+# Two screens live inside this CanvasLayer, toggled with a fade:
+#
+#   MainScreen    — title + PLAY + HELP buttons.
+#   SessionScreen — permanent host entry + scrollable list of joinable sessions.
+#
+# ── Required scene structure ────────────────────────────────────────────────
+# Wire every @export var in the Inspector after attaching this script.
+#
+#   MainMenu (CanvasLayer)
+#   ├── MainScreen (Control)                    ← @export main_screen
+#   │   ├── PlayButton (Button)                 ← @export play_button
+#   │   ├── HelpButton (Button)                 ← @export help_button
+#   │   └── BestTimeLabel (Label)  [optional]   ← @export best_time_label
+#   ├── SessionScreen (Control)                 ← @export session_screen
+#   │   ├── BackButton (Button)                 ← @export back_button
+#   │   ├── StatusLabel (Label)    [optional]   ← @export session_status_label
+#   │   ├── PermanentEntry (Control)            ← @export permanent_entry
+#   │   │     [instance of session_entry.tscn, host mode]
+#   │   └── ScrollContainer
+#   │       └── SessionsContainer (VBoxContainer) ← @export sessions_container
+#   └── HelpOverlay (Control)                   ← @export help_overlay
+#       └── CloseButton (Button)                ← @export help_close_button
+# ────────────────────────────────────────────────────────────────────────────
 
 extends CanvasLayer
 
-var _help_panel: Control = null
+# Character keys — must match session_entry.gd and Firebase data.
+const CHARACTER_KEYS: Array[String] = ["red_knight", "green_archer"]
 
+const SESSION_ENTRY_SCENE: String = "res://ui/menus/session_entry.tscn"
+const POLL_INTERVAL:  float = 5.0
+const FADE_DURATION:  float = 0.3
+
+# ── Exported references ──────────────────────────────────────────────────────
+@export var main_screen:          Control
+@export var session_screen:       Control
+@export var play_button:          Button
+@export var help_button:          Button
+@export var back_button:          Button
+@export var help_overlay:         Control
+@export var help_close_button:    Button
+@export var best_time_label:      Label     # optional
+@export var session_status_label: Label     # optional — shows Firebase errors
+## Permanent SessionEntry instance (host-create mode).
+@export var permanent_entry:      Control
+## VBoxContainer inside the ScrollContainer; populated with join entries.
+@export var sessions_container:   VBoxContainer
+
+# ── Runtime state ────────────────────────────────────────────────────────────
+var _poll_timer: float = 0.0
+var _is_busy:    bool  = false
+
+
+# ── Lifecycle ────────────────────────────────────────────────────────────────
 
 func _ready() -> void:
-	# Full-viewport container.
-	var root := Control.new()
-	root.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(root)
+	# Button wiring.
+	if play_button:
+		play_button.pressed.connect(_on_play_pressed)
+	if help_button:
+		help_button.pressed.connect(_on_help_pressed)
+	if back_button:
+		back_button.pressed.connect(_on_back_pressed)
+	if help_close_button:
+		help_close_button.pressed.connect(func() -> void:
+			if help_overlay: help_overlay.hide())
 
-	# Dark semi-transparent background.
-	var bg := ColorRect.new()
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	bg.color = Color(0.05, 0.05, 0.1, 1.0)
-	root.add_child(bg)
-
-	# Centred column layout.
-	var center := CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	root.add_child(center)
-
-	var vbox := VBoxContainer.new()
-	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	vbox.add_theme_constant_override("separation", 20)
-	center.add_child(vbox)
-
-	# Title label.
-	var title := Label.new()
-	title.text = "CADENCE BLADE"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 48)
-	vbox.add_child(title)
-
-	var spacer := Control.new()
-	spacer.custom_minimum_size = Vector2(0, 30)
-	vbox.add_child(spacer)
-
-	# Buttons.
-	_add_menu_button(vbox, "PLAY", _on_play_pressed)
-	_add_menu_button(vbox, "JOIN", _on_join_pressed)
-	_add_menu_button(vbox, "HELP", _on_help_pressed)
+	# Initial visibility — main screen shown, session screen hidden.
+	if help_overlay:
+		help_overlay.hide()
+	if session_screen:
+		session_screen.modulate.a = 0.0
+		session_screen.hide()
+	if main_screen:
+		main_screen.modulate.a = 1.0
+		main_screen.show()
 
 	# Best time display.
-	var best_label := Label.new()
-	best_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	best_label.add_theme_font_size_override("font_size", 14)
-	if GameManager.best_time > 0.0:
-		var m: int = int(GameManager.best_time) / 60
-		var s: int = int(GameManager.best_time) % 60
-		best_label.text = "Best: %d:%02d" % [m, s]
-	vbox.add_child(best_label)
+	if best_time_label:
+		if GameManager.best_time > 0.0:
+			var m: int = int(GameManager.best_time) / 60
+			var s: int = int(GameManager.best_time) % 60
+			best_time_label.text = "Best: %d:%02d" % [m, s]
+		else:
+			best_time_label.hide()
 
-	# Help overlay (hidden by default).
-	_help_panel = _build_help_panel(root)
-	_help_panel.hide()
+	# Wire the permanent (host) entry.
+	if permanent_entry and permanent_entry.has_method("setup_as_host"):
+		permanent_entry.play_pressed.connect(_on_permanent_play_pressed)
+		permanent_entry.setup_as_host()
 
-
-func _add_menu_button(parent: Control, label_text: String, callback: Callable) -> void:
-	var btn := Button.new()
-	btn.text = label_text
-	btn.custom_minimum_size = Vector2(220, 52)
-	btn.add_theme_font_size_override("font_size", 22)
-	btn.pressed.connect(callback)
-	parent.add_child(btn)
+	# WebRTC failure forwarding.
+	WebRTCManager.connection_failed.connect(_on_connection_failed)
 
 
-func _build_help_panel(root: Control) -> Control:
-	var panel := Panel.new()
-	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
-
-	var center := CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	panel.add_child(center)
-
-	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 12)
-	center.add_child(vbox)
-
-	var help_text := Label.new()
-	help_text.text = (
-		"CADENCE BLADE\n\n"
-		+ "Move:    WASD  (or on-screen joystick)\n"
-		+ "Slash:   J\n"
-		+ "Thrust:  K  (Red Knight only)\n"
-		+ "Spin:    L  (Red Knight only)\n"
-		+ "Shoot:   J  (Green Archer)\n"
-		+ "Face lock: Shift\n\n"
-		+ "Defend the castle from waves of enemies.\n"
-		+ "Pick up coins and visit the blacksmith inside\n"
-		+ "the castle to buy upgrades.\n\n"
-		+ "MULTIPLAYER:\n"
-		+ "PLAY — create a session and share the ID.\n"
-		+ "JOIN — browse active sessions to jump into."
-	)
-	help_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	help_text.add_theme_font_size_override("font_size", 16)
-	vbox.add_child(help_text)
-
-	var close_btn := Button.new()
-	close_btn.text = "CLOSE"
-	close_btn.custom_minimum_size = Vector2(160, 44)
-	close_btn.pressed.connect(func() -> void: panel.hide())
-	vbox.add_child(close_btn)
-
-	root.add_child(panel)
-	return panel
+func _process(delta: float) -> void:
+	# Auto-poll while the session screen is visible and not mid-transaction.
+	if _is_busy:
+		return
+	if session_screen == null or not session_screen.visible:
+		return
+	_poll_timer += delta
+	if _poll_timer >= POLL_INTERVAL:
+		_poll_timer = 0.0
+		_refresh_sessions()
 
 
-# ── Button handlers ────────────────────────────────────────────────────────────
+# ── Screen transitions ────────────────────────────────────────────────────────
 
 func _on_play_pressed() -> void:
-	get_tree().change_scene_to_file("res://ui/menus/session_create.tscn")
+	if play_button:
+		play_button.disabled = true
+	await _fade_out(main_screen)
+	if main_screen:
+		main_screen.hide()
+	if session_screen:
+		session_screen.modulate.a = 0.0
+		session_screen.show()
+		await _fade_in(session_screen)
+	if play_button:
+		play_button.disabled = false
+	# Trigger an immediate poll.
+	_poll_timer = POLL_INTERVAL
 
 
-func _on_join_pressed() -> void:
-	get_tree().change_scene_to_file("res://ui/menus/session_join.tscn")
+func _on_back_pressed() -> void:
+	# Cancel any pending host session.
+	if GameManager.session_id != "":
+		FirebaseClient.delete_session(GameManager.session_id, func(_c, _d): pass)
+		GameManager.session_id = ""
+	_is_busy = false
+	_clear_join_entries()
+	await _fade_out(session_screen)
+	if session_screen:
+		session_screen.hide()
+	if main_screen:
+		main_screen.modulate.a = 0.0
+		main_screen.show()
+		await _fade_in(main_screen)
+	# Refresh host session ID so it's fresh next time the screen opens.
+	if permanent_entry and permanent_entry.has_method("setup_as_host"):
+		permanent_entry.setup_as_host()
 
+
+# ── Help overlay ──────────────────────────────────────────────────────────────
 
 func _on_help_pressed() -> void:
-	_help_panel.show()
+	if help_overlay:
+		help_overlay.show()
+
+
+# ── Session list ──────────────────────────────────────────────────────────────
+
+func _refresh_sessions() -> void:
+	FirebaseClient.get_sessions(_on_sessions_received)
+
+
+func _on_sessions_received(_code: int, data: Variant) -> void:
+	_clear_join_entries()
+
+	if data == null or not (data is Dictionary) or data.is_empty():
+		return
+
+	var now: int = int(Time.get_unix_time_from_system())
+	for sid in data:
+		var session: Variant = data[sid]
+		if not (session is Dictionary):
+			continue
+		if session.get("is_private", false):
+			continue
+		if session.get("status", "waiting") == "in_game":
+			continue
+		var last_seen: int = int(session.get("last_seen", session.get("created_at", now)))
+		if now - last_seen > 30:
+			FirebaseClient.delete_session(sid, func(_c, _d): pass)
+			continue
+		var players: Variant = session.get("players", {})
+		var taken: Array[String] = GameManager.parse_taken_characters(players)
+		if taken.size() >= CHARACTER_KEYS.size():
+			continue
+		_add_join_entry(sid, taken)
+
+
+func _add_join_entry(sid: String, taken_characters: Array[String]) -> void:
+	if sessions_container == null:
+		return
+	var entry := load(SESSION_ENTRY_SCENE).instantiate() as Control
+	if entry == null:
+		return
+	sessions_container.add_child(entry)
+	if entry.has_method("setup_as_join"):
+		entry.setup_as_join(sid, taken_characters)
+	entry.join_pressed.connect(_on_join_entry_pressed)
+
+
+func _clear_join_entries() -> void:
+	if sessions_container == null:
+		return
+	for child in sessions_container.get_children():
+		if child != permanent_entry:
+			child.queue_free()
+
+
+# ── Session actions ───────────────────────────────────────────────────────────
+
+func _on_permanent_play_pressed(entry: Control) -> void:
+	if _is_busy:
+		return
+	_is_busy = true
+	_set_status("Creating session...")
+
+	var sid: String       = entry.get("session_id")
+	var character: String = entry.get("selected_character")
+	var priv: bool        = entry.get("is_private")
+
+	GameManager.session_id = sid
+
+	var session_data: Dictionary = {
+		"is_private":       priv,
+		"status":           "waiting",
+		"elapsed_seconds":  0,
+		"created_at":       Time.get_unix_time_from_system(),
+		"last_seen":        Time.get_unix_time_from_system(),
+		"players":          {"1": {"character": character}},
+	}
+
+	FirebaseClient.create_session(sid, session_data,
+		func(code: int, _data: Variant) -> void:
+			if code != 200:
+				_set_status("Firebase error (code %d). Check DB URL and rules." % code)
+				_is_busy = false
+				GameManager.session_id = ""
+				return
+			GameManager.begin_hosting(character)
+			get_tree().change_scene_to_file(GameManager.GAME_LEVEL_SCENE)
+	)
+
+
+func _on_join_entry_pressed(entry: Control) -> void:
+	if _is_busy:
+		return
+	_is_busy = true
+	_set_status("Connecting...")
+
+	var sid: String       = entry.get("session_id")
+	var character: String = entry.get("selected_character")
+
+	FirebaseClient.put_subpath(
+		"/sessions/%s/players/2.json" % sid,
+		{"character": character},
+		func(_code: int, _data: Variant) -> void:
+			GameManager.begin_joining(sid, character)
+	)
+
+
+func _on_connection_failed(reason: String) -> void:
+	_is_busy = false
+	_set_status("Connection failed: %s" % reason)
+	if GameManager.session_id != "":
+		FirebaseClient.delete_session(GameManager.session_id, func(_c, _d): pass)
+		GameManager.session_id = ""
+
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+func _set_status(msg: String) -> void:
+	if session_status_label:
+		session_status_label.text = msg
+
+
+func _fade_out(node: Control) -> void:
+	if node == null:
+		return
+	var tween := create_tween()
+	tween.tween_property(node, "modulate:a", 0.0, FADE_DURATION)
+	await tween.finished
+
+
+func _fade_in(node: Control) -> void:
+	if node == null:
+		return
+	var tween := create_tween()
+	tween.tween_property(node, "modulate:a", 1.0, FADE_DURATION)
+	await tween.finished

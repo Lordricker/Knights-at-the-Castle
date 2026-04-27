@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://do82metdy3ent"
-path="res://.godot/imported/Coin.png-0ca4a26af2d4a47b18a753adb49a59d2.ctex"
+uid="uid://ca3ky24q4td38"
+path="res://.godot/imported/SmallRedRoundButton_Pressed.png-729c597ed8f824c06aef993c919d301a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/Coin.png"
-dest_files=["res://.godot/imported/Coin.png-0ca4a26af2d4a47b18a753adb49a59d2.ctex"]
+source_file="res://assets/sprites/UI/SmallRedRoundButton_Pressed.png"
+dest_files=["res://.godot/imported/SmallRedRoundButton_Pressed.png-729c597ed8f824c06aef993c919d301a.ctex"]
 
 [params]
 
