@@ -1,11 +1,12 @@
 [gd_scene format=3 uid="uid://2ilyqu82lsfh"]
 
 [ext_resource type="Script" uid="uid://bo1tq4rdbi5r8" path="res://ui/menus/main_menu.gd" id="1_1kjlq"]
-[ext_resource type="Texture2D" uid="uid://fghf0bg470be" path="res://assets/stonewallTexture.png" id="2_qc8qn"]
+[ext_resource type="Texture2D" uid="uid://b56ydo3qajwgp" path="res://assets/sprites/UI/title.png" id="2_vuv8w"]
 [ext_resource type="PackedScene" uid="uid://bqd7aeac31hoi" path="res://ui/menus/session_entry.tscn" id="3_5ssi0"]
 [ext_resource type="FontFile" uid="uid://3k4f02awf4kq" path="res://assets/fonts/FRSCRIPT.TTF" id="3_h223f"]
 [ext_resource type="Texture2D" uid="uid://bxiea3eu0sstp" path="res://assets/sprites/UI/redRibbon.png" id="4_l3r6a"]
 [ext_resource type="Texture2D" uid="uid://qp1cx7diu7ko" path="res://assets/sprites/UI/yellowRibbon.png" id="5_1kjlq"]
+[ext_resource type="Texture2D" uid="uid://fghf0bg470be" path="res://assets/Textures/stonewallTexture.png" id="6_u0fm7"]
 [ext_resource type="Texture2D" uid="uid://d1lle3v0whs5l" path="res://assets/sprites/UI/blueRibbon.png" id="6_vuv8w"]
 
 [sub_resource type="CompressedTexture2D" id="CompressedTexture2D_h223f"]
@@ -54,6 +55,11 @@ offset_right = 20.0
 offset_bottom = 20.0
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="Title" type="Sprite2D" parent="MainScreen" unique_id=280138339]
+position = Vector2(25, -268.62)
+scale = Vector2(2.97, 2.97)
+texture = ExtResource("2_vuv8w")
 
 [node name="Play" type="Button" parent="MainScreen" unique_id=105342913]
 layout_mode = 1
@@ -158,7 +164,7 @@ offset_bottom = -185.33334
 grow_horizontal = 2
 grow_vertical = 2
 scale = Vector2(3, 3)
-texture = ExtResource("2_qc8qn")
+texture = ExtResource("6_u0fm7")
 expand_mode = 2
 stretch_mode = 1
 
