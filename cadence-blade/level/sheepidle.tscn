@@ -1,0 +1,58 @@
+[gd_scene format=3 uid="uid://csdfv0d4v5teo"]
+
+[ext_resource type="Texture2D" uid="uid://cp1j7hqba2l2h" path="res://level/backgroundSprites/Sheep_Idle.png" id="1_elarl"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_gb6jp"]
+atlas = ExtResource("1_elarl")
+region = Rect2(0, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_t5lfq"]
+atlas = ExtResource("1_elarl")
+region = Rect2(128, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_nttgd"]
+atlas = ExtResource("1_elarl")
+region = Rect2(256, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_guonr"]
+atlas = ExtResource("1_elarl")
+region = Rect2(384, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_6if5f"]
+atlas = ExtResource("1_elarl")
+region = Rect2(512, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_hg7rc"]
+atlas = ExtResource("1_elarl")
+region = Rect2(640, 0, 128, 128)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_u8n6w"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_gb6jp")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_t5lfq")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_nttgd")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_guonr")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_6if5f")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_hg7rc")
+}],
+"loop": true,
+"name": &"default",
+"speed": 6.0
+}]
+
+[node name="Sheepidle" type="AnimatedSprite2D" unique_id=397917978]
+sprite_frames = SubResource("SpriteFrames_u8n6w")
+autoplay = "default"
+frame_progress = 0.26667264

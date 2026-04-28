@@ -3,7 +3,9 @@
 [ext_resource type="Texture2D" uid="uid://c0y45wgfs1phi" path="res://level/backgroundSprites/Map.png" id="1_0eib5"]
 [ext_resource type="Script" uid="uid://b2dsw6etqmvgr" path="res://core/level.gd" id="1_slv3f"]
 [ext_resource type="PackedScene" uid="uid://tguwfea61v0y" path="res://FX/DeathPoof.tscn" id="2_pfm7v"]
+[ext_resource type="Texture2D" uid="uid://bjrdk6nhhom4" path="res://level/backgroundSprites/paralax map.png" id="3_gtrn2"]
 [ext_resource type="Texture2D" uid="uid://c665lghwlbqwj" path="res://level/backgroundSprites/Tower.png" id="4_4v7nf"]
+[ext_resource type="Script" uid="uid://dledtke7x1i4g" path="res://level/variants/paralax_map.gd" id="4_p3vt1"]
 [ext_resource type="PackedScene" uid="uid://vqn6c6fo34d1" path="res://characters/castle.tscn" id="5_4v7nf"]
 [ext_resource type="Texture2D" uid="uid://bl41b5s5e5u7y" path="res://level/backgroundSprites/Clouds_02.png" id="8_hah43"]
 [ext_resource type="Script" uid="uid://dj8qa3itlkqdw" path="res://characters/enemies/enemy_type_config.gd" id="8_pr8jp"]
@@ -29,6 +31,12 @@
 [ext_resource type="Texture2D" uid="uid://jvow1lpkr13n" path="res://assets/sprites/BlacksmithSprites.png" id="22_chmu7"]
 [ext_resource type="PackedScene" uid="uid://1brrmdyvuppp" path="res://characters/enemies/melee/blackKnight.tscn" id="23_154h8"]
 [ext_resource type="Texture2D" uid="uid://cc743ee51ef1m" path="res://core/Upgrades/5secFreeze.png" id="23_ll8mu"]
+[ext_resource type="PackedScene" uid="uid://csdfv0d4v5teo" path="res://level/sheepidle.tscn" id="30_cblfy"]
+[ext_resource type="PackedScene" uid="uid://cukpgklhpndg0" path="res://level/sheepeat.tscn" id="31_nkn60"]
+[ext_resource type="PackedScene" uid="uid://bxb278tj0rbg3" path="res://level/water_rock_1.tscn" id="32_gtrn2"]
+[ext_resource type="PackedScene" uid="uid://cfm33h1l0nnru" path="res://level/water_rock_2.tscn" id="33_p3vt1"]
+[ext_resource type="PackedScene" uid="uid://540q1u1nmwpv" path="res://level/tree_1.tscn" id="34_w77vi"]
+[ext_resource type="PackedScene" uid="uid://bhxy1x077s154" path="res://level/tree_2.tscn" id="35_2lfbx"]
 
 [sub_resource type="Curve2D" id="Curve2D_0eib5"]
 _data = {
@@ -395,6 +403,13 @@ y_sort_enabled = true
 script = ExtResource("1_slv3f")
 death_poof_scene = ExtResource("2_pfm7v")
 
+[node name="ParalaxMap" type="Sprite2D" parent="." unique_id=750152858]
+z_index = -7
+position = Vector2(2, -63)
+texture = ExtResource("3_gtrn2")
+script = ExtResource("4_p3vt1")
+camera_path = NodePath("../LevelCamera")
+
 [node name="DirtRoad" type="Sprite2D" parent="." unique_id=1181522976]
 z_index = -2
 position = Vector2(0, 50)
@@ -418,7 +433,6 @@ polygon = PackedVector2Array(-23.5, -10, -24, -62, -98, -79, -98, -145, 80, -150
 curve = SubResource("Curve2D_0eib5")
 
 [node name="CPUParticles2D" type="CPUParticles2D" parent="." unique_id=1125288507]
-visible = false
 position = Vector2(-1170, -239)
 amount = 6
 texture = ExtResource("8_hah43")
@@ -435,7 +449,6 @@ angle_max = 5.0
 color_initial_ramp = SubResource("Gradient_k7t6a")
 
 [node name="CPUParticles2D2" type="CPUParticles2D" parent="." unique_id=1330472591]
-visible = false
 position = Vector2(-1170, -237)
 amount = 6
 texture = ExtResource("9_j7mri")
@@ -557,3 +570,43 @@ texture = ExtResource("18_gwq2p")
 expand_mode = 1
 
 [node name="HUD" parent="." unique_id=263715054 instance=ExtResource("20_h2mhx")]
+
+[node name="Sheepidle" parent="." unique_id=397917978 instance=ExtResource("30_cblfy")]
+position = Vector2(-195, 335)
+
+[node name="Sheepeat" parent="." unique_id=1406755309 instance=ExtResource("31_nkn60")]
+position = Vector2(-75, 288)
+
+[node name="Sheepeat2" parent="." unique_id=2144767622 instance=ExtResource("31_nkn60")]
+position = Vector2(-8, 367)
+scale = Vector2(-1, 1)
+
+[node name="waterRock1" parent="." unique_id=1511540458 instance=ExtResource("32_gtrn2")]
+position = Vector2(702, 347)
+
+[node name="waterRock2" parent="." unique_id=1152824597 instance=ExtResource("33_p3vt1")]
+position = Vector2(975, 370)
+
+[node name="waterRock3" parent="." unique_id=1629260997 instance=ExtResource("32_gtrn2")]
+position = Vector2(430, 382)
+
+[node name="waterRock4" parent="." unique_id=710525475 instance=ExtResource("32_gtrn2")]
+position = Vector2(638, 372)
+
+[node name="tree1" parent="." unique_id=167099155 instance=ExtResource("34_w77vi")]
+position = Vector2(382, 220)
+
+[node name="tree2" parent="." unique_id=1657232701 instance=ExtResource("35_2lfbx")]
+position = Vector2(270, 367)
+
+[node name="tree3" parent="." unique_id=1935283235 instance=ExtResource("35_2lfbx")]
+position = Vector2(-984, 344)
+
+[node name="tree4" parent="." unique_id=1617130923 instance=ExtResource("34_w77vi")]
+position = Vector2(-895, 324)
+
+[node name="tree5" parent="." unique_id=1095862996 instance=ExtResource("34_w77vi")]
+position = Vector2(-854, 372)
+
+[node name="tree6" parent="." unique_id=1606923709 instance=ExtResource("35_2lfbx")]
+position = Vector2(-713, 359)

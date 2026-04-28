@@ -44,6 +44,7 @@ const FADE_DURATION:  float = 0.3
 @export var help_close_button:    Button
 @export var best_time_label:      Label     # optional
 @export var session_status_label: Label     # optional — shows Firebase errors
+@export var debug_label:          Label     # optional — shows debug info for join flow
 ## Permanent SessionEntry instance (host-create mode).
 @export var permanent_entry:      Control
 ## VBoxContainer inside the ScrollContainer; populated with join entries.
@@ -67,6 +68,10 @@ func _ready() -> void:
 	if help_close_button:
 		help_close_button.pressed.connect(func() -> void:
 			if help_overlay: help_overlay.hide())
+
+	# Clear debug label at start
+	if debug_label:
+		debug_label.text = ""
 
 	# Initial visibility — main screen shown, session screen hidden.
 	if help_overlay:
@@ -113,6 +118,8 @@ func _process(delta: float) -> void:
 func _on_play_pressed() -> void:
 	if play_button:
 		play_button.disabled = true
+	if debug_label:
+		debug_label.text = "Opening session list..."
 	await _fade_out(main_screen)
 	if main_screen:
 		main_screen.hide()
@@ -209,15 +216,20 @@ func _clear_join_entries() -> void:
 func _on_permanent_play_pressed(entry: Control) -> void:
 	if _is_busy:
 		return
-	_is_busy = true
-	_set_status("Creating session...")
-
 	var sid: String       = entry.get("session_id")
 	var character: String = entry.get("selected_character")
 	var priv: bool        = entry.get("is_private")
-
+	if debug_label:
+		debug_label.text = "Host: validating character..."
+	if character == "" or character == null:
+		if debug_label:
+			debug_label.text = "Select a character first!"
+		return
+	_is_busy = true
+	_set_status("Creating session...")
+	if debug_label:
+		debug_label.text = "Host: creating session..."
 	GameManager.session_id = sid
-
 	var session_data: Dictionary = {
 		"is_private":       priv,
 		"status":           "waiting",
@@ -226,14 +238,17 @@ func _on_permanent_play_pressed(entry: Control) -> void:
 		"last_seen":        Time.get_unix_time_from_system(),
 		"players":          {"1": {"character": character}},
 	}
-
 	FirebaseClient.create_session(sid, session_data,
 		func(code: int, _data: Variant) -> void:
 			if code != 200:
 				_set_status("Firebase error (code %d). Check DB URL and rules." % code)
 				_is_busy = false
 				GameManager.session_id = ""
+				if debug_label:
+					debug_label.text = "Host: Firebase error (code %d)" % code
 				return
+			if debug_label:
+				debug_label.text = "Host: starting WebRTC..."
 			GameManager.begin_hosting(character)
 			get_tree().change_scene_to_file(GameManager.GAME_LEVEL_SCENE)
 	)
@@ -242,16 +257,24 @@ func _on_permanent_play_pressed(entry: Control) -> void:
 func _on_join_entry_pressed(entry: Control) -> void:
 	if _is_busy:
 		return
-	_is_busy = true
-	_set_status("Connecting...")
-
 	var sid: String       = entry.get("session_id")
 	var character: String = entry.get("selected_character")
-
+	if debug_label:
+		debug_label.text = "Join: validating character..."
+	if character == "" or character == null:
+		if debug_label:
+			debug_label.text = "Select a character first!"
+		return
+	_is_busy = true
+	_set_status("Connecting...")
+	if debug_label:
+		debug_label.text = "Join: sending character to server..."
 	FirebaseClient.put_subpath(
 		"/sessions/%s/players/2.json" % sid,
 		{"character": character},
 		func(_code: int, _data: Variant) -> void:
+			if debug_label:
+				debug_label.text = "Join: starting WebRTC connection..."
 			GameManager.begin_joining(sid, character)
 	)
 
@@ -262,6 +285,9 @@ func _on_connection_failed(reason: String) -> void:
 	if GameManager.session_id != "":
 		FirebaseClient.delete_session(GameManager.session_id, func(_c, _d): pass)
 		GameManager.session_id = ""
+
+	if debug_label:
+		debug_label.text = "Connection failed: %s" % reason
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

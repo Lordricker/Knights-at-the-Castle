@@ -318,13 +318,14 @@ func _begin_attack(anim_name: String, next_state: AttackState) -> void:
 func _start_spin_flow_check() -> void:
 	var _half := _sample_window_half(spin_flow_window_size_curve,
 			spin_flow_window_half_size, spin_flow_window_curve_max_time)
-	_start_flow(&"spin", func(mult: float):
-		_current_attack_damage_multiplier = minf(_current_attack_damage_multiplier, mult)
-		_spin_flow_checks_completed += 1
-		if _spin_flow_checks_completed < SPIN_FLOW_CHECK_COUNT:
-			_start_spin_flow_check()
-			return
-		_finish_attack("spin", SPIN_PAUSE_FRAME, AttackState.SPIN_FINISH),
+	_start_flow(&"spin",
+		func(mult: float):
+			_current_attack_damage_multiplier = minf(_current_attack_damage_multiplier, mult)
+			_spin_flow_checks_completed += 1
+			if _spin_flow_checks_completed < SPIN_FLOW_CHECK_COUNT:
+				_start_spin_flow_check()
+				return
+			_finish_attack("spin", SPIN_PAUSE_FRAME, AttackState.SPIN_FINISH),
 		spin_flow_fill_duration, spin_flow_miss_multiplier,
 		spin_flow_window_center, _half, spin_flow_window_random_range)
 
@@ -352,9 +353,10 @@ func _on_frame_changed() -> void:
 				attack_state = AttackState.SLASH_PAUSED
 				var _half := _sample_window_half(slash_flow_window_size_curve,
 						slash_flow_window_half_size, slash_flow_window_curve_max_time)
-				_start_flow(&"slash", func(mult: float):
-					_current_attack_damage_multiplier = mult
-					_finish_attack("slash", SLASH_PAUSE_FRAME, AttackState.SLASH_FINISH),
+				_start_flow(&"slash",
+					func(mult: float):
+						_current_attack_damage_multiplier = mult
+						_finish_attack("slash", SLASH_PAUSE_FRAME, AttackState.SLASH_FINISH),
 					slash_flow_fill_duration, slash_flow_miss_multiplier,
 					slash_flow_window_center, _half, slash_flow_window_random_range)
 
@@ -373,10 +375,11 @@ func _on_frame_changed() -> void:
 				attack_state = AttackState.THRUST_PAUSED
 				var _half := _sample_window_half(thrust_flow_window_size_curve,
 						thrust_flow_window_half_size, thrust_flow_window_curve_max_time)
-				_start_flow(&"thrust", func(mult: float):
-					_current_attack_damage_multiplier = mult
-					_thrust_invincible = true
-					_finish_attack("thrust", THRUST_PAUSE_FRAME, AttackState.THRUST_FINISH),
+				_start_flow(&"thrust",
+					func(mult: float):
+						_current_attack_damage_multiplier = mult
+						_thrust_invincible = true
+						_finish_attack("thrust", THRUST_PAUSE_FRAME, AttackState.THRUST_FINISH),
 					thrust_flow_fill_duration, thrust_flow_miss_multiplier,
 					thrust_flow_window_center, _half, thrust_flow_window_random_range)
 
@@ -448,20 +451,46 @@ func _on_spin_hit_body(body: Node2D) -> void:
 		body.take_damage(_get_current_attack_damage(), flow_success)
 	if body.has_method("apply_knockback"):
 		body.apply_knockback(global_position, spin_knockback_force)
+	# Joiner: enemy take_damage returns early locally — forward the hit to the host.
+	if GameManager.session_id != "" and not GameManager.is_host:
+		var eid: int = int(body.get_meta(&"spawn_id", -1))
+		if eid >= 0:
+			WebRTCManager.send_reliable({
+				"t":   "melee_hit",
+				"eid": eid,
+				"dmg": _get_current_attack_damage(),
+				"kbf": spin_knockback_force,
+				"kbx": global_position.x,
+				"kby": global_position.y,
+				"s":   1 if flow_success else 0,
+			})
 
 
 func _apply_hit_body(body: Node2D) -> void:
 	var flow_success: bool = _current_attack_damage_multiplier >= 1.0
+	var kforce: float
+	match attack_state:
+		AttackState.THRUST_WINDUP, AttackState.THRUST_PAUSED, AttackState.THRUST_FINISH:
+			kforce = thrust_knockback_force
+		_:
+			kforce = slash_knockback_force
 	if body.has_method("take_damage"):
 		body.take_damage(_get_current_attack_damage(), flow_success)
 	if body.has_method("apply_knockback"):
-		var kforce: float
-		match attack_state:
-			AttackState.THRUST_WINDUP, AttackState.THRUST_PAUSED, AttackState.THRUST_FINISH:
-				kforce = thrust_knockback_force
-			_:
-				kforce = slash_knockback_force
 		body.apply_knockback(global_position, kforce)
+	# Joiner: enemy take_damage returns early locally — forward the hit to the host.
+	if GameManager.session_id != "" and not GameManager.is_host:
+		var eid: int = int(body.get_meta(&"spawn_id", -1))
+		if eid >= 0:
+			WebRTCManager.send_reliable({
+				"t":   "melee_hit",
+				"eid": eid,
+				"dmg": _get_current_attack_damage(),
+				"kbf": kforce,
+				"kbx": global_position.x,
+				"kby": global_position.y,
+				"s":   1 if flow_success else 0,
+			})
 
 
 ## Enable or disable an Area2D hitbox.

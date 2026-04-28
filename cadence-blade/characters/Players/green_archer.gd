@@ -256,6 +256,37 @@ func _combo_multiplier() -> float:
 func _queue_fire_arrow(is_pierce: bool) -> void:
 	if arrow_scene == null:
 		return
+	# Joiner authority: fire a local zero-damage tracking arrow for visual + combo feedback,
+	# then route the real damage to the host via a "flow_fire" reliable packet.
+	if GameManager.session_id != "" and not GameManager.is_host:
+		var base_spd_j: float = pierce_speed if is_pierce else arrow_speed
+		var flow_suc_j: bool = _current_attack_damage_multiplier >= 1.0
+		var dmg_j: float = ((pierce_damage if is_pierce else arrow_damage) + attack_bonus) \
+				* _current_attack_damage_multiplier * _combo_multiplier()
+		var tracking := arrow_scene.instantiate() as Arrow
+		if tracking != null:
+			tracking.configure(global_position, Vector2(facing, 0.0), base_spd_j, 0.0, 0.0, false)
+			if is_pierce:
+				tracking.pierce = true
+			if _combo_hits >= 2:
+				tracking.set_combo_color(tracking.combo_color_2)
+			elif _combo_hits == 1:
+				tracking.set_combo_color(tracking.combo_color_1)
+			tracking.body_entered.connect(_on_arrow_hit_enemy.bind(tracking))
+			tracking.missed.connect(_on_arrow_missed)
+			get_tree().current_scene.call_deferred("add_child", tracking)
+		WebRTCManager.send_reliable({
+			"t":   "flow_fire",
+			"x":   global_position.x,
+			"y":   global_position.y,
+			"dx":  facing,
+			"sp":  base_spd_j,
+			"pi":  1 if is_pierce else 0,
+			"dmg": dmg_j,
+			"s":   1 if flow_suc_j else 0,
+			"cc":  _combo_hits,
+		})
+		return
 	var arrow := arrow_scene.instantiate() as Arrow
 	if arrow == null:
 		return

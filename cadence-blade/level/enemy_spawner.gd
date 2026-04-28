@@ -304,6 +304,9 @@ func on_spawn_packet(data: Dictionary) -> void:
 			if child.has_signal("died"):
 				signal_source = child
 				break
+	# Tag the physics body with its spawn ID so the joiner's melee hitboxes can identify
+	# which enemy was struck and route damage packets correctly via "melee_hit".
+	signal_source.set_meta(&"spawn_id", spawn_id)
 	# Seed the network-sync position so EnemyBase._physics_process can lerp immediately.
 	# Do NOT disable physics_process — EnemyBase already skips AI and lerps to
 	# _net_target_pos when (session_id != "" and not is_host).

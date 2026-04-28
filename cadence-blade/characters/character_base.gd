@@ -148,7 +148,8 @@ func _action_pressed(action: StringName) -> bool:
 		return input_override.get(action, false)
 	if disable_local_attack_input and _is_attack_input_action(action):
 		return false
-	if player_slot == 2:
+	# p2_ routing is local co-op only; in online sessions each client uses direct input.
+	if player_slot == 2 and GameManager.session_id == "":
 		return Input.is_action_pressed("p2_" + action)
 	return Input.is_action_pressed(action)
 
@@ -159,7 +160,8 @@ func _action_just_pressed(action: StringName) -> bool:
 		return input_override.get(action, false) and not _prev_input_override.get(action, false)
 	if disable_local_attack_input and _is_attack_input_action(action):
 		return false
-	if player_slot == 2:
+	# p2_ routing is local co-op only; in online sessions each client uses direct input.
+	if player_slot == 2 and GameManager.session_id == "":
 		return Input.is_action_just_pressed("p2_" + action)
 	return Input.is_action_just_pressed(action)
 
@@ -168,7 +170,8 @@ func _action_just_pressed(action: StringName) -> bool:
 func _get_axis(neg: StringName, pos: StringName) -> float:
 	if use_input_override:
 		return float(input_override.get(pos, false)) - float(input_override.get(neg, false))
-	if player_slot == 2:
+	# p2_ routing is local co-op only; in online sessions each client uses direct input.
+	if player_slot == 2 and GameManager.session_id == "":
 		return Input.get_axis("p2_" + neg, "p2_" + pos)
 	return Input.get_axis(neg, pos)
 

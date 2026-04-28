@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://2ilyqu82lsfh"]
+[gd_scene format=3 uid="uid://dgpoi6oalb82t"]
 
 [ext_resource type="Script" uid="uid://bo1tq4rdbi5r8" path="res://ui/menus/main_menu.gd" id="1_1kjlq"]
 [ext_resource type="Texture2D" uid="uid://b56ydo3qajwgp" path="res://assets/sprites/UI/title.png" id="2_vuv8w"]
@@ -39,6 +39,7 @@ back_button = NodePath("sessionscreen/Back")
 help_overlay = NodePath("HelpScreen")
 help_close_button = NodePath("HelpScreen/Close")
 best_time_label = NodePath("MainScreen/bestTime")
+debug_label = NodePath("sessionscreen/DebugLabel")
 permanent_entry = NodePath("sessionscreen/SessionEntry")
 sessions_container = NodePath("sessionscreen/ScrollContainer/sessionScoll")
 
@@ -215,12 +216,30 @@ flat = true
 icon_alignment = 1
 expand_icon = true
 
-[node name="SessionEntry" parent="sessionscreen" unique_id=491276647 instance=ExtResource("3_5ssi0")]
+[node name="SessionEntry" parent="sessionscreen" unique_id=491276647 node_paths=PackedStringArray("status_label") instance=ExtResource("3_5ssi0")]
 layout_mode = 0
 offset_left = 19.0
 offset_top = 420.0
 offset_right = 1007.0
 offset_bottom = 1356.0
+status_label = NodePath("../DebugLabel")
+
+[node name="DebugLabel" type="Label" parent="sessionscreen" unique_id=1909427171]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -970.5
+offset_top = -61.0
+offset_right = 985.5
+offset_bottom = 28.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 60
+horizontal_alignment = 1
+vertical_alignment = 2
 
 [node name="HelpScreen" type="Control" parent="." unique_id=1526978676]
 visible = false

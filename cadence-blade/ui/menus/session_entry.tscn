@@ -1,11 +1,21 @@
 [gd_scene format=3 uid="uid://bqd7aeac31hoi"]
 
 [ext_resource type="Texture2D" uid="uid://dt3pc0a30aw2k" path="res://assets/sprites/UI/longbanner.png" id="1_ahvrw"]
-[ext_resource type="Script" uid="uid://dhdri0qxr5u5q" path="res://ui/menus/session_entry.gd" id="1_rl1jp"]
+[ext_resource type="Script" path="res://ui/menus/session_entry.gd" id="1_rl1jp"]
 [ext_resource type="Texture2D" uid="uid://dtj4438rmcngb" path="res://assets/sprites/PortraitRedKnight.png" id="2_rl1jp"]
 [ext_resource type="Texture2D" uid="uid://bs8la5exnhu68" path="res://assets/sprites/PortraitGreenArcher.png" id="3_rwuya"]
 [ext_resource type="FontFile" uid="uid://di588hyvkxc6w" path="res://assets/fonts/LATINWD.TTF" id="4_mnm16"]
 [ext_resource type="Texture2D" uid="uid://ca3ky24q4td38" path="res://assets/sprites/UI/SmallRedRoundButton_Pressed.png" id="5_fmhd3"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_rwuya"]
+texture = ExtResource("5_fmhd3")
+texture_margin_left = 10.0
+texture_margin_right = 10.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_mnm16"]
+content_margin_left = 20.0
+content_margin_right = 20.0
+texture = ExtResource("5_fmhd3")
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_ahvrw"]
 texture = ExtResource("5_fmhd3")
@@ -64,6 +74,8 @@ offset_bottom = 208.5
 scale = Vector2(2, 2)
 theme_override_fonts/font = ExtResource("4_mnm16")
 theme_override_font_sizes/font_size = 10
+theme_override_styles/normal = SubResource("StyleBoxTexture_rwuya")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_mnm16")
 text = "PLAY
 "
 icon = ExtResource("5_fmhd3")

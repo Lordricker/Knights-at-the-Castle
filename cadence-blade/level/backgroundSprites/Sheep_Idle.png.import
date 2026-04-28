@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://do82metdy3ent"
-path="res://.godot/imported/coin.png-c8309bf0f8fb5f3a7d1e96a4eb3f02ce.ctex"
+uid="uid://cp1j7hqba2l2h"
+path="res://.godot/imported/Sheep_Idle.png-bd5f617d9bee885a0f5c09e7d143764d.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/coin.png"
-dest_files=["res://.godot/imported/coin.png-c8309bf0f8fb5f3a7d1e96a4eb3f02ce.ctex"]
+source_file="res://level/backgroundSprites/Sheep_Idle.png"
+dest_files=["res://.godot/imported/Sheep_Idle.png-bd5f617d9bee885a0f5c09e7d143764d.ctex"]
 
 [params]
 

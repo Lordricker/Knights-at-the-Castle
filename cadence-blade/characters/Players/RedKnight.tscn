@@ -8,13 +8,13 @@
 
 [sub_resource type="Curve" id="Curve_6qwqa"]
 _limits = [0.0, 0.1, 0.0, 10.0]
-_data = [Vector2(0, 0.092752606), 0.0, -0.007177999, 0, 0, Vector2(2.5301204, 0.018472068), -0.012393036, 0.0, 0, 0]
-point_count = 2
+_data = [Vector2(0, 0.011235945), 0.0, 0.0, 0, 0, Vector2(0.005, 0.084), 0.0, -0.007177999, 0, 0, Vector2(2.379518, 0.012814365), -0.012393036, 0.0, 0, 0]
+point_count = 3
 metadata/_snap_count = 100
 
 [sub_resource type="Curve" id="Curve_ejw64"]
-_limits = [0.0, 1.0, 0.0, 10.0]
-_data = [Vector2(0, 0.8988024), 0.0, 0.0, 0, 0, Vector2(2.6807232, 0.21377242), 0.0, 0.0, 0, 0]
+_limits = [0.0, 0.1, 0.0, 10.0]
+_data = [Vector2(0, 0.080898866), 0.0, 0.0, 0, 0, Vector2(2.511628, 0.011235945), 0.0, 0.0, 0, 0]
 point_count = 2
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_sx1db"]
@@ -410,6 +410,7 @@ slash_damage = 30.0
 slash_knockback_force = 200.0
 slash_flow_fill_duration = 1.2
 slash_flow_miss_multiplier = 0.8
+slash_flow_window_random_range = 0.0
 slash_flow_window_size_curve = SubResource("Curve_6qwqa")
 thrust_damage = 50.0
 thrust_knockback_force = 200.0
@@ -417,6 +418,7 @@ thrust_lunge_speed = 400.0
 thrust_flow_fill_duration = 1.3
 thrust_flow_miss_multiplier = 0.8
 thrust_flow_window_center = 0.45
+thrust_flow_window_random_range = 0.0
 thrust_flow_window_size_curve = SubResource("Curve_6qwqa")
 thrust_flow_window_curve_max_time = 60.0
 spin_damage = 60.0

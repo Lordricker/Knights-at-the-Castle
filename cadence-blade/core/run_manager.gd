@@ -141,25 +141,22 @@ func _process(delta: float) -> void:
 			_state_snapshot_timer -= snapshot_interval
 			_broadcast_state()
 	elif not GameManager.is_host and GameManager.session_id != "":
-		# Joiner sends sequenced input every frame so the host can acknowledge it.
-		_send_input()
-		# Remote characters interpolate toward host snapshots; the locally controlled
-		# joiner character only applies small host corrections on top of local physics.
+		# Joiner sends own character's position and animation every frame.
+		_send_joiner_pos()
+		# Remote characters (host slot 1) move toward host snapshots.
+		# Joiner's own character (slot 2) owns its position — no host correction applied.
 		for player_root in _players:
 			var ch: Node = _resolve_character(player_root)
 			if ch == null:
 				continue
 			var slot: int = int(ch.get("player_slot")) if "player_slot" in ch else 1
+			if _is_locally_owned_slot(slot):
+				continue  # Joiner owns its own character's position entirely.
 			if not _char_net_targets.has(slot):
 				continue
 			var target: Vector2 = _char_net_targets[slot]
 			var dist: float = ch.global_position.distance_to(target)
-			if _is_locally_owned_slot(slot):
-				if dist > _OWNED_RECONCILE_SNAP_DISTANCE:
-					ch.global_position = target
-				elif dist > 2.0:
-					ch.global_position = ch.global_position.lerp(target, minf(_OWNED_RECONCILE_BLEND * delta, 1.0))
-			elif dist > 300.0:
+			if dist > 300.0:
 				ch.global_position = target  # teleport if too far off
 			else:
 				ch.global_position = ch.global_position.move_toward(target, _REMOTE_MOVE_SPEED * delta)
@@ -234,9 +231,8 @@ func _spawn_players_networked() -> void:
 	var ch: Node = _resolve_character(player_root)
 	if ch != null:
 		ch.set("player_slot", own_slot)
-		if not GameManager.is_host:
-			# Joiner: movement is predicted locally; attack initiation stays host-authoritative for now.
-			ch.set("disable_local_attack_input", true)
+		# Joiner runs the character fully locally — movement, attacks, and flow bars.
+		# Position and attack results are sent to the host rather than derived from input.
 
 	# Announce ourselves to the peer. On the joiner this reaches the host's live RunManager.
 	# On the host the packet is sent before any peer is connected and silently dropped.
@@ -263,10 +259,13 @@ func _spawn_peer_char(char_key: String, slot: int) -> void:
 	ch.set("player_slot", slot)
 
 	if GameManager.is_host and slot == 2:
-		# Host: joiner's character runs physics driven by input_override dict.
-		ch.set("use_input_override", true)
+		# Host: joiner's character is a position puppet.
+		# Position is set directly from "jpos" packets; attacks are locked so only the joiner
+		# side runs flow bars, then sends resolved hits via "flow_fire" / "melee_hit" packets.
+		ch.set("attacks_locked", true)
+		ch.set_physics_process(false)
 		_joiner_char_node = ch
-		print("RunManager: joiner char (%s) spawned as slot 2 with input override" % char_key)
+		print("RunManager: joiner char (%s) spawned as slot 2 position puppet" % char_key)
 		# Flush all alive enemies so joiner's screen populates immediately.
 		if spawner != null and spawner.has_method("send_all_alive_to_joiner"):
 			spawner.send_all_alive_to_joiner()
@@ -390,8 +389,16 @@ func _on_packet_received(data: Dictionary) -> void:
 			_on_hello_packet(data)
 		"hello_ack":
 			_on_hello_ack_packet(data)
-		"inp":
-			_apply_p2_input(data)
+		"jpos":
+			# Joiner sent its position and animation — apply to the host puppet.
+			if GameManager.is_host:
+				_apply_joiner_pos(data)
+		"flow_fire":
+			# Joiner resolved a ranged attack — fire the real arrow on the host.
+			_handle_flow_fire(data)
+		"melee_hit":
+			# Joiner's melee hitbox struck an enemy — apply damage on the host.
+			_handle_melee_hit(data)
 		"spawn":
 			if spawner != null and spawner.has_method("on_spawn_packet"):
 				spawner.on_spawn_packet(data)
@@ -466,47 +473,51 @@ func _on_hello_ack_packet(data: Dictionary) -> void:
 	_spawn_peer_char(char_key, slot)
 
 
-## Host: apply received joiner input to the joiner's character input_override dict.
-## Using a dict is more reliable than Input.action_press in HTML5 exports.
-func _apply_p2_input(data: Dictionary) -> void:
+## Host: apply received joiner position and animation to the puppet character.
+func _apply_joiner_pos(data: Dictionary) -> void:
 	if _joiner_char_node == null:
 		return
-	var seq: int = int(data.get("seq", -1))
-	if seq >= 0:
-		if seq <= _joiner_last_input_seq:
-			return
-		_joiner_last_input_seq = seq
-	_joiner_char_node.set("input_override", {
-		"move_left":  bool(data.get("l",  false)),
-		"move_right": bool(data.get("r",  false)),
-		"move_up":    bool(data.get("u",  false)),
-		"move_down":  bool(data.get("d",  false)),
-		"face_lock":  bool(data.get("fl", false)),
-		"action1":    bool(data.get("a1", false)),
-		"action2":    bool(data.get("a2", false)),
-		"action3":    bool(data.get("a3", false)),
-	})
+	_joiner_char_node.global_position = Vector2(float(data.get("x", 0.0)), float(data.get("y", 0.0)))
+	var f: float = float(data.get("f", 1.0))
+	if "facing" in _joiner_char_node and _joiner_char_node.get("facing") != f:
+		_joiner_char_node.set("facing", f)
+		if _joiner_char_node.has_method("_apply_facing"):
+			_joiner_char_node.call("_apply_facing")
+	var anim_spr := _joiner_char_node.get("animated_sprite") as AnimatedSprite2D
+	if anim_spr != null:
+		var anim: StringName = data.get("an", &"")
+		var is_paused: bool = int(data.get("sp", 0)) == 1
+		var target_frame: int = int(data.get("fr", 0))
+		if not anim.is_empty() and anim_spr.animation != anim:
+			anim_spr.play(anim)
+		if is_paused:
+			anim_spr.frame = target_frame
+			anim_spr.pause()
+		elif not anim_spr.is_playing():
+			anim_spr.play()
 
 
-## Joiner sends its local input state to the host every _process() frame.
-func _send_input() -> void:
-	var seq: int = _next_input_seq
-	_next_input_seq += 1
-	_pending_inputs.append({"seq": seq})
-	if _pending_inputs.size() > 180:
-		_pending_inputs.remove_at(0)
-	WebRTCManager.send_unreliable({
-		"t":  "inp",
-		"seq": seq,
-		"l":  Input.is_action_pressed("move_left"),
-		"r":  Input.is_action_pressed("move_right"),
-		"u":  Input.is_action_pressed("move_up"),
-		"d":  Input.is_action_pressed("move_down"),
-		"fl": Input.is_action_pressed("face_lock"),
-		"a1": Input.is_action_pressed("action1"),
-		"a2": Input.is_action_pressed("action2"),
-		"a3": Input.is_action_pressed("action3"),
-	})
+## Joiner broadcasts its own character's world position and animation state every frame.
+## The host applies this directly to the puppet node — no physics simulation on host side.
+func _send_joiner_pos() -> void:
+	for player_root in _players:
+		var ch: Node = _resolve_character(player_root)
+		if ch == null:
+			continue
+		var slot: int = int(ch.get("player_slot")) if "player_slot" in ch else 1
+		if not _is_locally_owned_slot(slot):
+			continue
+		var anim_spr := ch.get("animated_sprite") as AnimatedSprite2D
+		WebRTCManager.send_unreliable({
+			"t":  "jpos",
+			"x":  ch.global_position.x,
+			"y":  ch.global_position.y,
+			"f":  ch.get("facing") if "facing" in ch else 1.0,
+			"an": anim_spr.animation if anim_spr != null else "",
+			"fr": anim_spr.frame if anim_spr != null else 0,
+			"sp": 1 if (anim_spr != null and not anim_spr.is_playing()) else 0,
+		})
+		break  # Only one locally-owned character per session.
 
 
 ## Host builds and sends a state snapshot to the joiner.
@@ -607,8 +618,11 @@ func _apply_state_snapshot(data: Dictionary) -> void:
 		if not char_data.has(slot_str):
 			continue
 		var cd: Dictionary = char_data[slot_str]
-		# Store the host position for either remote interpolation or local correction.
-		_char_net_targets[int(slot_str)] = Vector2(
+		var slot_int: int = int(slot_str)
+		var is_local: bool = _is_locally_owned_slot(slot_int)
+		# Always store server position — used as revive anchor even for the locally-owned slot.
+		# Position correction in _process is skipped for the joiner's own character.
+		_char_net_targets[slot_int] = Vector2(
 			float(cd.get("x", ch.global_position.x)),
 			float(cd.get("y", ch.global_position.y)))
 		# Sync HP — emit health_changed so both the sprite bar and any HUD bar update.
@@ -622,6 +636,10 @@ func _apply_state_snapshot(data: Dictionary) -> void:
 			if ch.health != new_hp:
 				ch.health = new_hp
 				ch.health_changed.emit(new_hp, max_hp)
+		# Joiner owns its own character's movement, animation, and flow bar.
+		# Only HP is taken from the host (authoritative on damage and death).
+		if is_local:
+			continue
 		# Sync facing.
 		if cd.has("f") and "facing" in ch:
 			var f := float(cd["f"])
@@ -807,3 +825,56 @@ func _apply_flow_done(data: Dictionary) -> void:
 		if fb_root != null:
 			fb_root.hide()
 		break
+
+
+## Host: joiner resolved a ranged attack — fire the real damaging arrow.
+## The joiner already rendered a local visual/tracking arrow so no display packet is sent back.
+func _handle_flow_fire(data: Dictionary) -> void:
+	if not GameManager.is_host or _joiner_char_node == null:
+		return
+	var scene := _joiner_char_node.get("arrow_scene") as PackedScene
+	if scene == null:
+		return
+	var arrow := scene.instantiate() as Arrow
+	if arrow == null:
+		return
+	var pos      := Vector2(float(data.get("x", 0.0)), float(data.get("y", 0.0)))
+	var dir      := Vector2(float(data.get("dx", 1.0)), 0.0)
+	var spd      : float = float(data.get("sp", 600.0))
+	var dmg      : float = float(data.get("dmg", 0.0))
+	var combo_hits: int  = int(data.get("cc", 0))
+	var is_pierce: bool  = int(data.get("pi", 0)) == 1
+	var flow_suc : bool  = int(data.get("s", 0)) == 1
+	var kbf_key: String  = "pierce_knockback_force" if is_pierce else "arrow_knockback_force"
+	var kbf: float = float(_joiner_char_node.get(kbf_key)) if kbf_key in _joiner_char_node else 200.0
+	arrow.configure(pos, dir, spd, dmg, kbf, flow_suc)
+	if is_pierce:
+		arrow.pierce = true
+	if combo_hits >= 2:
+		arrow.set_combo_color(arrow.combo_color_2)
+	elif combo_hits == 1:
+		arrow.set_combo_color(arrow.combo_color_1)
+	get_tree().current_scene.call_deferred("add_child", arrow)
+
+
+## Host: joiner's melee hitbox struck an enemy — look it up by spawn_id and apply the hit.
+func _handle_melee_hit(data: Dictionary) -> void:
+	if not GameManager.is_host:
+		return
+	if spawner == null or not "alive_enemy_map" in spawner:
+		return
+	var eid: int = int(data.get("eid", -1))
+	var enemy_map := spawner.alive_enemy_map as Dictionary
+	if eid < 0 or not enemy_map.has(eid):
+		return
+	var enemy: Node = (enemy_map[eid] as Dictionary).get("node") as Node
+	if not is_instance_valid(enemy):
+		return
+	var dmg : float = float(data.get("dmg", 0.0))
+	var kbf : float = float(data.get("kbf", 0.0))
+	var kb_src := Vector2(float(data.get("kbx", 0.0)), float(data.get("kby", 0.0)))
+	var s : bool = int(data.get("s", 0)) == 1
+	if enemy.has_method("take_damage"):
+		enemy.take_damage(dmg, s)
+	if enemy.has_method("apply_knockback"):
+		enemy.apply_knockback(kb_src, kbf)
