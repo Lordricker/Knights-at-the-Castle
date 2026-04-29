@@ -24,6 +24,11 @@ extends CharacterBase
 # Drag an arrow.tscn PackedScene into arrow_scene in the Inspector.
 
 const SHOOT_PAUSE_FRAME: int = 2
+const KICK_PAUSE_FRAME: int = 1
+const KICK_HITBOX_FRAMES: Array[int] = [2, 3, 4, 5]
+const KICK_LUNGE_START_FRAME: int = 2
+const KICK_LUNGE_END_FRAME: int = 5
+const KICK_FLOW_CHECK_COUNT: int = 2
 
 enum AttackState {
 	NONE,
@@ -33,12 +38,20 @@ enum AttackState {
 	PIERCE_WINDUP,
 	PIERCE_PAUSED,
 	PIERCE_FINISH,
+	KICK_WINDUP,
+	KICK_PAUSED,
+	KICK_FINISH,
 }
 
 var attack_state: AttackState = AttackState.NONE
 var _current_attack_damage_multiplier: float = 1.0
 ## Whether the current attack is a pierce shot.
 var _current_attack_is_pierce: bool = false
+
+# ── Kick state ────────────────────────────────────────────────────────────────
+var _kick_invincible: bool = false
+var _kick_lunge_active: bool = false
+var _kick_flow_checks_completed: int = 0
 
 # ── Combo system ──────────────────────────────────────────────────────────────
 ## Number of consecutive enemy hits (resets when any arrow misses).
@@ -99,7 +112,28 @@ var _combo_hits: int = 0
 @export var pierce_flow_window_curve_max_time: float = 300.0
 @export_group("")
 
-@export_group("Combo")
+@export_group("Kick Attack")
+## Base damage the kick deals on hit.
+@export var kick_damage: float = 40.0
+## Knockback force applied to enemies hit by the kick.
+@export var kick_knockback_force: float = 500.0
+## Pixels per second the archer lunges during kick frames 2–5.
+@export var kick_lunge_speed: float = 80.0
+## Seconds for the flow bar to fill during each kick pause.
+@export var kick_flow_fill_duration: float = 0.45
+## Damage multiplier when the kick bar auto-resolves (missed timing).
+@export var kick_flow_miss_multiplier: float = 0.6
+## Center of the green zone (0 = bottom, 1 = top).
+@export_range(0.0, 1.0, 0.01) var kick_flow_window_center: float = 0.5
+## Half-width of the green zone.
+@export_range(0.0, 0.5, 0.01) var kick_flow_window_half_size: float = 0.075
+## Max random shift applied to the window center each kick check.
+@export_range(0.0, 0.5, 0.01) var kick_flow_window_random_range: float = 0.05
+## Optional Curve: Y = window half-size at normalized run time.
+@export var kick_flow_window_size_curve: Curve
+## Run duration in seconds that maps to x=1 on the kick size curve.
+@export var kick_flow_window_curve_max_time: float = 300.0
+@export_group("")
 ## Added damage multiplier per consecutive hit (stacks up to 2 extra hits).
 ## At combo hit 1: 1 + combo_step_multiplier. At hit 2+: 1 + 2*combo_step_multiplier.
 @export var combo_step_multiplier: float = 0.5
@@ -112,6 +146,8 @@ var _combo_hits: int = 0
 @export var y_min: float = -270.0
 @export var y_max: float = 270.0
 
+@onready var kick_hitbox: Area2D = find_child("KickHitBox") as Area2D
+
 
 func _ready() -> void:
 	super()
@@ -120,12 +156,17 @@ func _ready() -> void:
 	animated_sprite.animation_finished.connect(_on_animation_finished)
 	animated_sprite.frame_changed.connect(_on_frame_changed)
 	animated_sprite.play("idle")
+	_set_kick_hitbox(false)
+	if kick_hitbox != null:
+		kick_hitbox.body_entered.connect(_on_kick_hit_body)
 
 
 func _physics_process(delta: float) -> void:
 	super(delta)
 	global_position.x = clampf(global_position.x, x_min, x_max)
 	global_position.y = clampf(global_position.y, y_min, y_max)
+	if _kick_lunge_active:
+		global_position.x += facing * kick_lunge_speed * delta
 
 
 # ── Movement ──────────────────────────────────────────────────────────────────
@@ -178,10 +219,64 @@ func _handle_attack_input() -> void:
 					_begin_shoot(false)
 				elif _action_just_pressed("action2"):
 					_begin_shoot(true)
+				elif _action_just_pressed("action3"):
+					_begin_kick()
+		AttackState.SHOOT_WINDUP:
+			_handle_flow_attempt(&"action1")
 		AttackState.SHOOT_PAUSED:
 			_handle_flow_attempt(&"action1")
+		AttackState.PIERCE_WINDUP:
+			_handle_flow_attempt(&"action2")
 		AttackState.PIERCE_PAUSED:
 			_handle_flow_attempt(&"action2")
+		AttackState.KICK_WINDUP:
+			_handle_flow_attempt(&"action3")
+		AttackState.KICK_PAUSED:
+			_handle_flow_attempt(&"action3")
+
+
+func _begin_kick() -> void:
+	attack_state = AttackState.KICK_WINDUP
+	_current_attack_damage_multiplier = 1.0
+	_kick_flow_checks_completed = 0
+	_kick_lunge_active = false
+	_stop_flow()
+	animated_sprite.play("kick")
+	animated_sprite.frame = 0
+
+	_start_kick_flow_check(false)
+
+
+func _start_kick_flow_check() -> void:
+	var _half := _sample_window_half(kick_flow_window_size_curve,
+			kick_flow_window_half_size, kick_flow_window_curve_max_time)
+	func _start_kick_flow_check(allow_immediate: bool = false) -> void:
+	var _half := _sample_window_half(kick_flow_window_size_curve,
+		kick_flow_window_half_size, kick_flow_window_curve_max_time)
+
+	_start_flow(&"action3",
+		func(mult: float):
+			_current_attack_damage_multiplier = minf(_current_attack_damage_multiplier, mult)
+			_kick_flow_checks_completed += 1
+			if _kick_flow_checks_completed < KICK_FLOW_CHECK_COUNT:
+				# Pause at the pause frame and wait for the next check
+				attack_state = AttackState.KICK_PAUSED
+				animated_sprite.frame = KICK_PAUSE_FRAME
+				animated_sprite.pause()
+				# Schedule the next flow check on the next idle so we don't nest callbacks
+				call_deferred("_start_kick_flow_check", true)
+				return
+			# All checks complete: proceed to finish the kick animation (resume from pause)
+			attack_state = AttackState.KICK_FINISH
+			animated_sprite.frame = KICK_PAUSE_FRAME
+			animated_sprite.play("kick")
+		,
+		kick_flow_fill_duration, kick_flow_miss_multiplier,
+		kick_flow_window_center, _half, kick_flow_window_random_range)
+
+	# If caller requested immediate resolution while paused, allow attempts now
+	if allow_immediate:
+		_flow_can_resolve = true
 
 
 func _begin_shoot(is_pierce: bool) -> void:
@@ -191,6 +286,34 @@ func _begin_shoot(is_pierce: bool) -> void:
 	_stop_flow()
 	animated_sprite.play("shoot")
 	animated_sprite.frame = 0
+	if is_pierce:
+		var _ph := _sample_window_half(
+				pierce_flow_window_size_curve,
+				pierce_flow_window_half_size,
+				pierce_flow_window_curve_max_time)
+		_start_flow(&"action2",
+			func(mult: float):
+				_current_attack_damage_multiplier = mult
+				attack_state = AttackState.PIERCE_FINISH
+				animated_sprite.play("shoot")
+				animated_sprite.frame = SHOOT_PAUSE_FRAME
+				_queue_fire_arrow(true),
+			pierce_flow_fill_duration, pierce_flow_miss_multiplier,
+			pierce_flow_window_center, _ph, pierce_flow_window_random_range)
+	else:
+		var _sh := _sample_window_half(
+				shoot_flow_window_size_curve,
+				shoot_flow_window_half_size,
+				shoot_flow_window_curve_max_time)
+		_start_flow(&"action1",
+			func(mult: float):
+				_current_attack_damage_multiplier = mult
+				attack_state = AttackState.SHOOT_FINISH
+				animated_sprite.play("shoot")
+				animated_sprite.frame = SHOOT_PAUSE_FRAME
+				_queue_fire_arrow(false),
+			shoot_flow_fill_duration, shoot_flow_miss_multiplier,
+			shoot_flow_window_center, _sh, shoot_flow_window_random_range)
 
 
 # ── AnimatedSprite2D signal handlers ─────────────────────────────────────────
@@ -200,38 +323,32 @@ func _on_frame_changed() -> void:
 	match attack_state:
 		AttackState.SHOOT_WINDUP:
 			if f >= SHOOT_PAUSE_FRAME:
-				animated_sprite.pause()
 				attack_state = AttackState.SHOOT_PAUSED
-				var _half := _sample_window_half(
-						shoot_flow_window_size_curve,
-						shoot_flow_window_half_size,
-						shoot_flow_window_curve_max_time)
-				_start_flow(&"action1",
-					func(mult: float):
-						_current_attack_damage_multiplier = mult
-						attack_state = AttackState.SHOOT_FINISH
-						animated_sprite.play("shoot")
-						animated_sprite.frame = SHOOT_PAUSE_FRAME
-						_queue_fire_arrow(false),
-					shoot_flow_fill_duration, shoot_flow_miss_multiplier,
-					shoot_flow_window_center, _half, shoot_flow_window_random_range)
+				if not _flow_set_can_resolve():
+					animated_sprite.pause()
+					_flow_can_resolve = true
 		AttackState.PIERCE_WINDUP:
 			if f >= SHOOT_PAUSE_FRAME:
-				animated_sprite.pause()
 				attack_state = AttackState.PIERCE_PAUSED
-				var _phalf := _sample_window_half(
-						pierce_flow_window_size_curve,
-						pierce_flow_window_half_size,
-						pierce_flow_window_curve_max_time)
-				_start_flow(&"action2",
-					func(mult: float):
-						_current_attack_damage_multiplier = mult
-						attack_state = AttackState.PIERCE_FINISH
-						animated_sprite.play("shoot")
-						animated_sprite.frame = SHOOT_PAUSE_FRAME
-						_queue_fire_arrow(true),
-					pierce_flow_fill_duration, pierce_flow_miss_multiplier,
-					pierce_flow_window_center, _phalf, pierce_flow_window_random_range)
+				if not _flow_set_can_resolve():
+					animated_sprite.pause()
+					_flow_can_resolve = true
+		AttackState.KICK_WINDUP:
+			if f >= KICK_PAUSE_FRAME:
+				attack_state = AttackState.KICK_PAUSED
+				if not _flow_set_can_resolve():
+					animated_sprite.pause()
+					_flow_can_resolve = true
+		AttackState.KICK_PAUSED:
+			pass  # waiting for flow; hitbox not active until KICK_FINISH
+		AttackState.KICK_FINISH:
+			var kick_active: bool = f in KICK_HITBOX_FRAMES
+			_set_kick_hitbox(kick_active)
+			_kick_invincible = kick_active
+			if f == KICK_LUNGE_START_FRAME:
+				_kick_lunge_active = true
+			elif f > KICK_LUNGE_END_FRAME:
+				_kick_lunge_active = false
 
 
 func _on_animation_finished() -> void:
@@ -240,6 +357,15 @@ func _on_animation_finished() -> void:
 			attack_state = AttackState.NONE
 			_current_attack_damage_multiplier = 1.0
 			_stop_flow()
+			animated_sprite.play("idle")
+		AttackState.KICK_FINISH:
+			attack_state = AttackState.NONE
+			_current_attack_damage_multiplier = 1.0
+			_kick_flow_checks_completed = 0
+			_kick_invincible = false
+			_kick_lunge_active = false
+			_stop_flow()
+			_set_kick_hitbox(false)
 			animated_sprite.play("idle")
 
 
@@ -339,17 +465,59 @@ func _on_arrow_missed() -> void:
 func die() -> void:
 	attack_state = AttackState.NONE
 	_current_attack_damage_multiplier = 1.0
+	_kick_flow_checks_completed = 0
+	_kick_invincible = false
+	_kick_lunge_active = false
 	_combo_hits = 0
 	_stop_flow()
+	_set_kick_hitbox(false)
 	super()
 
 
 func revive(at: Vector2) -> void:
 	attack_state = AttackState.NONE
 	_current_attack_damage_multiplier = 1.0
+	_kick_flow_checks_completed = 0
+	_kick_invincible = false
+	_kick_lunge_active = false
 	_combo_hits = 0
 	_stop_flow()
 	super(at)
+
+
+## Block incoming damage while the kick hitbox is active (i-frames).
+func take_damage(amount: float, flow_success: bool = false) -> void:
+	if _kick_invincible:
+		return
+	super(amount, flow_success)
+
+
+func _set_kick_hitbox(enabled: bool) -> void:
+	if kick_hitbox == null:
+		return
+	kick_hitbox.set_deferred(&"monitoring", enabled)
+	kick_hitbox.set_deferred(&"monitorable", enabled)
+
+
+func _on_kick_hit_body(body: Node2D) -> void:
+	var flow_success: bool = _current_attack_damage_multiplier >= 1.0
+	var dmg: float = (kick_damage + attack_bonus) * _current_attack_damage_multiplier
+	if body.has_method("take_damage"):
+		body.take_damage(dmg, flow_success)
+	if body.has_method("apply_knockback"):
+		body.apply_knockback(global_position, kick_knockback_force)
+	if GameManager.session_id != "" and not GameManager.is_host:
+		var eid: int = int(body.get_meta(&"spawn_id", -1))
+		if eid >= 0:
+			WebRTCManager.send_reliable({
+				"t":   "melee_hit",
+				"eid": eid,
+				"dmg": dmg,
+				"kbf": kick_knockback_force,
+				"kbx": global_position.x,
+				"kby": global_position.y,
+				"s":   1 if flow_success else 0,
+			})
 
 
 # ── Flow window helpers ────────────────────────────────────────────────────────

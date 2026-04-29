@@ -37,6 +37,9 @@ enum AttemptResult {
 @export_range(0.0, 1.0, 0.01) var success_window_start: float = 0.45
 ## Normalized position (0 = bottom, 1 = top) where the green zone ends.
 @export_range(0.0, 1.0, 0.01) var success_window_end: float = 0.60
+## How much wider the invisible hit detection zone is compared to the visible green zone,
+## expressed as a fraction of the zone's width. 0.1 = 10% wider (5% added to each edge).
+@export_range(0.0, 0.5, 0.01) var hit_window_expand: float = 0.1
 
 @export_group("Colors")
 ## Fill color while the player hasn't pressed yet.
@@ -114,7 +117,10 @@ func try_attempt() -> AttemptResult:
 	if not _active or _attempt_used:
 		return AttemptResult.NONE
 	_attempt_used = true
-	if _progress >= success_window_start and _progress <= success_window_end:
+	var zone_half := (success_window_end - success_window_start) * 0.5
+	var zone_center := (success_window_start + success_window_end) * 0.5
+	var detect_half := zone_half * (1.0 + hit_window_expand)
+	if _progress >= zone_center - detect_half and _progress <= zone_center + detect_half:
 		_current_fill_color = success_fill_color
 		_redraw()
 		return AttemptResult.SUCCESS

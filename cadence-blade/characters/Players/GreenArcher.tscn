@@ -18,6 +18,11 @@ _data = [Vector2(0, 0.03486798), 0.0, -0.002548457, 0, 0, Vector2(2.5, 0.0205987
 point_count = 2
 metadata/_snap_count = 100
 
+[sub_resource type="Curve" id="Curve_j5lh5"]
+_limits = [0.0, 0.1, 0.0, 10.0]
+_data = [Vector2(0, 0.080898866), 0.0, 0.0, 0, 0, Vector2(2.511628, 0.011235945), 0.0, 0.0, 0, 0]
+point_count = 2
+
 [sub_resource type="AtlasTexture" id="AtlasTexture_8kpke"]
 atlas = ExtResource("2_6qwqa")
 region = Rect2(100, 70, 100, 70)
@@ -37,6 +42,38 @@ region = Rect2(400, 70, 100, 70)
 [sub_resource type="AtlasTexture" id="AtlasTexture_lksna"]
 atlas = ExtResource("2_6qwqa")
 region = Rect2(0, 140, 100, 70)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_6qwqa"]
+atlas = ExtResource("2_6qwqa")
+region = Rect2(400, 210, 100, 70)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_yqen6"]
+atlas = ExtResource("2_6qwqa")
+region = Rect2(0, 280, 100, 70)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_xkdt6"]
+atlas = ExtResource("2_6qwqa")
+region = Rect2(100, 280, 100, 70)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_xax7u"]
+atlas = ExtResource("2_6qwqa")
+region = Rect2(200, 280, 100, 70)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_opvhq"]
+atlas = ExtResource("2_6qwqa")
+region = Rect2(300, 280, 100, 70)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_w1nsi"]
+atlas = ExtResource("2_6qwqa")
+region = Rect2(400, 280, 100, 70)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_0qx2q"]
+atlas = ExtResource("2_6qwqa")
+region = Rect2(0, 350, 100, 70)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_t31r5"]
+atlas = ExtResource("2_6qwqa")
+region = Rect2(100, 350, 100, 70)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_gnj0n"]
 atlas = ExtResource("2_6qwqa")
@@ -110,6 +147,35 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
+"texture": SubResource("AtlasTexture_6qwqa")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_yqen6")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_xkdt6")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_xax7u")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_opvhq")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_w1nsi")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_0qx2q")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_t31r5")
+}],
+"loop": false,
+"name": &"kick",
+"speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
 "texture": SubResource("AtlasTexture_gnj0n")
 }, {
 "duration": 1.0,
@@ -155,6 +221,9 @@ animations = [{
 "speed": 6.0
 }]
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_6qwqa"]
+size = Vector2(26, 15)
+
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_vh32c"]
 size = Vector2(20, 28)
 
@@ -168,6 +237,7 @@ y_sort_enabled = true
 script = ExtResource("1_gshrq")
 arrow_scene = ExtResource("2_8kpke")
 arrow_damage = 20.0
+arrow_speed = null
 arrow_knockback_force = 50.0
 shoot_move_mult = 0.17
 shoot_flow_fill_duration = 0.7
@@ -179,6 +249,7 @@ shoot_flow_window_size_curve = SubResource("Curve_8kpke")
 shoot_flow_window_curve_max_time = 60.0
 pierce_damage = 40.0
 pierce_speed = 900.0
+pierce_knockback_force = null
 pierce_move_mult = 0.16
 pierce_flow_fill_duration = 1.5
 pierce_flow_miss_multiplier = 0.8
@@ -187,20 +258,34 @@ pierce_flow_window_half_size = 0.03
 pierce_flow_window_random_range = 0.0
 pierce_flow_window_size_curve = SubResource("Curve_6qwqa")
 pierce_flow_window_curve_max_time = 60.0
+kick_damage = 55.0
+kick_knockback_force = 650.0
+kick_lunge_speed = 300.0
+kick_flow_fill_duration = 1.0
+kick_flow_miss_multiplier = 0.8
+kick_flow_window_random_range = 0.0
+kick_flow_window_size_curve = SubResource("Curve_j5lh5")
+combo_step_multiplier = 0.3
+x_min = null
+x_max = null
+y_min = null
+y_max = null
+move_speed = null
 body_box = NodePath("bodyBox")
 max_health = 70.0
 facing_pivot = NodePath("Pivot")
 health_bar = NodePath("Pivot/HPBar")
 flow_bar = NodePath("Pivot/FlowBar")
+knockback_friction = null
 
 [node name="Pivot" type="Node2D" parent="CharacterBody2D" unique_id=65507104]
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="CharacterBody2D/Pivot" unique_id=1262161212]
 position = Vector2(0, 13.785)
 sprite_frames = SubResource("SpriteFrames_rvc6b")
-animation = &"idle"
-frame = 3
-frame_progress = 0.92034507
+animation = &"kick"
+frame = 7
+frame_progress = 1.0
 
 [node name="FlowBar" parent="CharacterBody2D/Pivot" unique_id=1635173476 instance=ExtResource("4_p72ps")]
 visible = false
@@ -214,6 +299,16 @@ z_index = 3
 position = Vector2(-16, 38)
 rotation = -3.1415925
 scale = Vector2(1.0000002, -1)
+
+[node name="KickHitbox" type="Area2D" parent="CharacterBody2D/Pivot" unique_id=2005499917]
+position = Vector2(31, 0)
+collision_layer = 16
+collision_mask = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D/Pivot/KickHitbox" unique_id=1627986994]
+position = Vector2(-17, 16.5)
+shape = SubResource("RectangleShape2D_6qwqa")
+debug_color = Color(0.32291138, 0.6252835, 3.85046e-07, 0.41960785)
 
 [node name="bodyBox" type="CollisionShape2D" parent="CharacterBody2D" unique_id=1370339960]
 position = Vector2(0, 14)

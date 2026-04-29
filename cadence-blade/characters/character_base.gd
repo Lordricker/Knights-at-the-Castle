@@ -63,6 +63,10 @@ var _flow_progress: float = 0.0
 var _flow_on_resolved: Callable
 var _flow_fill_duration: float = 0.45
 var _flow_miss_damage_multiplier: float = 0.6
+## True once the animation has reached the pause frame — callback may fire immediately.
+var _flow_can_resolve: bool = false
+## Stores the damage multiplier from an attempt made during windup (-1.0 = none yet).
+var _flow_early_mult: float = -1.0
 
 # ── Movement / physics ─────────────────────────────────────────────────────────
 var walk_area: Polygon2D = null
@@ -420,6 +424,8 @@ func _start_flow(input_action: StringName, on_resolved: Callable,
 	_flow_fill_duration = fill_duration
 	_flow_miss_damage_multiplier = miss_multiplier
 	_flow_active = true
+	_flow_can_resolve = false
+	_flow_early_mult = -1.0
 	_flow_progress = 0.0
 	if flow_bar != null:
 		flow_bar.show()
@@ -434,6 +440,8 @@ func _start_flow(input_action: StringName, on_resolved: Callable,
 
 func _stop_flow() -> void:
 	_flow_active = false
+	_flow_can_resolve = false
+	_flow_early_mult = -1.0
 	_flow_input_action = &""
 	_flow_progress = 0.0
 	_flow_on_resolved = Callable()
@@ -454,34 +462,65 @@ func _update_flow(delta: float) -> void:
 		_flow_progress = clampf(_flow_progress + delta / maxf(_flow_fill_duration, 0.001), 0.0, 1.0)
 		reached_top = _flow_progress >= 1.0
 	if reached_top:
-		if _flow_bar_api != null and _flow_bar_api.has_method("mark_missed"):
-			_flow_bar_api.mark_missed()
-		var cb := _flow_on_resolved
-		_stop_flow()
-		if cb.is_valid():
-			cb.call(_flow_miss_damage_multiplier)
+		# Only record the miss once (first time bar reaches top).
+		if _flow_early_mult < 0.0:
+			if _flow_bar_api != null and _flow_bar_api.has_method("mark_missed"):
+				_flow_bar_api.mark_missed()
+			_flow_early_mult = _flow_miss_damage_multiplier
+		if _flow_can_resolve:
+			var mult := _flow_early_mult
+			var cb := _flow_on_resolved
+			_stop_flow()
+			if cb.is_valid():
+				cb.call(mult)
+		# else: windup — stored in _flow_early_mult, fires when pause frame is reached.
 
 
-## Called when a PAUSED attack state is active. Pass the relevant input action.
+## Call from any attack state (windup or paused) to register the player's timing press.
+## During windup (_flow_can_resolve = false) the result is stored and fires at the pause frame.
+## During pause (_flow_can_resolve = true) SUCCESS resolves immediately as before.
 func _handle_flow_attempt(action_name: StringName) -> void:
 	if not _flow_active:
 		return
 	if not _action_just_pressed(action_name):
 		return
 	if _flow_bar_api == null or not _flow_bar_api.has_method("try_attempt"):
-		var cb := _flow_on_resolved
-		_stop_flow()
-		if cb.is_valid():
-			cb.call(1.0)
-		return
-	var result: FlowTimingBar.AttemptResult = _flow_bar_api.try_attempt()
-	match result:
-		FlowTimingBar.AttemptResult.SUCCESS:
+		if _flow_can_resolve:
 			var cb := _flow_on_resolved
 			_stop_flow()
 			if cb.is_valid():
 				cb.call(1.0)
+		else:
+			_flow_early_mult = 1.0
+		return
+	var result: FlowTimingBar.AttemptResult = _flow_bar_api.try_attempt()
+	match result:
+		FlowTimingBar.AttemptResult.SUCCESS:
+			if _flow_can_resolve:
+				var cb := _flow_on_resolved
+				_stop_flow()
+				if cb.is_valid():
+					cb.call(1.0)
+			else:
+				_flow_early_mult = 1.0  # defer until pause frame
 		FlowTimingBar.AttemptResult.MISS:
-			pass  # bar keeps filling grey; auto-resolves in _update_flow
+			_flow_early_mult = _flow_miss_damage_multiplier  # bar keeps filling grey
 		FlowTimingBar.AttemptResult.NONE:
 			pass  # attempt already used
+
+
+## Called at the pause frame of an animation. If an early attempt result is pending it
+## fires immediately (skipping the pause); otherwise marks resolves-allowed so the next
+## attempt or bar-fill fires without delay. Returns true if flow resolved during this call.
+func _flow_set_can_resolve() -> bool:
+	if not _flow_active:
+		return false
+	_flow_can_resolve = true
+	if _flow_early_mult >= 0.0:
+		var mult := _flow_early_mult
+		var cb := _flow_on_resolved
+		_stop_flow()
+		if cb.is_valid():
+			cb.call(mult)
+		return true
+	return false

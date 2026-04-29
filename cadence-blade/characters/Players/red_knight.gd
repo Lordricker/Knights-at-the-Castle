@@ -253,16 +253,43 @@ func _handle_attack_input() -> void:
 			if not attacks_locked:
 				if _action_just_pressed("action1"):
 					_begin_attack("slash", AttackState.SLASH_WINDUP)
+					var _sh := _sample_window_half(slash_flow_window_size_curve,
+							slash_flow_window_half_size, slash_flow_window_curve_max_time)
+					_start_flow(&"slash",
+						func(mult: float):
+							_current_attack_damage_multiplier = mult
+							_finish_attack("slash", SLASH_PAUSE_FRAME, AttackState.SLASH_FINISH),
+						slash_flow_fill_duration, slash_flow_miss_multiplier,
+						slash_flow_window_center, _sh, slash_flow_window_random_range)
 				elif _action_just_pressed("action2"):
 					_begin_attack("thrust", AttackState.THRUST_WINDUP)
+					var _th := _sample_window_half(thrust_flow_window_size_curve,
+							thrust_flow_window_half_size, thrust_flow_window_curve_max_time)
+					_start_flow(&"thrust",
+						func(mult: float):
+							_current_attack_damage_multiplier = mult
+							_thrust_invincible = true
+							_finish_attack("thrust", THRUST_PAUSE_FRAME, AttackState.THRUST_FINISH),
+						thrust_flow_fill_duration, thrust_flow_miss_multiplier,
+						thrust_flow_window_center, _th, thrust_flow_window_random_range)
 				elif _action_just_pressed("action3"):
 					_begin_attack("spin", AttackState.SPIN_WINDUP)
+					_start_spin_flow_check()
+
+		AttackState.SLASH_WINDUP:
+			_handle_flow_attempt(&"action1")
 
 		AttackState.SLASH_PAUSED:
 			_handle_flow_attempt(&"action1")
 
+		AttackState.THRUST_WINDUP:
+			_handle_flow_attempt(&"action2")
+
 		AttackState.THRUST_PAUSED:
 			_handle_flow_attempt(&"action2")
+
+		AttackState.SPIN_WINDUP:
+			_handle_flow_attempt(&"action3")
 
 		AttackState.SPIN_PAUSED:
 			_handle_flow_attempt(&"action3")
@@ -349,16 +376,10 @@ func _on_frame_changed() -> void:
 			_set_hitbox(slash_hitbox, f in SLASH_HITBOX_FRAMES)
 			_flush_slash_effect_sprite()
 			if f >= SLASH_PAUSE_FRAME:
-				animated_sprite.pause()
 				attack_state = AttackState.SLASH_PAUSED
-				var _half := _sample_window_half(slash_flow_window_size_curve,
-						slash_flow_window_half_size, slash_flow_window_curve_max_time)
-				_start_flow(&"slash",
-					func(mult: float):
-						_current_attack_damage_multiplier = mult
-						_finish_attack("slash", SLASH_PAUSE_FRAME, AttackState.SLASH_FINISH),
-					slash_flow_fill_duration, slash_flow_miss_multiplier,
-					slash_flow_window_center, _half, slash_flow_window_random_range)
+				if not _flow_set_can_resolve():
+					animated_sprite.pause()
+					_flow_can_resolve = true
 
 		AttackState.SLASH_PAUSED:
 			_set_hitbox(slash_hitbox, f in SLASH_HITBOX_FRAMES)
@@ -371,17 +392,10 @@ func _on_frame_changed() -> void:
 		AttackState.THRUST_WINDUP:
 			_set_hitbox(thrust_hitbox, f in THRUST_HITBOX_FRAMES)
 			if f >= THRUST_PAUSE_FRAME:
-				animated_sprite.pause()
 				attack_state = AttackState.THRUST_PAUSED
-				var _half := _sample_window_half(thrust_flow_window_size_curve,
-						thrust_flow_window_half_size, thrust_flow_window_curve_max_time)
-				_start_flow(&"thrust",
-					func(mult: float):
-						_current_attack_damage_multiplier = mult
-						_thrust_invincible = true
-						_finish_attack("thrust", THRUST_PAUSE_FRAME, AttackState.THRUST_FINISH),
-					thrust_flow_fill_duration, thrust_flow_miss_multiplier,
-					thrust_flow_window_center, _half, thrust_flow_window_random_range)
+				if not _flow_set_can_resolve():
+					animated_sprite.pause()
+					_flow_can_resolve = true
 
 		AttackState.THRUST_PAUSED:
 			_set_hitbox(thrust_hitbox, f in THRUST_HITBOX_FRAMES)
@@ -396,9 +410,10 @@ func _on_frame_changed() -> void:
 		AttackState.SPIN_WINDUP:
 			# Hitbox frames are past the pause point, so they only fire in SPIN_FINISH.
 			if f >= SPIN_PAUSE_FRAME:
-				animated_sprite.pause()
 				attack_state = AttackState.SPIN_PAUSED
-				_start_spin_flow_check()
+				if not _flow_set_can_resolve():
+					animated_sprite.pause()
+					_flow_can_resolve = true
 
 		AttackState.SPIN_PAUSED:
 			pass  # waiting for flow input; hitbox not active until SPIN_FINISH
