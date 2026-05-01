@@ -146,7 +146,7 @@ var _combo_hits: int = 0
 @export var y_min: float = -270.0
 @export var y_max: float = 270.0
 
-@onready var kick_hitbox: Area2D = find_child("KickHitBox") as Area2D
+@export var kick_hitbox: Area2D
 
 
 func _ready() -> void:
@@ -247,10 +247,7 @@ func _begin_kick() -> void:
 	_start_kick_flow_check(false)
 
 
-func _start_kick_flow_check() -> void:
-	var _half := _sample_window_half(kick_flow_window_size_curve,
-			kick_flow_window_half_size, kick_flow_window_curve_max_time)
-	func _start_kick_flow_check(allow_immediate: bool = false) -> void:
+func _start_kick_flow_check(allow_immediate: bool = false) -> void:
 	var _half := _sample_window_half(kick_flow_window_size_curve,
 		kick_flow_window_half_size, kick_flow_window_curve_max_time)
 
@@ -269,8 +266,7 @@ func _start_kick_flow_check() -> void:
 			# All checks complete: proceed to finish the kick animation (resume from pause)
 			attack_state = AttackState.KICK_FINISH
 			animated_sprite.frame = KICK_PAUSE_FRAME
-			animated_sprite.play("kick")
-		,
+			animated_sprite.play("kick"),
 		kick_flow_fill_duration, kick_flow_miss_multiplier,
 		kick_flow_window_center, _half, kick_flow_window_random_range)
 

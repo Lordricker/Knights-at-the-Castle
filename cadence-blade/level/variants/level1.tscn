@@ -5,7 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://tguwfea61v0y" path="res://FX/DeathPoof.tscn" id="2_pfm7v"]
 [ext_resource type="Texture2D" uid="uid://bjrdk6nhhom4" path="res://level/backgroundSprites/paralax map.png" id="3_gtrn2"]
 [ext_resource type="Texture2D" uid="uid://c665lghwlbqwj" path="res://level/backgroundSprites/Tower.png" id="4_4v7nf"]
-[ext_resource type="Script" uid="uid://dledtke7x1i4g" path="res://level/variants/paralax_map.gd" id="4_p3vt1"]
+[ext_resource type="Script" path="res://level/variants/paralax_map.gd" id="4_p3vt1"]
 [ext_resource type="PackedScene" uid="uid://vqn6c6fo34d1" path="res://characters/castle.tscn" id="5_4v7nf"]
 [ext_resource type="Texture2D" uid="uid://bl41b5s5e5u7y" path="res://level/backgroundSprites/Clouds_02.png" id="8_hah43"]
 [ext_resource type="Script" uid="uid://dj8qa3itlkqdw" path="res://characters/enemies/enemy_type_config.gd" id="8_pr8jp"]
@@ -33,7 +33,9 @@
 [ext_resource type="Texture2D" uid="uid://cc743ee51ef1m" path="res://core/Upgrades/5secFreeze.png" id="23_ll8mu"]
 [ext_resource type="PackedScene" uid="uid://csdfv0d4v5teo" path="res://level/sheepidle.tscn" id="30_cblfy"]
 [ext_resource type="PackedScene" uid="uid://cukpgklhpndg0" path="res://level/sheepeat.tscn" id="31_nkn60"]
+[ext_resource type="Texture2D" uid="uid://ev4niddbcvxm" path="res://assets/sprites/towerscout.png" id="31_p3vt1"]
 [ext_resource type="PackedScene" uid="uid://bxb278tj0rbg3" path="res://level/water_rock_1.tscn" id="32_gtrn2"]
+[ext_resource type="Texture2D" uid="uid://84yrfmagwmbs" path="res://assets/sprites/UI/exclamationPoint.png" id="32_w77vi"]
 [ext_resource type="PackedScene" uid="uid://cfm33h1l0nnru" path="res://level/water_rock_2.tscn" id="33_p3vt1"]
 [ext_resource type="PackedScene" uid="uid://540q1u1nmwpv" path="res://level/tree_1.tscn" id="34_w77vi"]
 [ext_resource type="PackedScene" uid="uid://bhxy1x077s154" path="res://level/tree_2.tscn" id="35_2lfbx"]
@@ -397,6 +399,28 @@ animations = [{
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_732d0"]
 size = Vector2(30.5, 48)
 
+[sub_resource type="AtlasTexture" id="AtlasTexture_trs4y"]
+atlas = ExtResource("31_p3vt1")
+region = Rect2(0, 0, 200, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_karr3"]
+atlas = ExtResource("31_p3vt1")
+region = Rect2(200, 0, 200, 192)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_732d0"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_trs4y")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_karr3")
+}],
+"loop": true,
+"name": &"default",
+"speed": 1.0
+}]
+
 [node name="Level1" type="Node2D" unique_id=1633003567]
 z_as_relative = false
 y_sort_enabled = true
@@ -405,7 +429,8 @@ death_poof_scene = ExtResource("2_pfm7v")
 
 [node name="ParalaxMap" type="Sprite2D" parent="." unique_id=750152858]
 z_index = -7
-position = Vector2(2, -63)
+position = Vector2(99.49989, -63)
+scale = Vector2(0.96149987, 1)
 texture = ExtResource("3_gtrn2")
 script = ExtResource("4_p3vt1")
 camera_path = NodePath("../LevelCamera")
@@ -496,7 +521,7 @@ single_player_zoom = 3.0
 
 [node name="Castle" type="Node2D" parent="." unique_id=654288399]
 
-[node name="Castlescript" type="Node2D" parent="Castle" unique_id=680612278 node_paths=PackedStringArray("monk_zone", "monk_sprite", "blacksmith_zone", "blacksmith_sprite", "upgrade_ui", "option1_icon", "option2_icon", "run_manager")]
+[node name="Castlescript" type="Node2D" parent="Castle" unique_id=680612278 node_paths=PackedStringArray("monk_zone", "monk_sprite", "blacksmith_zone", "blacksmith_sprite", "upgrade_ui", "option1_icon", "option2_icon", "run_manager", "right_exclamation", "left_exclamation")]
 script = ExtResource("15_154h8")
 heal_per_second = 75.0
 monk_zone = NodePath("Monk/Area2D")
@@ -508,6 +533,8 @@ upgrade_ui = NodePath("../Shop")
 option1_icon = NodePath("../Shop/upgrade1")
 option2_icon = NodePath("../Shop/upgrade2")
 run_manager = NodePath("../../RunManager")
+right_exclamation = NodePath("../scout/ExclamationPoint")
+left_exclamation = NodePath("../scout2/ExclamationPoint")
 
 [node name="Castle" parent="Castle/Castlescript" unique_id=1618038282 instance=ExtResource("5_4v7nf")]
 position = Vector2(1, -96)
@@ -568,6 +595,34 @@ offset_right = 210.0
 offset_bottom = -109.0
 texture = ExtResource("18_gwq2p")
 expand_mode = 1
+
+[node name="scout" type="AnimatedSprite2D" parent="Castle" unique_id=654565470]
+z_index = -1
+position = Vector2(184, -166)
+scale = Vector2(0.5, 0.5)
+sprite_frames = SubResource("SpriteFrames_732d0")
+autoplay = "default"
+
+[node name="ExclamationPoint" type="Sprite2D" parent="Castle/scout" unique_id=1490930884]
+z_index = 1
+position = Vector2(38, -20)
+rotation = 3.6250489
+scale = Vector2(1, -1)
+texture = ExtResource("32_w77vi")
+
+[node name="scout2" type="AnimatedSprite2D" parent="Castle" unique_id=165673310]
+z_index = -1
+position = Vector2(-181, -165)
+scale = Vector2(-0.5, 0.5)
+sprite_frames = SubResource("SpriteFrames_732d0")
+autoplay = "default"
+
+[node name="ExclamationPoint" type="Sprite2D" parent="Castle/scout2" unique_id=591612837]
+z_index = 1
+position = Vector2(38, -20)
+rotation = 3.7611845
+scale = Vector2(1, -1)
+texture = ExtResource("32_w77vi")
 
 [node name="HUD" parent="." unique_id=263715054 instance=ExtResource("20_h2mhx")]
 

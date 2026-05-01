@@ -40,8 +40,10 @@ extends CanvasLayer
 @export var game_over_time_label: Label
 ## Button to restart the run.
 @export var restart_button: Button
-## Button to quit to menu.
+## Button to quit to menu (game-over screen).
 @export var quit_button: Button
+## Smaller quit button visible during play (not just on game-over screen).
+@export var in_game_quit_button: Button
 
 # ── Runtime state ─────────────────────────────────────────────────────────────
 
@@ -65,6 +67,8 @@ func _ready() -> void:
 		quit_button.pressed.connect(_on_quit_pressed)
 		quit_button.add_theme_stylebox_override(&"focus", _focus_empty)
 		_buttons.append(quit_button)
+	if in_game_quit_button != null:
+		in_game_quit_button.pressed.connect(_on_quit_pressed)
 	if hud_coins_label != null:
 		hud_coins_label.text = "0"
 	if session_id_label != null:

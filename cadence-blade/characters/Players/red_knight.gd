@@ -342,7 +342,7 @@ func _begin_attack(anim_name: String, next_state: AttackState) -> void:
 	animated_sprite.frame = 0
 
 
-func _start_spin_flow_check() -> void:
+func _start_spin_flow_check(allow_immediate: bool = false) -> void:
 	var _half := _sample_window_half(spin_flow_window_size_curve,
 			spin_flow_window_half_size, spin_flow_window_curve_max_time)
 	_start_flow(&"spin",
@@ -350,11 +350,17 @@ func _start_spin_flow_check() -> void:
 			_current_attack_damage_multiplier = minf(_current_attack_damage_multiplier, mult)
 			_spin_flow_checks_completed += 1
 			if _spin_flow_checks_completed < SPIN_FLOW_CHECK_COUNT:
-				_start_spin_flow_check()
+				attack_state = AttackState.SPIN_PAUSED
+				animated_sprite.frame = SPIN_PAUSE_FRAME
+				animated_sprite.pause()
+				call_deferred("_start_spin_flow_check", true)
 				return
 			_finish_attack("spin", SPIN_PAUSE_FRAME, AttackState.SPIN_FINISH),
 		spin_flow_fill_duration, spin_flow_miss_multiplier,
 		spin_flow_window_center, _half, spin_flow_window_random_range)
+
+	if allow_immediate:
+		_flow_can_resolve = true
 
 
 func _finish_attack(anim_name: String, resume_frame: int, next_state: AttackState) -> void:

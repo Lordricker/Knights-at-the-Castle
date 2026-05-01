@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://do82metdy3ent"
-path="res://.godot/imported/Coin.png-0ca4a26af2d4a47b18a753adb49a59d2.ctex"
+uid="uid://ev4niddbcvxm"
+path="res://.godot/imported/towerscout.png-85e5f3973db36de62fc2698fa15d86c5.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/Coin.png"
-dest_files=["res://.godot/imported/Coin.png-0ca4a26af2d4a47b18a753adb49a59d2.ctex"]
+source_file="res://assets/sprites/towerscout.png"
+dest_files=["res://.godot/imported/towerscout.png-85e5f3973db36de62fc2698fa15d86c5.ctex"]
 
 [params]
 

@@ -101,6 +101,22 @@ extends Node2D
 ## The Castle node in the level scene. Required for HealCastle and UpgradeCastle upgrades.
 @export var castle: Castle
 
+@export_group("Enemy Indicators")
+## Exclamation point Sprite2D above the right scout (positive global X side).
+@export var right_exclamation: Sprite2D
+## Exclamation point Sprite2D above the left scout (negative global X side).
+@export var left_exclamation: Sprite2D
+## Tint for 1 enemy on that side.
+@export var enemy_color_1: Color = Color(1.0, 0.8, 0.8)
+## Tint for 2 enemies on that side.
+@export var enemy_color_2: Color = Color(1.0, 0.5, 0.5)
+## Tint for 3 enemies on that side.
+@export var enemy_color_3: Color = Color(0.9, 0.2, 0.2)
+## Tint for 4 enemies on that side.
+@export var enemy_color_4: Color = Color(0.7, 0.05, 0.05)
+## Tint for 5+ enemies on that side.
+@export var enemy_color_5: Color = Color(0.4, 0.0, 0.0)
+
 # ── Runtime state ─────────────────────────────────────────────────────────────
 
 var _player: CharacterBase = null
@@ -141,6 +157,7 @@ func _process(delta: float) -> void:
 	_heal_player(delta)
 	_handle_blacksmith_refresh(delta)
 	_handle_upgrade_input()
+	_update_enemy_indicators()
 
 # ── Player detection ──────────────────────────────────────────────────────────
 
@@ -385,3 +402,29 @@ func _freeze_enemies(duration: float) -> void:
 			if spawner != null and is_instance_valid(spawner):
 				spawner.set_process(true)
 	)
+
+
+# ── Enemy indicators ─────────────────────────────────────────────────────────
+
+func _update_enemy_indicators() -> void:
+	var left_count: int = 0
+	var right_count: int = 0
+	for node in get_tree().get_nodes_in_group(&"entities"):
+		if node is EnemyBase and not (node as EnemyBase).is_dead:
+			if node.global_position.x < 0.0:
+				left_count += 1
+			else:
+				right_count += 1
+	_apply_indicator(left_exclamation, left_count)
+	_apply_indicator(right_exclamation, right_count)
+
+
+func _apply_indicator(sprite: Sprite2D, count: int) -> void:
+	if sprite == null:
+		return
+	if count == 0:
+		sprite.hide()
+		return
+	sprite.show()
+	var colors: Array[Color] = [enemy_color_1, enemy_color_2, enemy_color_3, enemy_color_4, enemy_color_5]
+	sprite.modulate = colors[mini(count, 5) - 1]
