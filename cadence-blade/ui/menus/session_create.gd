@@ -32,6 +32,10 @@ var _start_btn: Button = null
 var _char_buttons: Array[Button] = []
 var _waiting: bool = false
 
+## Optional: drag your CharacterDescriptionPanel node here.
+## It will be shown and populated automatically when a character is clicked.
+@export var description_panel: Control
+
 
 func _ready() -> void:
 	_session_id = GameManager.generate_session_id()
@@ -163,6 +167,9 @@ func _on_character_selected(key: String, index: int) -> void:
 	# Highlight selected, dim others.
 	for i in _char_buttons.size():
 		_char_buttons[i].modulate = Color(1, 1, 1, 1.0) if i == index else Color(1, 1, 1, 0.4)
+	# Show the stat panel if one is wired up.
+	if description_panel != null and description_panel.has_method("populate"):
+		description_panel.populate(key)
 
 
 func _on_start_pressed() -> void:

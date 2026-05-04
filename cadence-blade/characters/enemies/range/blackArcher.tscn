@@ -1,0 +1,155 @@
+[gd_scene format=3 uid="uid://kcbg2rjwv8mf"]
+
+[ext_resource type="Script" uid="uid://cblarch3rsc0p" path="res://characters/enemies/range/black_archer.gd" id="1_7622n"]
+[ext_resource type="Texture2D" uid="uid://yspilpdcrwyc" path="res://assets/sprites/enemies/blackArchers.png" id="2_5thrq"]
+[ext_resource type="PackedScene" uid="uid://bkyw3pybjuqjs" path="res://ui/hud/HPBar.tscn" id="3_pejhy"]
+[ext_resource type="PackedScene" uid="uid://d7m3taty6w01" path="res://FX/arrow.tscn" id="4_arrow"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_t1y0h"]
+size = Vector2(20, 30)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_armmv"]
+atlas = ExtResource("2_5thrq")
+region = Rect2(0, 100, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_jtij1"]
+atlas = ExtResource("2_5thrq")
+region = Rect2(100, 100, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_kfoax"]
+atlas = ExtResource("2_5thrq")
+region = Rect2(200, 100, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_3ptaw"]
+atlas = ExtResource("2_5thrq")
+region = Rect2(300, 100, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_vm5vd"]
+atlas = ExtResource("2_5thrq")
+region = Rect2(0, 200, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_um4r5"]
+atlas = ExtResource("2_5thrq")
+region = Rect2(100, 200, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_gtlnu"]
+atlas = ExtResource("2_5thrq")
+region = Rect2(200, 200, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_urdbn"]
+atlas = ExtResource("2_5thrq")
+region = Rect2(300, 200, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ga61h"]
+atlas = ExtResource("2_5thrq")
+region = Rect2(400, 200, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_h7yah"]
+atlas = ExtResource("2_5thrq")
+region = Rect2(500, 200, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_uw3k3"]
+atlas = ExtResource("2_5thrq")
+region = Rect2(0, 300, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_bbiv5"]
+atlas = ExtResource("2_5thrq")
+region = Rect2(100, 300, 100, 100)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_w7k1a"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_armmv")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_jtij1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_kfoax")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_3ptaw")
+}],
+"loop": true,
+"name": &"running",
+"speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_vm5vd")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_um4r5")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_gtlnu")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_urdbn")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ga61h")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_h7yah")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_uw3k3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_bbiv5")
+}],
+"loop": false,
+"name": &"shoot",
+"speed": 6.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_c4v63"]
+size = Vector2(24.532898, 97.13786)
+
+[node name="BlackArcher" type="Node2D" unique_id=44163915]
+
+[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=1186330693 node_paths=PackedStringArray("facing_pivot", "health_bar", "detection_zone")]
+y_sort_enabled = true
+position = Vector2(0, -11)
+collision_layer = 2
+script = ExtResource("1_7622n")
+arrow_scene = ExtResource("4_arrow")
+arrow_damage = 20.0
+arrow_lifetime = 1.2
+arrow_angle = 20.0
+max_health = 60.0
+facing_pivot = NodePath("Pivot")
+health_bar = NodePath("Pivot/HPBar")
+detection_zone = NodePath("Pivot/DetectionZone")
+knockback_friction = 400.0
+oscillate = true
+oscillate_speed = 0.2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D" unique_id=1645611180]
+position = Vector2(0, 4)
+shape = SubResource("RectangleShape2D_t1y0h")
+
+[node name="Pivot" type="Node2D" parent="CharacterBody2D" unique_id=1319081332]
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="CharacterBody2D/Pivot" unique_id=1924966790]
+sprite_frames = SubResource("SpriteFrames_w7k1a")
+animation = &"shoot"
+frame = 5
+frame_progress = 0.32993263
+
+[node name="DetectionZone" type="Area2D" parent="CharacterBody2D/Pivot" unique_id=1890485749]
+position = Vector2(7, 0)
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D/Pivot/DetectionZone" unique_id=688663001]
+position = Vector2(221, -17.00001)
+rotation = -0.9180432
+shape = SubResource("RectangleShape2D_c4v63")
+debug_color = Color(0.6837786, 0.5034512, 0, 0.41960785)
+
+[node name="HPBar" parent="CharacterBody2D/Pivot" unique_id=1780535160 instance=ExtResource("3_pejhy")]
+position = Vector2(-12, 24)
+rotation = 3.1415927
+scale = Vector2(0.99999964, -1)

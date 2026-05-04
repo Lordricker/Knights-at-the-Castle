@@ -34,6 +34,9 @@ const CHARACTER_KEYS: Array[String] = ["red_knight", "green_archer"]
 @export var character_buttons: Array[Button] = []
 ## Slot 0 = knight cover, slot 1 = archer cover, etc.
 @export var character_covers:  Array[Control] = []
+## Optional: assign the CharacterDescriptionPanel node.
+## It will be populated automatically when a character button is toggled on.
+@export var description_panel: Control
 
 # ── Runtime state ─────────────────────────────────────────────────────────────
 var session_id:         String = ""
@@ -42,6 +45,7 @@ var is_private:         bool   = false
 
 
 func _ready() -> void:
+	_ensure_char_nodes()
 	if play_button:
 		play_button.pressed.connect(_on_play_pressed)
 	if join_button:
@@ -51,6 +55,33 @@ func _ready() -> void:
 	for i in character_buttons.size():
 		if character_buttons[i]:
 			character_buttons[i].pressed.connect(_on_character_pressed.bind(i))
+
+
+## Ensures character_buttons and character_covers are populated.
+## In Godot 4, typed-array node exports may not resolve NodePaths when the
+## scene is loaded dynamically at runtime (load().instantiate()). This scans
+## children as a reliable fallback — buttons with toggle_mode, ColorRects for covers.
+func _ensure_char_nodes() -> void:
+	var btns_ok: bool = character_buttons.size() == CHARACTER_KEYS.size() \
+			and character_buttons[0] != null if character_buttons.size() > 0 else false
+	var covs_ok: bool = character_covers.size() == CHARACTER_KEYS.size() \
+			and character_covers[0] != null if character_covers.size() > 0 else false
+	if btns_ok and covs_ok:
+		return
+	# Scan direct children: toggle Buttons (not CheckButton) → character_buttons;
+	# ColorRects → character_covers. Scene order matches CHARACTER_KEYS order.
+	var found_btns: Array[Button] = []
+	var found_covs: Array[Control] = []
+	for child in get_children():
+		if child is Button and not (child is CheckButton) \
+				and (child as Button).toggle_mode:
+			found_btns.append(child as Button)
+		elif child is ColorRect:
+			found_covs.append(child as Control)
+	if not btns_ok and found_btns.size() == CHARACTER_KEYS.size():
+		character_buttons = found_btns
+	if not covs_ok and found_covs.size() == CHARACTER_KEYS.size():
+		character_covers = found_covs
 
 
 # ── Setup helpers ─────────────────────────────────────────────────────────────
@@ -98,8 +129,12 @@ func _on_character_pressed(index: int) -> void:
 			if i != index and character_buttons[i]:
 				character_buttons[i].button_pressed = false
 		_clear_status()
+		if description_panel != null and description_panel.has_method("populate"):
+			description_panel.populate(selected_character)
 	else:
 		selected_character = ""
+		if description_panel != null:
+			description_panel.hide()
 
 
 # ── Action buttons ───────────────────────────────────────────────────────────

@@ -8,6 +8,12 @@
 [ext_resource type="Texture2D" uid="uid://qp1cx7diu7ko" path="res://assets/sprites/UI/yellowRibbon.png" id="5_1kjlq"]
 [ext_resource type="Texture2D" uid="uid://fghf0bg470be" path="res://assets/Textures/stonewallTexture.png" id="6_u0fm7"]
 [ext_resource type="Texture2D" uid="uid://d1lle3v0whs5l" path="res://assets/sprites/UI/blueRibbon.png" id="6_vuv8w"]
+[ext_resource type="Script" uid="uid://2rlap08kcs04" path="res://ui/menus/character_description_panel.gd" id="9_g305v"]
+[ext_resource type="PackedScene" uid="uid://dbk1qvdllygxo" path="res://characters/Players/RedKnight.tscn" id="10_10bvg"]
+[ext_resource type="PackedScene" uid="uid://cbhrtdam3e0k7" path="res://characters/Players/GreenArcher.tscn" id="11_buwx5"]
+[ext_resource type="Texture2D" uid="uid://doujfkefol0m5" path="res://assets/sprites/UI/SessionMenuIcons/heart.png" id="12_buwx5"]
+[ext_resource type="Texture2D" uid="uid://cydfq1n1r4pmb" path="res://assets/sprites/UI/SessionMenuIcons/speed.png" id="13_o1ovh"]
+[ext_resource type="Texture2D" uid="uid://cgv28h1b8wge" path="res://assets/sprites/UI/SessionMenuIcons/weight.png" id="14_o1ovh"]
 
 [sub_resource type="CompressedTexture2D" id="CompressedTexture2D_h223f"]
 load_path = "res://.godot/imported/yellowRibbon.png-09bcf83ea2813e222f33f6b54a4d0238.ctex"
@@ -29,6 +35,13 @@ expand_margin_bottom = 30.0
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_l3r6a"]
 texture = ExtResource("5_1kjlq")
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vuv8w"]
+bg_color = Color(0, 0, 0, 0.7058824)
+corner_radius_top_left = 40
+corner_radius_top_right = 40
+corner_radius_bottom_right = 40
+corner_radius_bottom_left = 40
+
 [node name="MainMenu" type="CanvasLayer" unique_id=1642001637 node_paths=PackedStringArray("main_screen", "session_screen", "play_button", "help_button", "back_button", "help_overlay", "help_close_button", "best_time_label", "permanent_entry", "sessions_container")]
 script = ExtResource("1_1kjlq")
 main_screen = NodePath("MainScreen")
@@ -39,7 +52,6 @@ back_button = NodePath("sessionscreen/Back")
 help_overlay = NodePath("HelpScreen")
 help_close_button = NodePath("HelpScreen/Close")
 best_time_label = NodePath("MainScreen/bestTime")
-debug_label = NodePath("sessionscreen/DebugLabel")
 permanent_entry = NodePath("sessionscreen/SessionEntry")
 sessions_container = NodePath("sessionscreen/ScrollContainer/sessionScoll")
 
@@ -216,13 +228,14 @@ flat = true
 icon_alignment = 1
 expand_icon = true
 
-[node name="SessionEntry" parent="sessionscreen" unique_id=491276647 node_paths=PackedStringArray("status_label") instance=ExtResource("3_5ssi0")]
+[node name="SessionEntry" parent="sessionscreen" unique_id=491276647 node_paths=PackedStringArray("status_label", "description_panel") instance=ExtResource("3_5ssi0")]
 layout_mode = 0
-offset_left = 19.0
-offset_top = 420.0
-offset_right = 1007.0
-offset_bottom = 1356.0
+offset_left = 11.0
+offset_top = 301.0
+offset_right = 999.0
+offset_bottom = 1237.0
 status_label = NodePath("../DebugLabel")
+description_panel = NodePath("../Descriptionpanel")
 
 [node name="DebugLabel" type="Label" parent="sessionscreen" unique_id=1909427171]
 layout_mode = 1
@@ -240,6 +253,181 @@ grow_vertical = 0
 theme_override_font_sizes/font_size = 60
 horizontal_alignment = 1
 vertical_alignment = 2
+
+[node name="Descriptionpanel" type="Panel" parent="sessionscreen" unique_id=1856917082 node_paths=PackedStringArray("character_name_label", "character_health_label", "character_speed_label", "weight_label", "action1_name_label", "action1_damage_label", "action1_knockback_label", "action2_name_label", "action2_damage_label", "action2_knockback_label", "action3_name_label", "action3_damage_label", "action3_knockback_label")]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 33.0
+offset_top = -435.0
+offset_right = 965.0
+offset_bottom = -20.0
+grow_vertical = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_vuv8w")
+script = ExtResource("9_g305v")
+character_scenes = Array[PackedScene]([ExtResource("10_10bvg"), ExtResource("11_buwx5")])
+character_name_label = NodePath("tagline")
+character_health_label = NodePath("HP")
+character_speed_label = NodePath("Speed")
+weight_label = NodePath("Weight")
+action1_name_label = NodePath("GridContainer/Jdescription")
+action1_damage_label = NodePath("GridContainer/JDMG")
+action1_knockback_label = NodePath("GridContainer/JKnock")
+action2_name_label = NodePath("GridContainer/Kdescription")
+action2_damage_label = NodePath("GridContainer/KDMG")
+action2_knockback_label = NodePath("GridContainer/KKnock")
+action3_name_label = NodePath("GridContainer/Ldescription")
+action3_damage_label = NodePath("GridContainer/LDMG")
+action3_knockback_label = NodePath("GridContainer/LKnock")
+
+[node name="tagline" type="Label" parent="sessionscreen/Descriptionpanel" unique_id=1431433381]
+layout_mode = 1
+offset_left = 19.0
+offset_top = 16.0
+offset_right = 934.0
+offset_bottom = 111.0
+theme_override_font_sizes/font_size = 32
+text = "Robin: “If you see the arrow, you were never the target.”
+"
+autowrap_mode = 2
+
+[node name="HP" type="Label" parent="sessionscreen/Descriptionpanel" unique_id=1997908679]
+layout_mode = 0
+offset_left = 92.0
+offset_top = 145.935
+offset_right = 637.0
+offset_bottom = 191.93501
+theme_override_font_sizes/font_size = 33
+text = "HP"
+
+[node name="Heart" type="Sprite2D" parent="sessionscreen/Descriptionpanel/HP" unique_id=649101599]
+position = Vector2(-34, 21)
+scale = Vector2(0.705, 0.705)
+texture = ExtResource("12_buwx5")
+
+[node name="Speed" type="Label" parent="sessionscreen/Descriptionpanel" unique_id=524173782]
+layout_mode = 0
+offset_left = 338.0
+offset_top = 145.935
+offset_right = 681.0
+offset_bottom = 196.93459
+theme_override_font_sizes/font_size = 33
+text = "Speed"
+
+[node name="Speed2" type="Sprite2D" parent="sessionscreen/Descriptionpanel/Speed" unique_id=2039087436]
+position = Vector2(-43, 11)
+scale = Vector2(0.69, 0.69)
+texture = ExtResource("13_o1ovh")
+
+[node name="Weight" type="Label" parent="sessionscreen/Descriptionpanel" unique_id=2083954856]
+layout_mode = 0
+offset_left = 649.0
+offset_top = 145.935
+offset_right = 1006.0
+offset_bottom = 222.93462
+theme_override_font_sizes/font_size = 33
+text = "Weight"
+
+[node name="Weight" type="Sprite2D" parent="sessionscreen/Descriptionpanel/Weight" unique_id=402984698]
+position = Vector2(-44, 25)
+scale = Vector2(0.865, 0.865)
+texture = ExtResource("14_o1ovh")
+
+[node name="GridContainer" type="GridContainer" parent="sessionscreen/Descriptionpanel" unique_id=553852979]
+layout_mode = 0
+offset_left = 13.485
+offset_top = 222.0
+offset_right = 926.485
+offset_bottom = 508.0
+theme_override_constants/h_separation = -20
+theme_override_constants/v_separation = -35
+columns = 4
+
+[node name="blank" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=1508261659]
+layout_mode = 2
+
+[node name="Jdescription" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=1529634795]
+layout_mode = 2
+theme_override_font_sizes/font_size = 33
+text = "[ J ] Quickshot      
+ "
+
+[node name="Kdescription" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=906320096]
+layout_mode = 2
+theme_override_font_sizes/font_size = 33
+text = "[ K ] Piercing Draw      
+"
+
+[node name="Ldescription" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=2027485568]
+layout_mode = 2
+theme_override_font_sizes/font_size = 33
+text = "[ L ] Flying Boot
+"
+
+[node name="DMG" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=175260683]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "
+DMG
+"
+vertical_alignment = 2
+
+[node name="JDMG" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=2123309565]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "DMG
+"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="KDMG" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=1258449179]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "DMG
+"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="LDMG" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=1543778753]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "DMG
+"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Knockback" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=47589134]
+layout_mode = 2
+theme_override_font_sizes/font_size = 23
+text = "Knock
+-Back
+"
+vertical_alignment = 1
+
+[node name="JKnock" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=1818403863]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "DMG
+"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="KKnock" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=1450037087]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "DMG
+"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="LKnock" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=1445056639]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "DMG
+"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="HelpScreen" type="Control" parent="." unique_id=1526978676]
 visible = false

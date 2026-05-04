@@ -29,6 +29,10 @@ var _joining_session_id: String = ""
 var _waiting: bool = false
 var _manual_id_field: LineEdit = null
 
+## Optional: drag your CharacterDescriptionPanel node here.
+## Hovering a character button in the select overlay will populate it.
+@export var description_panel: Control
+
 
 func _ready() -> void:
 	var root := Control.new()
@@ -251,6 +255,9 @@ func _build_char_select_panel(root: Control) -> Control:
 		btn.self_modulate = CHARACTER_COLORS[i]
 		btn.name = "CharBtn_%d" % i
 		btn.pressed.connect(_on_join_character_selected.bind(CHARACTER_KEYS[i]))
+		# Populate stat panel when the player hovers over a character button.
+		if description_panel != null and description_panel.has_method("populate"):
+			btn.mouse_entered.connect(description_panel.populate.bind(CHARACTER_KEYS[i]))
 		hbox.add_child(btn)
 
 	var cancel_btn := Button.new()

@@ -30,6 +30,8 @@ extends StaticBody2D
 @export var max_health: float = 500.0
 ## Drag a Node2D with horizontal_health_bar.gd attached here.
 @export var health_bar: Node2D
+## HP restored per minute while the castle is alive. Set to 0 to disable regen.
+@export var regen_per_minute: float = 10.0
 
 # ── Fade ──────────────────────────────────────────────────────────────────────
 
@@ -77,6 +79,17 @@ func _process(delta: float) -> void:
 	var c := castle_sprite.modulate
 	c.a = move_toward(c.a, target_alpha, fade_speed * delta)
 	castle_sprite.modulate = c
+	_regen_health(delta)
+
+
+func _regen_health(delta: float) -> void:
+	# Regen is host-authoritative in multiplayer (castle HP is broadcast via state snapshot).
+	if GameManager.session_id != "" and not GameManager.is_host:
+		return
+	if regen_per_minute <= 0.0 or health <= 0.0 or health >= max_health:
+		return
+	health = minf(health + regen_per_minute / 60.0 * delta, max_health)
+	health_changed.emit(health, max_health)
 
 
 # ── Inside check ──────────────────────────────────────────────────────────────

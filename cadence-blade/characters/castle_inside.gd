@@ -173,6 +173,9 @@ func _on_monk_zone_body_entered(body: Node2D) -> void:
 	var player := _get_character(body)
 	if player == null:
 		return
+	# In multiplayer, only respond to the locally-owned character — not the peer's puppet.
+	if not _is_local_player(player):
+		return
 	_player = player
 	_player_in_monk_zone = true
 	player.healing_locked = true
@@ -183,6 +186,8 @@ func _on_monk_zone_body_entered(body: Node2D) -> void:
 func _on_monk_zone_body_exited(body: Node2D) -> void:
 	var player := _get_character(body)
 	if player == null:
+		return
+	if not _is_local_player(player):
 		return
 	_player_in_monk_zone = false
 	player.healing_locked = false
@@ -205,20 +210,29 @@ func _on_blacksmith_zone_body_entered(body: Node2D) -> void:
 	var player := _get_character(body)
 	if player == null:
 		return
+	# In multiplayer, only respond to the locally-owned character — not the peer's puppet.
+	if not _is_local_player(player):
+		return
 	_player = player
 	_player_in_blacksmith_zone = true
 	player.attacks_locked = true
 	# Only roll fresh offers if there are none active (first visit or all slots purchased).
 	# Re-entering the zone mid-timer keeps the existing offers and the running timer.
+	# In multiplayer, only the host generates offers; the joiner waits for an
+	# "upgrade_offers" packet. If offers are already set (from a previous packet),
+	# the joiner just shows them immediately.
 	if _offered[0] == null and _offered[1] == null:
-		_roll_upgrades()
-		_refresh_timer = refresh_interval
+		if GameManager.session_id == "" or GameManager.is_host:
+			_roll_upgrades()
+			_refresh_timer = refresh_interval
 	_show_upgrade_ui(true)
 
 
 func _on_blacksmith_zone_body_exited(body: Node2D) -> void:
 	var player := _get_character(body)
 	if player == null:
+		return
+	if not _is_local_player(player):
 		return
 	_player_in_blacksmith_zone = false
 	player.attacks_locked = false
@@ -234,6 +248,9 @@ func _handle_blacksmith_refresh(delta: float) -> void:
 	_refresh_timer -= delta
 	if _refresh_timer <= 0.0:
 		_refresh_timer = refresh_interval
+		# Only the host (or solo player) generates new offers.
+		if GameManager.session_id != "" and not GameManager.is_host:
+			return
 		if _player_in_blacksmith_zone:
 			# Player is present -- re-roll and display immediately.
 			_roll_upgrades()
@@ -248,31 +265,67 @@ func _handle_upgrade_input() -> void:
 		return
 	# action1 → buy left upgrade (slot 0).  action2 → buy right upgrade (slot 1).
 	if Input.is_action_just_pressed(&"action1"):
-		_try_purchase(0)
+		_request_purchase(0)
 	elif Input.is_action_just_pressed(&"action2"):
-		_try_purchase(1)
+		_request_purchase(1)
 
 
-func _try_purchase(slot: int) -> void:
+## Initiates a purchase. In multiplayer the joiner sends a request to the host
+## (who validates and applies). The host and solo player execute immediately.
+func _request_purchase(slot: int) -> void:
+	if GameManager.session_id != "" and not GameManager.is_host:
+		# Joiner: ask the host to validate and apply.
+		WebRTCManager.send_reliable({"t": "upgrade_buy", "slot": slot})
+	else:
+		_try_purchase(slot, _player)
+
+
+## Executes a validated purchase for `buyer`. In multiplayer (host path) this
+## also broadcasts the result so the joiner can sync their state.
+func _try_purchase(slot: int, buyer: CharacterBase) -> void:
 	var upgrade: UpgradeConfig = _offered[slot] as UpgradeConfig
 	if upgrade == null:
 		return
-	if _player.coins < upgrade.cost:
+	if buyer.coins < upgrade.cost:
 		if coins_display != null and coins_display.has_method(&"flash_insufficient"):
 			coins_display.flash_insufficient()
 		_flash_deny_icon(slot)
 		return
-	_player.add_coins(-upgrade.cost)
-	_apply_upgrade(upgrade)
+	buyer.add_coins(-upgrade.cost)
+	_apply_upgrade_to_buyer(upgrade, buyer)
 	_flash_purchase_icon(slot)
+	_roll_upgrades()
+	_refresh_timer = refresh_interval
+	# In multiplayer, host broadcasts what happened so the joiner can sync.
+	if GameManager.session_id != "" and GameManager.is_host:
+		var buyer_slot: int = int(buyer.get("player_slot")) if "player_slot" in buyer else 1
+		WebRTCManager.send_reliable({
+			"t":          "upgrade_applied",
+			"buyer_slot": buyer_slot,
+			"stat_type":  upgrade.stat_type,
+			"stat_amount": upgrade.stat_amount,
+			"cost":       upgrade.cost,
+		})
 
 
-func _apply_upgrade(upgrade: UpgradeConfig) -> void:
+## Applies the upgrade effect to `buyer` (personal stats) or to the game world
+## (castle / enemies). Separated so both host-local and network-received purchases
+## use the same logic.
+func _apply_upgrade_to_buyer(upgrade: UpgradeConfig, buyer: CharacterBase) -> void:
 	match upgrade.stat_type:
 		UpgradeConfig.StatType.ATTACK:
-			_player.attack_bonus += upgrade.stat_amount
+			buyer.attack_bonus += upgrade.stat_amount
 		UpgradeConfig.StatType.SPEED:
-			_player.speed_bonus += upgrade.stat_amount
+			buyer.speed_bonus += upgrade.stat_amount
+		UpgradeConfig.StatType.UPGRADE_HP:
+			buyer.max_health += upgrade.stat_amount
+			buyer.health_changed.emit(buyer.health, buyer.max_health)
+		UpgradeConfig.StatType.RESET_FLOW:
+			var elapsed: float = 0.0
+			if run_manager != null and "time_elapsed" in run_manager:
+				elapsed = float(run_manager.time_elapsed)
+			buyer.flow_time_offset = elapsed
+		# ── Global (world) effects — host-authoritative only ──────────────────
 		UpgradeConfig.StatType.HEAL_CASTLE:
 			if castle != null:
 				castle.health = minf(castle.health + upgrade.stat_amount, castle.max_health)
@@ -281,16 +334,6 @@ func _apply_upgrade(upgrade: UpgradeConfig) -> void:
 			if castle != null:
 				castle.max_health += upgrade.stat_amount
 				castle.health_changed.emit(castle.health, castle.max_health)
-		UpgradeConfig.StatType.UPGRADE_HP:
-			if _player != null:
-				_player.max_health += upgrade.stat_amount
-				_player.health_changed.emit(_player.health, _player.max_health)
-		UpgradeConfig.StatType.RESET_FLOW:
-			if _player != null:
-				var elapsed: float = 0.0
-				if run_manager != null and "time_elapsed" in run_manager:
-					elapsed = float(run_manager.time_elapsed)
-				_player.flow_time_offset = elapsed
 		UpgradeConfig.StatType.FREEZE_ENEMIES:
 			_freeze_enemies(upgrade.stat_amount)
 
@@ -302,6 +345,20 @@ func _roll_upgrades() -> void:
 	_offered[1] = _draw_one(t, [_offered[0]])
 	_update_ui_slot(0)
 	_update_ui_slot(1)
+	# In multiplayer, host broadcasts the new offers so the joiner shows the same options.
+	if GameManager.session_id != "" and GameManager.is_host:
+		WebRTCManager.send_reliable({
+			"t":  "upgrade_offers",
+			"s0": _upgrade_index(_offered[0]),
+			"s1": _upgrade_index(_offered[1]),
+		})
+
+
+## Returns the index of `upgrade` in the upgrades array, or -1 if null / not found.
+func _upgrade_index(upgrade: UpgradeConfig) -> int:
+	if upgrade == null:
+		return -1
+	return upgrades.find(upgrade)
 
 
 func _normalized_time() -> float:
@@ -377,6 +434,118 @@ func _update_ui_slot(slot: int) -> void:
 func _clear_player_if_unused() -> void:
 	if not _player_in_monk_zone and not _player_in_blacksmith_zone:
 		_player = null
+
+
+# ── Multiplayer helpers ───────────────────────────────────────────────────────
+
+## Returns true when `player` is the locally-owned character for this peer.
+## In solo play every character is local. In online play, the host owns slot 1
+## and the joiner owns slot 2; puppets (the peer's character) are rejected.
+func _is_local_player(player: CharacterBase) -> bool:
+	if GameManager.session_id == "":
+		return true
+	var local_slot: int = 1 if GameManager.is_host else 2
+	var slot: int = int(player.get("player_slot")) if "player_slot" in player else 1
+	return slot == local_slot
+
+
+## Called by RunManager when an "upgrade_offers" packet arrives (joiner only).
+## Stores the host-rolled offers and refreshes the UI so the joiner sees the same options.
+func on_upgrade_offers(data: Dictionary) -> void:
+	var i0: int = int(data.get("s0", -1))
+	var i1: int = int(data.get("s1", -1))
+	_offered[0] = upgrades[i0] if i0 >= 0 and i0 < upgrades.size() else null
+	_offered[1] = upgrades[i1] if i1 >= 0 and i1 < upgrades.size() else null
+	_refresh_timer = refresh_interval
+	_update_ui_slot(0)
+	_update_ui_slot(1)
+
+
+## Called by RunManager when an "upgrade_buy" packet arrives (host only).
+## The host validates the purchase against its local coin count and applies it.
+func on_upgrade_buy(data: Dictionary) -> void:
+	if not GameManager.is_host:
+		return
+	var slot: int = int(data.get("slot", -1))
+	if slot < 0 or slot > 1:
+		return
+	# Use the host's own player as the coin authority (pools are always in sync).
+	# For personal upgrades the buyer_slot in the result tells the joiner to apply
+	# the stat to their own character.
+	if _player == null:
+		# Host player not tracked (not in zone) — find locally owned character.
+		for node in get_tree().get_nodes_in_group(&"players"):
+			if node is CharacterBase and _is_local_player(node as CharacterBase):
+				_player = node as CharacterBase
+				break
+		if _player == null:
+			return
+	var upgrade: UpgradeConfig = _offered[slot] as UpgradeConfig
+	if upgrade == null:
+		return
+	if _player.coins < upgrade.cost:
+		# Broadcast a denial so joiner can flash UI.
+		WebRTCManager.send_reliable({"t": "upgrade_denied", "slot": slot})
+		return
+	# Deduct coins from all local players (shared pool on host side).
+	for node in get_tree().get_nodes_in_group(&"players"):
+		if node is CharacterBase:
+			(node as CharacterBase).add_coins(-upgrade.cost)
+	# For global upgrades apply the world effect on the host.
+	if not upgrade.is_personal():
+		_apply_upgrade_to_buyer(upgrade, _player)
+	# Broadcast result with buyer_slot == 2 so joiner applies personal stat to themselves.
+	WebRTCManager.send_reliable({
+		"t":          "upgrade_applied",
+		"buyer_slot": 2,
+		"stat_type":  upgrade.stat_type,
+		"stat_amount": upgrade.stat_amount,
+		"cost":       upgrade.cost,
+	})
+	_flash_purchase_icon(slot)
+	_roll_upgrades()
+	_refresh_timer = refresh_interval
+
+
+## Called by RunManager when an "upgrade_applied" packet arrives (joiner only).
+## Syncs coin deduction and applies personal stat upgrades to the correct character.
+func on_upgrade_applied(data: Dictionary) -> void:
+	if GameManager.is_host:
+		return
+	var buyer_slot: int = int(data.get("buyer_slot", 1))
+	var stat_type: int = int(data.get("stat_type", 0))
+	var stat_amount: float = float(data.get("stat_amount", 0.0))
+	var cost: int = int(data.get("cost", 0))
+	# Deduct coins locally (joiner's pool must stay in sync with host).
+	for node in get_tree().get_nodes_in_group(&"players"):
+		if node is CharacterBase:
+			(node as CharacterBase).add_coins(-cost)
+			break  # shared pool — deduct once
+	# Build a temporary UpgradeConfig to reuse _apply_upgrade_to_buyer.
+	var dummy := UpgradeConfig.new()
+	dummy.stat_type = stat_type as UpgradeConfig.StatType
+	dummy.stat_amount = stat_amount
+	# Personal upgrades: apply to the character matching buyer_slot.
+	# Global upgrades: host already applied them; joiner gets castle HP via state snapshot.
+	if dummy.is_personal():
+		var local_slot: int = 2  # joiner is always slot 2
+		for node in get_tree().get_nodes_in_group(&"players"):
+			if node is CharacterBase:
+				var slot: int = int(node.get("player_slot")) if "player_slot" in node else 1
+				if slot == buyer_slot and slot == local_slot:
+					_apply_upgrade_to_buyer(dummy, node as CharacterBase)
+					break
+	_flash_purchase_icon(0 if buyer_slot == 2 else 1)
+
+
+## Called by RunManager when an "upgrade_denied" packet arrives (joiner only).
+func on_upgrade_denied(data: Dictionary) -> void:
+	if GameManager.is_host:
+		return
+	var slot: int = int(data.get("slot", 0))
+	if coins_display != null and coins_display.has_method(&"flash_insufficient"):
+		coins_display.flash_insufficient()
+	_flash_deny_icon(slot)
 
 # ── Freeze logic ──────────────────────────────────────────────────────────────
 

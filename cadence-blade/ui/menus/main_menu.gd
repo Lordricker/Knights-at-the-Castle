@@ -96,6 +96,10 @@ func _ready() -> void:
 	if permanent_entry and permanent_entry.has_method("setup_as_host"):
 		permanent_entry.play_pressed.connect(_on_permanent_play_pressed)
 		permanent_entry.setup_as_host()
+		# Pass the description panel so character button presses populate it.
+		var desc := get_node_or_null("sessionscreen/Descriptionpanel") as Control
+		if desc != null:
+			permanent_entry.set("description_panel", desc)
 
 	# WebRTC failure forwarding.
 	WebRTCManager.connection_failed.connect(_on_connection_failed)
@@ -201,6 +205,10 @@ func _add_join_entry(sid: String, taken_characters: Array[String]) -> void:
 	if entry.has_method("setup_as_join"):
 		entry.setup_as_join(sid, taken_characters)
 	entry.join_pressed.connect(_on_join_entry_pressed)
+	# Pass the same description panel so this join entry can also populate it.
+	var desc := get_node_or_null("sessionscreen/Descriptionpanel") as Control
+	if desc != null:
+		entry.set("description_panel", desc)
 
 
 func _clear_join_entries() -> void:

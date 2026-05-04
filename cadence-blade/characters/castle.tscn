@@ -9,7 +9,7 @@
 [ext_resource type="Texture2D" uid="uid://bq0y1xj775cm5" path="res://assets/sprites/UI/CastleHPOverlay.png" id="7_d4rmk"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ma6sk"]
-size = Vector2(80, 190)
+size = Vector2(80, 233)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_cneay"]
 size = Vector2(218, 137)
@@ -20,6 +20,7 @@ size = Vector2(218, 137)
 script = ExtResource("1_v1fyj")
 max_health = 1000.0
 health_bar = NodePath("hpbar")
+regen_per_minute = 100.0
 castle_sprite = NodePath("Castle")
 inside_zone = NodePath("Area2D")
 y_fade_threshold = 60.0
@@ -27,7 +28,7 @@ y_fade_threshold = 60.0
 [node name="Area2D2" type="Area2D" parent="StaticBody2D" unique_id=1440563958 groups=["Kill"]]
 
 [node name="hitbox" type="CollisionShape2D" parent="StaticBody2D/Area2D2" unique_id=339821832 groups=["Kill"]]
-position = Vector2(0, 117)
+position = Vector2(0, 55.5)
 shape = SubResource("RectangleShape2D_ma6sk")
 debug_color = Color(0.937407, 0.21434155, 0.34304821, 0.41960785)
 

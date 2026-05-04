@@ -19,6 +19,9 @@ extends Camera2D
 @export var min_zoom: float = 0.5
 ## Extra world-space pixels of padding added around the player bounding box.
 @export var zoom_margin: float = 200.0
+@export_group("Framing")
+## Shifts the camera target upward by this many world-space pixels, placing the player lower on screen.
+@export var vertical_offset: float = 0.0
 @export_group("Smoothing")
 ## Position smoothing used on the joiner so host corrections do not become camera jitter.
 @export var joiner_position_smooth_speed: float = 10.0
@@ -73,7 +76,7 @@ func _calc_center(players: Array[Node]) -> Vector2:
 	var sum := Vector2.ZERO
 	for p in players:
 		sum += (p as Node2D).global_position
-	return sum / float(players.size())
+	return sum / float(players.size()) - Vector2(0.0, vertical_offset)
 
 
 func _calc_zoom(players: Array[Node]) -> float:

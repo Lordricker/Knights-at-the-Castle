@@ -148,6 +148,20 @@ var _combo_hits: int = 0
 
 @export var kick_hitbox: Area2D
 
+@export_group("Aim Pointer")
+## Drag the pointer Node2D from the archer scene here. It will be hidden until a shoot begins.
+@export var aim_pointer: Node2D
+## Degrees the aim pointer rotates per second when the player holds up or down.
+@export var aim_degrees_per_second: float = 90.0
+## Maximum upward angle the pointer can reach (negative = above horizontal).
+@export_range(-90.0, 0.0, 1.0, "degrees") var aim_angle_min_deg: float = -60.0
+## Maximum downward angle the pointer can reach.
+@export_range(0.0, 90.0, 1.0, "degrees") var aim_angle_max_deg: float = 60.0
+@export_group("")
+
+## Current aim angle in degrees. Updated each frame during a shoot action.
+var _aim_angle_deg: float = 0.0
+
 
 func _ready() -> void:
 	super()
@@ -167,13 +181,21 @@ func _physics_process(delta: float) -> void:
 	global_position.y = clampf(global_position.y, y_min, y_max)
 	if _kick_lunge_active:
 		global_position.x += facing * kick_lunge_speed * delta
+	_update_aim_pointer(delta)
 
 
 # ── Movement ──────────────────────────────────────────────────────────────────
 
 func _handle_movement() -> void:
+	var is_shooting: bool = _is_shooting_state()
 	var in_attack: bool = attack_state != AttackState.NONE
-	var speed_mult: float = shoot_move_mult if in_attack else 1.0
+	var speed_mult: float
+	if is_shooting:
+		speed_mult = 0.0
+	elif in_attack:
+		speed_mult = shoot_move_mult
+	else:
+		speed_mult = 1.0
 
 	var dir_x: float = _get_axis("move_left", "move_right")
 	var dir_y: float = _get_axis("move_up", "move_down")
@@ -279,6 +301,10 @@ func _begin_shoot(is_pierce: bool) -> void:
 	_current_attack_is_pierce = is_pierce
 	attack_state = AttackState.PIERCE_WINDUP if is_pierce else AttackState.SHOOT_WINDUP
 	_current_attack_damage_multiplier = 1.0
+	_aim_angle_deg = 0.0
+	if aim_pointer != null:
+		aim_pointer.rotation = 0.0
+		aim_pointer.show()
 	_stop_flow()
 	animated_sprite.play("shoot")
 	animated_sprite.frame = 0
@@ -352,6 +378,8 @@ func _on_animation_finished() -> void:
 		AttackState.SHOOT_FINISH, AttackState.PIERCE_FINISH:
 			attack_state = AttackState.NONE
 			_current_attack_damage_multiplier = 1.0
+			if aim_pointer != null:
+				aim_pointer.hide()
 			_stop_flow()
 			animated_sprite.play("idle")
 		AttackState.KICK_FINISH:
@@ -366,6 +394,33 @@ func _on_animation_finished() -> void:
 
 
 # ── Arrow firing ──────────────────────────────────────────────────────────────
+
+## Returns true when the archer is in any shoot or pierce attack state.
+func _is_shooting_state() -> bool:
+	return attack_state == AttackState.SHOOT_WINDUP \
+			or attack_state == AttackState.SHOOT_PAUSED \
+			or attack_state == AttackState.SHOOT_FINISH \
+			or attack_state == AttackState.PIERCE_WINDUP \
+			or attack_state == AttackState.PIERCE_PAUSED \
+			or attack_state == AttackState.PIERCE_FINISH
+
+
+## Returns the normalised aim direction based on the current aim angle and facing.
+func _aim_direction() -> Vector2:
+	var rad: float = deg_to_rad(_aim_angle_deg)
+	return Vector2(facing * cos(rad), sin(rad))
+
+
+## Rotates the aim pointer with up/down input. Called every physics frame.
+func _update_aim_pointer(delta: float) -> void:
+	if aim_pointer == null or not _is_shooting_state():
+		return
+	var dir_y: float = _get_axis("move_up", "move_down")
+	_aim_angle_deg = clampf(
+			_aim_angle_deg + dir_y * aim_degrees_per_second * delta,
+			aim_angle_min_deg, aim_angle_max_deg)
+	aim_pointer.rotation = deg_to_rad(_aim_angle_deg)
+
 
 ## Returns the combo multiplier for the current combo hit count.
 ## hit 0 = 1.0x, hit 1 = 1+step, hit 2+ = 1+2*step (capped).
@@ -387,7 +442,7 @@ func _queue_fire_arrow(is_pierce: bool) -> void:
 				* _current_attack_damage_multiplier * _combo_multiplier()
 		var tracking := arrow_scene.instantiate() as Arrow
 		if tracking != null:
-			tracking.configure(global_position, Vector2(facing, 0.0), base_spd_j, 0.0, 0.0, false)
+			tracking.configure(global_position, _aim_direction(), base_spd_j, 0.0, 0.0, false)
 			if is_pierce:
 				tracking.pierce = true
 			if _combo_hits >= 2:
@@ -397,11 +452,13 @@ func _queue_fire_arrow(is_pierce: bool) -> void:
 			tracking.body_entered.connect(_on_arrow_hit_enemy.bind(tracking))
 			tracking.missed.connect(_on_arrow_missed)
 			get_tree().current_scene.call_deferred("add_child", tracking)
+		var _aim_dir_j: Vector2 = _aim_direction()
 		WebRTCManager.send_reliable({
 			"t":   "flow_fire",
 			"x":   global_position.x,
 			"y":   global_position.y,
-			"dx":  facing,
+			"dx":  _aim_dir_j.x,
+			"dy":  _aim_dir_j.y,
 			"sp":  base_spd_j,
 			"pi":  1 if is_pierce else 0,
 			"dmg": dmg_j,
@@ -418,7 +475,7 @@ func _queue_fire_arrow(is_pierce: bool) -> void:
 	var flow_success: bool = _current_attack_damage_multiplier >= 1.0
 	# Damage = (base + upgrade bonus) * flow_multiplier * combo_multiplier
 	var dmg := (base_dmg + attack_bonus) * _current_attack_damage_multiplier * _combo_multiplier()
-	arrow.configure(global_position, Vector2(facing, 0.0), base_speed, dmg, base_kb, flow_success)
+	arrow.configure(global_position, _aim_direction(), base_speed, dmg, base_kb, flow_success)
 	if is_pierce:
 		arrow.pierce = true
 	# Apply combo particle color before adding to tree.
@@ -433,11 +490,13 @@ func _queue_fire_arrow(is_pierce: bool) -> void:
 	get_tree().current_scene.call_deferred("add_child", arrow)
 	# Tell the joiner to spawn a visual-only arrow.
 	if GameManager.session_id != "" and GameManager.is_host:
+		var _aim_dir_h: Vector2 = _aim_direction()
 		WebRTCManager.send_reliable({
 			"t":   "arrow",
 			"x":   global_position.x,
 			"y":   global_position.y,
-			"dx":  facing,
+			"dx":  _aim_dir_h.x,
+			"dy":  _aim_dir_h.y,
 			"sp":  base_speed,
 			"pi":  1 if is_pierce else 0,
 			"cc":  _combo_hits,  # joiner uses this to tint the display arrow
@@ -456,6 +515,20 @@ func _on_arrow_missed() -> void:
 	_combo_hits = 0
 
 
+## Returns a stats dictionary consumed by character_description_panel.gd.
+## Call get_character_stats() on the instantiated scene to read current Inspector values.
+func get_character_stats() -> Dictionary:
+	return {
+		"display_name": display_name,
+		"max_health":   max_health,
+		"move_speed":   move_speed,
+		"knockback_friction": knockback_friction,
+		"action1": {"name": "[ J ] Quickshot      ",  "damage": arrow_damage,   "knockback": arrow_knockback_force},
+		"action2": {"name": "[ K ] Piercing Draw      ", "damage": pierce_damage,  "knockback": pierce_knockback_force},
+		"action3": {"name": "[ L ] Flying Boot",   "damage": kick_damage,    "knockback": kick_knockback_force},
+	}
+
+
 # ── Die / Revive ──────────────────────────────────────────────────────────────
 
 func die() -> void:
@@ -465,6 +538,8 @@ func die() -> void:
 	_kick_invincible = false
 	_kick_lunge_active = false
 	_combo_hits = 0
+	if aim_pointer != null:
+		aim_pointer.hide()
 	_stop_flow()
 	_set_kick_hitbox(false)
 	super()
@@ -477,6 +552,8 @@ func revive(at: Vector2) -> void:
 	_kick_invincible = false
 	_kick_lunge_active = false
 	_combo_hits = 0
+	if aim_pointer != null:
+		aim_pointer.hide()
 	_stop_flow()
 	super(at)
 

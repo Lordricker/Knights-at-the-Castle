@@ -28,6 +28,8 @@ extends Node
 @export var spawner: Node
 ## CanvasLayer with game_over_screen.gd attached.
 @export var game_over_screen: CanvasLayer
+## The CastleInside node (castle_inside.gd). Needed to route upgrade network packets.
+@export var castle_inside: Node
 
 @export_group("Players (Offline)")
 ## Drag up to 3 player .tscn files here for solo / local-multiplayer runs.
@@ -106,6 +108,11 @@ func _ready() -> void:
 
 	# Wire WebRTC packet handler for multiplayer runs.
 	if GameManager.session_id != "":
+		# Auto-find CastleInside if not wired in Inspector.
+		if castle_inside == null:
+			castle_inside = _find_castle_inside()
+		if castle_inside == null:
+			push_warning("RunManager: castle_inside not assigned — upgrade packets will be ignored.")
 		WebRTCManager.packet_received.connect(_on_packet_received)
 
 
@@ -173,6 +180,17 @@ func _resolve_castle(node: Node) -> Node:
 		return node
 	for child in node.get_children():
 		if child.has_signal(&"died"):
+			return child
+	return null
+
+
+## Searches the scene tree for a CastleInside node (has on_upgrade_offers method).
+func _find_castle_inside() -> Node:
+	var scene := get_tree().current_scene
+	if scene == null:
+		return null
+	for child in scene.get_children(true):
+		if child.has_method("on_upgrade_offers"):
 			return child
 	return null
 
@@ -442,6 +460,22 @@ func _on_packet_received(data: Dictionary) -> void:
 				var scene := get_tree().current_scene
 				if scene != null and scene.has_method("spawn_display_coin"):
 					scene.call("spawn_display_coin", data)
+		"upgrade_offers":
+			# Host rolled new shop offers — joiner updates their displayed options.
+			if not GameManager.is_host and castle_inside != null and castle_inside.has_method("on_upgrade_offers"):
+				castle_inside.call("on_upgrade_offers", data)
+		"upgrade_buy":
+			# Joiner wants to buy an upgrade — host validates and applies.
+			if GameManager.is_host and castle_inside != null and castle_inside.has_method("on_upgrade_buy"):
+				castle_inside.call("on_upgrade_buy", data)
+		"upgrade_applied":
+			# Host applied an upgrade — joiner syncs coins and personal stats.
+			if not GameManager.is_host and castle_inside != null and castle_inside.has_method("on_upgrade_applied"):
+				castle_inside.call("on_upgrade_applied", data)
+		"upgrade_denied":
+			# Host rejected joiner's buy request (insufficient coins).
+			if not GameManager.is_host and castle_inside != null and castle_inside.has_method("on_upgrade_denied"):
+				castle_inside.call("on_upgrade_denied", data)
 
 
 ## Host receives "hello" from joiner — spawn the joiner's character and reply.
@@ -789,7 +823,7 @@ func _spawn_display_arrow(data: Dictionary) -> void:
 	if arrow == null:
 		return
 	var pos := Vector2(float(data.get("x", 0.0)), float(data.get("y", 0.0)))
-	var dir := Vector2(float(data.get("dx", 1.0)), 0.0)
+	var dir := Vector2(float(data.get("dx", 1.0)), float(data.get("dy", 0.0)))
 	var spd: float = float(data.get("sp", 600.0))
 	# Configure position/velocity before entering the tree; damage is 0 so no harm on hit.
 	arrow.configure(pos, dir, spd, 0.0, 0.0)
@@ -839,7 +873,7 @@ func _handle_flow_fire(data: Dictionary) -> void:
 	if arrow == null:
 		return
 	var pos      := Vector2(float(data.get("x", 0.0)), float(data.get("y", 0.0)))
-	var dir      := Vector2(float(data.get("dx", 1.0)), 0.0)
+	var dir      := Vector2(float(data.get("dx", 1.0)), float(data.get("dy", 0.0)))
 	var spd      : float = float(data.get("sp", 600.0))
 	var dmg      : float = float(data.get("dmg", 0.0))
 	var combo_hits: int  = int(data.get("cc", 0))

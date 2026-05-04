@@ -6,22 +6,11 @@
 [ext_resource type="PackedScene" uid="uid://bkyw3pybjuqjs" path="res://ui/hud/HPBar.tscn" id="4_3og0q"]
 [ext_resource type="PackedScene" uid="uid://dh7thuuxwk7x1" path="res://ui/hud/FlowBar.tscn" id="5_d0uti"]
 
-[sub_resource type="Curve" id="Curve_ejw64"]
-_limits = [0.0, 0.1, 0.0, 10.0]
-_data = [Vector2(0, 0.011235945), 0.0, 0.0, 0, 0, Vector2(0.005, 0.084), 0.0, -0.007177999, 0, 0, Vector2(2.379518, 0.012814365), -0.012393036, 0.0, 0, 0]
-point_count = 3
-metadata/_snap_count = 100
-
 [sub_resource type="Curve" id="Curve_6qwqa"]
 _limits = [0.0, 0.1, 0.0, 10.0]
-_data = [Vector2(0, 0.011235945), 0.0, 0.0, 0, 0, Vector2(0.005, 0.084), 0.0, -0.007177999, 0, 0, Vector2(2.379518, 0.012814365), -0.012393036, 0.0, 0, 0]
-point_count = 3
-metadata/_snap_count = 100
-
-[sub_resource type="Curve" id="Curve_wwfss"]
-_limits = [0.0, 0.1, 0.0, 10.0]
-_data = [Vector2(0, 0.080898866), 0.0, 0.0, 0, 0, Vector2(2.511628, 0.011235945), 0.0, 0.0, 0, 0]
+_data = [Vector2(0.005, 0.084), 0.0, -0.007177999, 0, 0, Vector2(2.5, 0.010424033), -0.012393036, 0.0, 0, 0]
 point_count = 2
+metadata/_snap_count = 100
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_sx1db"]
 atlas = ExtResource("2_jjg8s")
@@ -417,7 +406,7 @@ slash_knockback_force = 200.0
 slash_flow_fill_duration = 1.2
 slash_flow_miss_multiplier = 0.8
 slash_flow_window_random_range = 0.0
-slash_flow_window_size_curve = SubResource("Curve_ejw64")
+slash_flow_window_size_curve = SubResource("Curve_6qwqa")
 slash_flow_window_curve_max_time = 60.0
 thrust_damage = 50.0
 thrust_knockback_force = 200.0
@@ -433,8 +422,9 @@ spin_flow_fill_duration = 1.5
 spin_flow_miss_multiplier = 0.8
 spin_flow_window_center = 0.4
 spin_flow_window_random_range = 0.0
-spin_flow_window_size_curve = SubResource("Curve_wwfss")
+spin_flow_window_size_curve = SubResource("Curve_6qwqa")
 spin_flow_window_curve_max_time = 60.0
+display_name = "Arthur \"Steel, honor, and a sword too large for hesitation.\""
 body_box = NodePath("bodyBox")
 max_health = 200.0
 facing_pivot = NodePath("Pivot")

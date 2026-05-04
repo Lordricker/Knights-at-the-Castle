@@ -6,6 +6,10 @@ extends CharacterBody2D
 # Add a Polygon2D to the level scene in the group "walk_area" to constrain movement.
 
 @export var move_speed: float = 200.0
+@export_group("Character Description")
+## Custom name shown in the character selection screen description panel.
+@export var display_name: String = ""
+@export_group("")
 ## Drag your CollisionShape2D here so the whole box is constrained inside the walk area.
 @export var body_box: CollisionShape2D
 

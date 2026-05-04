@@ -295,6 +295,20 @@ func _handle_attack_input() -> void:
 			_handle_flow_attempt(&"action3")
 
 
+## Returns a stats dictionary consumed by character_description_panel.gd.
+## Call get_character_stats() on the instantiated scene to read current Inspector values.
+func get_character_stats() -> Dictionary:
+	return {
+		"display_name": display_name,
+		"max_health":   max_health,
+		"move_speed":   move_speed,
+		"knockback_friction": knockback_friction,
+		"action1": {"name": "[ J ] Double Slash    ",  "damage": slash_damage,  "knockback": slash_knockback_force},
+		"action2": {"name": "[ K ] Lunging Thrust   	", "damage": thrust_damage, "knockback": thrust_knockback_force},
+		"action3": {"name": "[ L ] Lawnmower",   "damage": spin_damage,   "knockback": spin_knockback_force},
+	}
+
+
 ## Disable hitboxes and reset attack state immediately on death,
 ## so a mid-animation attack cannot keep dealing damage after the poof.
 func die() -> void:

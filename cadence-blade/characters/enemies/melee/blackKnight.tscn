@@ -134,6 +134,7 @@ position = Vector2(0, -11)
 collision_layer = 2
 script = ExtResource("1_xsjc2")
 slash_damage = 30.0
+knockback_force = 100.0
 facing_pivot = NodePath("Pivot")
 health_bar = NodePath("Pivot/HPBar")
 detection_zone = NodePath("Pivot/DetectionZone")
