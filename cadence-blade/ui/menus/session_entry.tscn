@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://bqd7aeac31hoi"]
 
 [ext_resource type="Texture2D" uid="uid://dt3pc0a30aw2k" path="res://assets/sprites/UI/longbanner.png" id="1_ahvrw"]
-[ext_resource type="Script" path="res://ui/menus/session_entry.gd" id="1_rl1jp"]
+[ext_resource type="Script" uid="uid://dhdri0qxr5u5q" path="res://ui/menus/session_entry.gd" id="1_rl1jp"]
 [ext_resource type="Texture2D" uid="uid://dtj4438rmcngb" path="res://assets/sprites/PortraitRedKnight.png" id="2_rl1jp"]
 [ext_resource type="Texture2D" uid="uid://bs8la5exnhu68" path="res://assets/sprites/PortraitGreenArcher.png" id="3_rwuya"]
 [ext_resource type="FontFile" uid="uid://di588hyvkxc6w" path="res://assets/fonts/LATINWD.TTF" id="4_mnm16"]
