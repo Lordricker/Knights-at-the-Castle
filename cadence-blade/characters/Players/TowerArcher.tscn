@@ -1,0 +1,193 @@
+[gd_scene format=3 uid="uid://c5hc2fvndx545"]
+
+[ext_resource type="Script" uid="uid://c1uhca82g4bdl" path="res://characters/Players/tower_archer.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://dwu4oqersc5i1" path="res://assets/sprites/TowerArcher.png" id="2_sprite"]
+[ext_resource type="PackedScene" uid="uid://bkyw3pybjuqjs" path="res://ui/hud/HPBar.tscn" id="3_hpbar"]
+[ext_resource type="PackedScene" uid="uid://d7m3taty6w01" path="res://FX/arrow.tscn" id="4_arrow"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
+size = Vector2(20, 30)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_idle0"]
+atlas = ExtResource("2_sprite")
+region = Rect2(0, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_idle1"]
+atlas = ExtResource("2_sprite")
+region = Rect2(100, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_idle2"]
+atlas = ExtResource("2_sprite")
+region = Rect2(200, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_idle3"]
+atlas = ExtResource("2_sprite")
+region = Rect2(300, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_idle4"]
+atlas = ExtResource("2_sprite")
+region = Rect2(400, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_idle5"]
+atlas = ExtResource("2_sprite")
+region = Rect2(500, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_idle6"]
+atlas = ExtResource("2_sprite")
+region = Rect2(0, 100, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_idle7"]
+atlas = ExtResource("2_sprite")
+region = Rect2(100, 100, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_idle8"]
+atlas = ExtResource("2_sprite")
+region = Rect2(200, 100, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_idle9"]
+atlas = ExtResource("2_sprite")
+region = Rect2(300, 100, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_shoot0"]
+atlas = ExtResource("2_sprite")
+region = Rect2(0, 200, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_shoot1"]
+atlas = ExtResource("2_sprite")
+region = Rect2(100, 200, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_shoot2"]
+atlas = ExtResource("2_sprite")
+region = Rect2(200, 200, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_shoot3"]
+atlas = ExtResource("2_sprite")
+region = Rect2(300, 200, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_shoot4"]
+atlas = ExtResource("2_sprite")
+region = Rect2(400, 200, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_shoot5"]
+atlas = ExtResource("2_sprite")
+region = Rect2(500, 200, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_shoot6"]
+atlas = ExtResource("2_sprite")
+region = Rect2(0, 300, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_shoot7"]
+atlas = ExtResource("2_sprite")
+region = Rect2(100, 300, 100, 100)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_tower"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_idle0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_idle1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_idle2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_idle3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_idle4")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_idle5")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_idle6")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_idle7")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_idle8")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_idle9")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_shoot0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_shoot1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_shoot2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_shoot3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_shoot4")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_shoot5")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_shoot6")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_shoot7")
+}],
+"loop": false,
+"name": &"shoot",
+"speed": 6.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_zone"]
+size = Vector2(418, 236)
+
+[node name="TowerArcher" type="Node2D" unique_id=1283517800]
+process_mode = 4
+
+[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=103463967 node_paths=PackedStringArray("facing_pivot", "detection_zone", "health_bar")]
+y_sort_enabled = true
+collision_mask = 0
+script = ExtResource("1_script")
+arrow_scene = ExtResource("4_arrow")
+arrow_damage = 20.0
+arrow_lifetime = 2.0
+arrow_angle = 8.0
+facing_pivot = NodePath("Pivot")
+detection_zone = NodePath("Pivot/DetectionZone")
+health_bar = NodePath("Pivot/HPBar")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D" unique_id=408824572]
+position = Vector2(0, 4)
+shape = SubResource("RectangleShape2D_body")
+
+[node name="Pivot" type="Node2D" parent="CharacterBody2D" unique_id=1343361241]
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="CharacterBody2D/Pivot" unique_id=131880397]
+sprite_frames = SubResource("SpriteFrames_tower")
+animation = &"idle"
+
+[node name="DetectionZone" type="Area2D" parent="CharacterBody2D/Pivot" unique_id=223133601]
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D/Pivot/DetectionZone" unique_id=1936265081]
+position = Vector2(143, 181)
+shape = SubResource("RectangleShape2D_zone")
+
+[node name="HPBar" parent="CharacterBody2D/Pivot" unique_id=1681123176 instance=ExtResource("3_hpbar")]
+position = Vector2(-12, 24)
+rotation = 3.1415927
+scale = Vector2(0.99999964, -1)
+
+[connection signal="animation_finished" from="CharacterBody2D/Pivot/AnimatedSprite2D" to="CharacterBody2D" method="_on_animation_finished"]
+[connection signal="frame_changed" from="CharacterBody2D/Pivot/AnimatedSprite2D" to="CharacterBody2D" method="_on_frame_changed"]

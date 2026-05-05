@@ -71,6 +71,9 @@ var _flow_miss_damage_multiplier: float = 0.6
 var _flow_can_resolve: bool = false
 ## Stores the damage multiplier from an attempt made during windup (-1.0 = none yet).
 var _flow_early_mult: float = -1.0
+## True if the early windup attempt was a SUCCESS (green window hit). False = MISS.
+## Only a SUCCESS fires immediately at the pause frame; a MISS waits for the bar to fill.
+var _flow_early_was_success: bool = false
 
 # ── Movement / physics ─────────────────────────────────────────────────────────
 var walk_area: Polygon2D = null
@@ -430,6 +433,7 @@ func _start_flow(input_action: StringName, on_resolved: Callable,
 	_flow_active = true
 	_flow_can_resolve = false
 	_flow_early_mult = -1.0
+	_flow_early_was_success = false
 	_flow_progress = 0.0
 	if flow_bar != null:
 		flow_bar.show()
@@ -446,6 +450,7 @@ func _stop_flow() -> void:
 	_flow_active = false
 	_flow_can_resolve = false
 	_flow_early_mult = -1.0
+	_flow_early_was_success = false
 	_flow_input_action = &""
 	_flow_progress = 0.0
 	_flow_on_resolved = Callable()
@@ -496,6 +501,7 @@ func _handle_flow_attempt(action_name: StringName) -> void:
 				cb.call(1.0)
 		else:
 			_flow_early_mult = 1.0
+			_flow_early_was_success = true
 		return
 	var result: FlowTimingBar.AttemptResult = _flow_bar_api.try_attempt()
 	match result:
@@ -506,7 +512,8 @@ func _handle_flow_attempt(action_name: StringName) -> void:
 				if cb.is_valid():
 					cb.call(1.0)
 			else:
-				_flow_early_mult = 1.0  # defer until pause frame
+				_flow_early_mult = 1.0
+				_flow_early_was_success = true  # defer until pause frame; fires immediately on arrival
 		FlowTimingBar.AttemptResult.MISS:
 			_flow_early_mult = _flow_miss_damage_multiplier  # bar keeps filling grey
 		FlowTimingBar.AttemptResult.NONE:
@@ -520,7 +527,9 @@ func _flow_set_can_resolve() -> bool:
 	if not _flow_active:
 		return false
 	_flow_can_resolve = true
-	if _flow_early_mult >= 0.0:
+	# Only fire immediately if the early attempt was a SUCCESS (green window hit).
+	# A MISS during windup keeps the animation paused and waits for the bar to fill.
+	if _flow_early_mult >= 0.0 and _flow_early_was_success:
 		var mult := _flow_early_mult
 		var cb := _flow_on_resolved
 		_stop_flow()

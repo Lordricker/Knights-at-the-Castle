@@ -101,6 +101,12 @@ extends Node2D
 ## The Castle node in the level scene. Required for HealCastle and UpgradeCastle upgrades.
 @export var castle: Castle
 
+@export_group("Tower Archers")
+## The right-side TowerArcher node in the level. Drag from the scene tree.
+@export var tower_archer_right: Node
+## The left-side TowerArcher node in the level. Drag from the scene tree.
+@export var tower_archer_left: Node
+
 @export_group("Enemy Indicators")
 ## Exclamation point Sprite2D above the right scout (positive global X side).
 @export var right_exclamation: Sprite2D
@@ -336,6 +342,10 @@ func _apply_upgrade_to_buyer(upgrade: UpgradeConfig, buyer: CharacterBase) -> vo
 				castle.health_changed.emit(castle.health, castle.max_health)
 		UpgradeConfig.StatType.FREEZE_ENEMIES:
 			_freeze_enemies(upgrade.stat_amount)
+		UpgradeConfig.StatType.TOWER_ARCHER_RIGHT:
+			_activate_tower_archer(tower_archer_right)
+		UpgradeConfig.StatType.TOWER_ARCHER_LEFT:
+			_activate_tower_archer(tower_archer_left)
 
 # ── Lottery rolling ───────────────────────────────────────────────────────────
 
@@ -376,11 +386,19 @@ func _sample_lottery_tickets(curve: Curve, t: float, default_value: int = 1) -> 
 
 
 ## Draw one upgrade from the lottery pool, excluding any in the `exclude` array.
+## Tower archer upgrades whose archer is already active are also excluded.
 ## Returns null if the pool is empty.
 func _draw_one(t: float, exclude: Array) -> UpgradeConfig:
 	var pool: Array[UpgradeConfig] = []
 	for upgrade: UpgradeConfig in upgrades:
 		if upgrade == null or upgrade in exclude:
+			continue
+		# Skip tower archer upgrades when the archer is already active.
+		if upgrade.stat_type == UpgradeConfig.StatType.TOWER_ARCHER_RIGHT \
+				and _is_tower_archer_active(tower_archer_right):
+			continue
+		if upgrade.stat_type == UpgradeConfig.StatType.TOWER_ARCHER_LEFT \
+				and _is_tower_archer_active(tower_archer_left):
 			continue
 		var tickets: int = 1
 		if upgrade.pool_tickets_curve != null:
@@ -390,6 +408,13 @@ func _draw_one(t: float, exclude: Array) -> UpgradeConfig:
 	if pool.is_empty():
 		return null
 	return pool[randi() % pool.size()]
+
+
+## Returns true when a tower archer wrapper node is currently active (not disabled).
+func _is_tower_archer_active(archer: Node) -> bool:
+	if archer == null:
+		return false
+	return archer.process_mode != Node.PROCESS_MODE_DISABLED
 
 # ── UI helpers ────────────────────────────────────────────────────────────────
 
@@ -571,6 +596,35 @@ func _freeze_enemies(duration: float) -> void:
 			if spawner != null and is_instance_valid(spawner):
 				spawner.set_process(true)
 	)
+
+
+## Enables a tower archer node that was placed disabled in the level.
+## Resets health/state on the CharacterBody2D child, makes the wrapper visible,
+## and re-enables processing.
+func _activate_tower_archer(archer: Node) -> void:
+	if archer == null:
+		push_warning("CastleInside: tower archer node not assigned in Inspector.")
+		return
+	# Find the CharacterBody2D child that carries tower_archer.gd.
+	var body: Node = null
+	for child in archer.get_children():
+		if child is CharacterBody2D:
+			body = child
+			break
+	if body != null:
+		body.is_dead = false
+		body.health = body.max_health
+		body.shoot_state = 0  # ShootState.NONE
+		body.set_physics_process(true)
+		var spr: AnimatedSprite2D = body.find_child("AnimatedSprite2D") as AnimatedSprite2D
+		if spr != null:
+			spr.show()
+			spr.play(&"idle")
+		if body.health_bar != null:
+			body.health_bar.show()
+		body.health_changed.emit(body.health, body.max_health)
+	archer.show()
+	archer.process_mode = Node.PROCESS_MODE_INHERIT
 
 
 # ── Enemy indicators ─────────────────────────────────────────────────────────

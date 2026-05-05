@@ -22,6 +22,8 @@ enum StatType {
 	UPGRADE_HP,      ## Increases the player's max HP by stat_amount.
 	RESET_FLOW,      ## Resets the player's flow window size curves back to the start of the run.
 	FREEZE_ENEMIES,  ## Freezes all enemies and pauses spawning for stat_amount seconds.
+	TOWER_ARCHER_RIGHT,  ## Activates the right-side tower archer in the level.
+	TOWER_ARCHER_LEFT,   ## Activates the left-side tower archer in the level.
 }
 
 @export_group("Identity")

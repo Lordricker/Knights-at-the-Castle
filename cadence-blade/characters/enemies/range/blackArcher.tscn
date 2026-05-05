@@ -106,7 +106,7 @@ animations = [{
 }]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_c4v63"]
-size = Vector2(24.532898, 97.13786)
+size = Vector2(24.532898, 267.2583)
 
 [node name="BlackArcher" type="Node2D" unique_id=44163915]
 
@@ -117,7 +117,8 @@ collision_layer = 2
 script = ExtResource("1_7622n")
 arrow_scene = ExtResource("4_arrow")
 arrow_damage = 20.0
-arrow_lifetime = 1.2
+arrow_speed = 550.0
+arrow_lifetime = 1.5
 arrow_angle = 20.0
 max_health = 60.0
 facing_pivot = NodePath("Pivot")
@@ -144,8 +145,9 @@ position = Vector2(7, 0)
 monitorable = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D/Pivot/DetectionZone" unique_id=688663001]
-position = Vector2(221, -17.00001)
-rotation = -0.9180432
+position = Vector2(179.44667, -117.00061)
+rotation = -0.30892327
+scale = Vector2(0.9999999, 0.9999999)
 shape = SubResource("RectangleShape2D_c4v63")
 debug_color = Color(0.6837786, 0.5034512, 0, 0.41960785)
 

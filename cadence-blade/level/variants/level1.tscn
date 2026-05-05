@@ -38,11 +38,14 @@
 [ext_resource type="PackedScene" uid="uid://csdfv0d4v5teo" path="res://level/sheepidle.tscn" id="30_cblfy"]
 [ext_resource type="PackedScene" uid="uid://cukpgklhpndg0" path="res://level/sheepeat.tscn" id="31_nkn60"]
 [ext_resource type="Texture2D" uid="uid://ev4niddbcvxm" path="res://assets/sprites/towerscout.png" id="31_p3vt1"]
+[ext_resource type="Texture2D" uid="uid://c56oc8uyuk85o" path="res://core/Upgrades/LTowerArcher.png" id="31_tl8wq"]
 [ext_resource type="PackedScene" uid="uid://bxb278tj0rbg3" path="res://level/water_rock_1.tscn" id="32_gtrn2"]
+[ext_resource type="Texture2D" uid="uid://co3c0o8bsgvi" path="res://core/Upgrades/RTowerArcher.png" id="32_keknm"]
 [ext_resource type="Texture2D" uid="uid://84yrfmagwmbs" path="res://assets/sprites/UI/exclamationPoint.png" id="32_w77vi"]
 [ext_resource type="PackedScene" uid="uid://cfm33h1l0nnru" path="res://level/water_rock_2.tscn" id="33_p3vt1"]
 [ext_resource type="PackedScene" uid="uid://540q1u1nmwpv" path="res://level/tree_1.tscn" id="34_w77vi"]
 [ext_resource type="PackedScene" uid="uid://bhxy1x077s154" path="res://level/tree_2.tscn" id="35_2lfbx"]
+[ext_resource type="PackedScene" uid="uid://c5hc2fvndx545" path="res://characters/Players/TowerArcher.tscn" id="37_0kldc"]
 
 [sub_resource type="Curve2D" id="Curve2D_0eib5"]
 _data = {
@@ -220,6 +223,7 @@ script = ExtResource("9_154h8")
 display_name = "blackSpearman"
 scene = SubResource("PackedScene_tl8wq")
 pool_tickets_curve = SubResource("Curve_5g4e1")
+flow_kill_coin_tier = 2
 metadata/_custom_type_script = "uid://dnnh0acalw8gk"
 
 [sub_resource type="Resource" id="Resource_3hhgk"]
@@ -234,7 +238,8 @@ _data = [Vector2(0, 1.484005), 0.0, 9.864617, 0, 1, Vector2(0.15223882, 2.985782
 point_count = 3
 
 [sub_resource type="Curve" id="Curve_8ow3n"]
-_data = [Vector2(0, 1), 0.0, 0.0, 0, 0]
+_limits = [0.0, 10.0, 0.0, 1.0]
+_data = [Vector2(0, 10), 0.0, 0.0, 0, 0]
 point_count = 1
 
 [sub_resource type="Resource" id="Resource_ll8mu"]
@@ -326,6 +331,24 @@ icon = ExtResource("23_ll8mu")
 cost = 3
 stat_type = 6
 pool_tickets_curve = SubResource("Curve_ex7cg")
+metadata/_custom_type_script = "uid://cidykeebxaujw"
+
+[sub_resource type="Resource" id="Resource_pl843"]
+script = ExtResource("16_edmi1")
+display_name = "LTowerArcher"
+icon = ExtResource("31_tl8wq")
+cost = 9
+stat_type = 8
+pool_tickets_curve = SubResource("Curve_8ow3n")
+metadata/_custom_type_script = "uid://cidykeebxaujw"
+
+[sub_resource type="Resource" id="Resource_trs4y"]
+script = ExtResource("16_edmi1")
+display_name = "RTowerArcher"
+icon = ExtResource("32_keknm")
+cost = 9
+stat_type = 7
+pool_tickets_curve = SubResource("Curve_8ow3n")
 metadata/_custom_type_script = "uid://cidykeebxaujw"
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_pmto4"]
@@ -582,6 +605,7 @@ position = Vector2(159, -132)
 texture = ExtResource("4_4v7nf")
 
 [node name="Polygon2D" type="Polygon2D" parent="." unique_id=749098682 groups=["walk_area"]]
+position = Vector2(-1, -25)
 color = Color(1, 1, 1, 0)
 polygon = PackedVector2Array(-23.5, -10, -24, -62, -98, -79, -98, -145, 80, -150, 80, -67, 24, -63, 25, -10, 73, -6, 112, -8, 135, -28, 146, -39, 172, -33, 242, 1, 351, 24, 454, 62, 502, 76, 620, 75, 702, 80, 736, 83, 859, 74, 922, 77, 979, 81, 998, 87, 998, 223, 771, 220, 567, 210, 418, 178, 259, 134, 164, 99, 67, 78, 5, 64, -27, 65, -72, 75, -220, 118, -400, 181, -476, 194, -560, 199, -632, 215, -680, 220, -840, 227, -1000, 224, -1001, 108, -794, 107, -728, 103, -591, 78, -528, 60, -425, 41, -374, 26, -169, -37, -135, -34, -115, -9, -72, -10, -72, -10)
 
@@ -653,18 +677,20 @@ vertical_offset = 30.0
 
 [node name="Castle" type="Node2D" parent="." unique_id=654288399]
 
-[node name="Castlescript" type="Node2D" parent="Castle" unique_id=680612278 node_paths=PackedStringArray("monk_zone", "monk_sprite", "blacksmith_zone", "blacksmith_sprite", "upgrade_ui", "option1_icon", "option2_icon", "run_manager", "right_exclamation", "left_exclamation")]
+[node name="Castlescript" type="Node2D" parent="Castle" unique_id=680612278 node_paths=PackedStringArray("monk_zone", "monk_sprite", "blacksmith_zone", "blacksmith_sprite", "upgrade_ui", "option1_icon", "option2_icon", "run_manager", "tower_archer_right", "tower_archer_left", "right_exclamation", "left_exclamation")]
 script = ExtResource("15_154h8")
 heal_per_second = 75.0
 monk_zone = NodePath("Monk/Area2D")
 monk_sprite = NodePath("Monk")
-upgrades = Array[ExtResource("16_edmi1")]([SubResource("Resource_ll8mu"), SubResource("Resource_almi1"), SubResource("Resource_8ow3n"), SubResource("Resource_gi5ih"), SubResource("Resource_pmto4"), SubResource("Resource_cblfy"), SubResource("Resource_nkn60")])
+upgrades = Array[ExtResource("16_edmi1")]([SubResource("Resource_ll8mu"), SubResource("Resource_almi1"), SubResource("Resource_8ow3n"), SubResource("Resource_gi5ih"), SubResource("Resource_pmto4"), SubResource("Resource_cblfy"), SubResource("Resource_nkn60"), SubResource("Resource_pl843"), SubResource("Resource_trs4y")])
 blacksmith_zone = NodePath("Blacksmith/Area2D")
 blacksmith_sprite = NodePath("Blacksmith")
 upgrade_ui = NodePath("../Shop")
 option1_icon = NodePath("../Shop/upgrade1")
 option2_icon = NodePath("../Shop/upgrade2")
 run_manager = NodePath("../../RunManager")
+tower_archer_right = NodePath("../RTowerArcher")
+tower_archer_left = NodePath("../LTowerArcher")
 right_exclamation = NodePath("../scout/ExclamationPoint")
 left_exclamation = NodePath("../scout2/ExclamationPoint")
 
@@ -755,6 +781,17 @@ position = Vector2(38, -20)
 rotation = 3.7611845
 scale = Vector2(1, -1)
 texture = ExtResource("32_w77vi")
+
+[node name="RTowerArcher" parent="Castle" unique_id=1232705240 instance=ExtResource("37_0kldc")]
+visible = false
+z_index = -1
+position = Vector2(161, -161)
+
+[node name="LTowerArcher" parent="Castle" unique_id=1283517800 instance=ExtResource("37_0kldc")]
+visible = false
+z_index = -1
+position = Vector2(-158, -159)
+scale = Vector2(-1, 1)
 
 [node name="HUD" parent="." unique_id=263715054 instance=ExtResource("20_h2mhx")]
 
