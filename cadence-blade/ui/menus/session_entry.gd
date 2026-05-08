@@ -102,6 +102,9 @@ func setup_as_host() -> void:
 ## taken_characters — array of character keys already claimed in this session.
 ## Slot i's cover is shown when CHARACTER_KEYS[i] is in that array.
 func setup_as_join(sid: String, taken_characters: Array[String]) -> void:
+	# Re-run node discovery in case typed-array NodePath exports didn't resolve
+	# when the scene was loaded dynamically via load().instantiate().
+	_ensure_char_nodes()
 	if play_button:    play_button.hide()
 	if join_button:    join_button.show()
 	if private_toggle: private_toggle.hide()

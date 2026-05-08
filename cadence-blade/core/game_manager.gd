@@ -111,12 +111,19 @@ func leave_session() -> void:
 	get_tree().change_scene_to_file(MAIN_MENU_SCENE)
 
 
-## Returns which characters are already taken in a session's players Dictionary.
+## Returns which characters are already taken in a session's players data.
+## Accepts both Dictionary ({"1": {"character": "key"}}) and Array —
+## Firebase may coerce integer-keyed objects to sparse arrays.
 static func parse_taken_characters(players_dict: Variant) -> Array[String]:
 	var taken: Array[String] = []
 	if players_dict is Dictionary:
 		for peer_id in players_dict:
 			var entry: Variant = players_dict[peer_id]
+			if entry is Dictionary and entry.has("character"):
+				taken.append(str(entry["character"]))
+	elif players_dict is Array:
+		# Firebase coerces {"0":…,"1":…} to a sparse array — handle both.
+		for entry in players_dict:
 			if entry is Dictionary and entry.has("character"):
 				taken.append(str(entry["character"]))
 	return taken

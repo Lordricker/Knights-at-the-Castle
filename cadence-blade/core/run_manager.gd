@@ -450,6 +450,10 @@ func _on_packet_received(data: Dictionary) -> void:
 			# Host fired an arrow — spawn a display-only arrow on joiner.
 			if not GameManager.is_host:
 				_spawn_display_arrow(data)
+		"enemy_arrow":
+			# Host enemy fired an arrow — spawn a display-only copy on joiner.
+			if not GameManager.is_host:
+				_spawn_display_enemy_arrow(data)
 		"flow_done":
 			# Host resolved a flow bar — update joiner display immediately.
 			if not GameManager.is_host:
@@ -803,6 +807,45 @@ func _respawn_player(player: Node) -> void:
 		print("RunManager: revived player '%s' at %s" % [player.name, point.global_position])
 	else:
 		push_warning("RunManager: player '%s' has no revive() method." % player.name)
+
+
+## Joiner: spawn a visual-only enemy arrow from an "enemy_arrow" packet.
+## No damage, no collision — purely visual.
+func _spawn_display_enemy_arrow(data: Dictionary) -> void:
+	# Try player characters first (archer player has arrow_scene).
+	var scene: PackedScene
+	for player_root in _players:
+		var ch := _resolve_character(player_root)
+		if ch != null and "arrow_scene" in ch:
+			var found := ch.get("arrow_scene") as PackedScene
+			if found != null:
+				scene = found
+				break
+	# Fall back to spawner's alive enemy instances (one may be a black_archer).
+	if scene == null and spawner != null and "alive_enemy_map" in spawner:
+		for eid in spawner.alive_enemy_map:
+			var info: Dictionary = spawner.alive_enemy_map[eid]
+			var enemy: Node = info.get("node") as Node
+			if is_instance_valid(enemy) and "arrow_scene" in enemy:
+				var found := enemy.get("arrow_scene") as PackedScene
+				if found != null:
+					scene = found
+					break
+	if scene == null:
+		return
+	var arrow := scene.instantiate() as Arrow
+	if arrow == null:
+		return
+	var pos := Vector2(float(data.get("x", 0.0)), float(data.get("y", 0.0)))
+	var dir := Vector2(float(data.get("dx", 1.0)), float(data.get("dy", 0.0)))
+	var spd: float = float(data.get("sp", 400.0))
+	var lt: float = float(data.get("lt", 2.5))
+	arrow.configure(pos, dir, spd, 0.0, 0.0)
+	arrow.lifetime = lt
+	# Strip all collision so the display arrow can't trigger hit signals.
+	arrow.collision_mask = 0
+	arrow.collision_layer = 0
+	get_tree().current_scene.call_deferred("add_child", arrow)
 
 
 ## Joiner: spawn a visual-only arrow from an "arrow" packet.

@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://c5hc2fvndx545"]
 
-[ext_resource type="Script" uid="uid://c1uhca82g4bdl" path="res://characters/Players/tower_archer.gd" id="1_script"]
+[ext_resource type="Script" path="res://characters/Players/tower_archer.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://dwu4oqersc5i1" path="res://assets/sprites/TowerArcher.png" id="2_sprite"]
 [ext_resource type="PackedScene" uid="uid://bkyw3pybjuqjs" path="res://ui/hud/HPBar.tscn" id="3_hpbar"]
 [ext_resource type="PackedScene" uid="uid://d7m3taty6w01" path="res://FX/arrow.tscn" id="4_arrow"]
@@ -166,6 +166,7 @@ detection_zone = NodePath("Pivot/DetectionZone")
 health_bar = NodePath("Pivot/HPBar")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D" unique_id=408824572]
+visible = false
 position = Vector2(0, 4)
 shape = SubResource("RectangleShape2D_body")
 
@@ -181,6 +182,7 @@ collision_mask = 2
 monitorable = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D/Pivot/DetectionZone" unique_id=1936265081]
+visible = false
 position = Vector2(143, 181)
 shape = SubResource("RectangleShape2D_zone")
 

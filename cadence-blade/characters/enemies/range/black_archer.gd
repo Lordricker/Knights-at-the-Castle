@@ -162,3 +162,14 @@ func _fire_arrow() -> void:
 			arrow.queue_free()
 	)
 	get_tree().current_scene.call_deferred("add_child", arrow)
+	# Broadcast to joiner so they see a display-only copy of the arrow.
+	if GameManager.session_id != "" and GameManager.is_host:
+		WebRTCManager.send_reliable({
+			"t":  "enemy_arrow",
+			"x":  global_position.x,
+			"y":  global_position.y,
+			"dx": shoot_dir.x,
+			"dy": shoot_dir.y,
+			"sp": arrow_speed,
+			"lt": arrow_lifetime,
+		})

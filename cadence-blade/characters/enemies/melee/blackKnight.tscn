@@ -143,7 +143,6 @@ oscillate = true
 oscillate_speed = 0.2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D" unique_id=1533444482]
-visible = false
 position = Vector2(0, 4)
 shape = SubResource("RectangleShape2D_xsjc2")
 

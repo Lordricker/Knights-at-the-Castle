@@ -124,7 +124,6 @@ scale = Vector2(1.4999999, 1.5)
 texture = ExtResource("2_rl1jp")
 
 [node name="KnightCover" type="ColorRect" parent="." unique_id=1121187871]
-visible = false
 layout_mode = 0
 offset_left = 739.0
 offset_top = 123.0
