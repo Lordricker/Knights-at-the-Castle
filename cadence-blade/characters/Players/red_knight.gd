@@ -202,8 +202,9 @@ func _handle_movement() -> void:
 	velocity.y = dir_y * effective_speed * speed_mult
 
 	# Facing: driven purely by input direction.
-	# Shift held = lock facing. Otherwise, pressing left/right sets direction.
-	if not _action_pressed("face_lock"):
+	# Lock facing during thrust FINISH so direction can't flip during damage frames.
+	var _thrust_finishing: bool = (attack_state == AttackState.THRUST_FINISH)
+	if not _action_pressed("face_lock") and not _thrust_finishing:
 		if dir_x > 0.0:
 			_set_facing(1.0)
 		elif dir_x < 0.0:

@@ -88,6 +88,10 @@ extends Node2D
 ## The upgrade's icon texture carries all the player-facing info.
 @export var option1_icon: TextureRect
 @export var option2_icon: TextureRect
+## Optional clickable buttons layered behind/over each upgrade icon.
+## Connect their pressed signal here — wire them in the Inspector.
+@export var option1_button: Button
+@export var option2_button: Button
 
 # ── HUD / scene reference exports ─────────────────────────────────────────────
 
@@ -157,6 +161,16 @@ func _ready() -> void:
 		blacksmith_zone.body_exited.connect(_on_blacksmith_zone_body_exited)
 	if upgrade_ui != null:
 		upgrade_ui.hide()
+	if option1_button != null:
+		option1_button.pressed.connect(func() -> void: _request_purchase(0))
+	if option2_button != null:
+		option2_button.pressed.connect(func() -> void: _request_purchase(1))
+	# Icons sit on top of the buttons. Set them to ignore mouse so clicks
+	# pass through to the buttons underneath instead of being swallowed.
+	if option1_icon != null:
+		option1_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if option2_icon != null:
+		option2_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
 func _process(delta: float) -> void:

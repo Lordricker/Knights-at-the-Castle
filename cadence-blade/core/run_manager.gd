@@ -217,12 +217,44 @@ func _spawn_players() -> void:
 		return
 
 	# Offline / solo: use the inspector-assigned player_scenes array as before.
+	# If a character was played previously (GameManager.my_character is set),
+	# find the matching scene so restarts always respawn the same character.
 	print("RunManager: offline spawn — %d scene(s) assigned" % player_scenes.size())
+	var remembered: String = GameManager.my_character
+	if remembered != "":
+		# Find the player_scenes index that matches the remembered character key.
+		var target_scene: PackedScene = null
+		var target_idx: int = 0
+		var scene_map: Dictionary = _char_scene_map()
+		if scene_map.has(remembered):
+			target_scene = scene_map[remembered]
+		else:
+			# Fall back: compare PackedScene resources against the player_scenes array.
+			var key_order: Array[String] = ["red_knight", "green_archer"]
+			for i in player_scenes.size():
+				if i < key_order.size() and key_order[i] == remembered:
+					target_scene = player_scenes[i]
+					target_idx = i
+					break
+		if target_scene == null and not player_scenes.is_empty():
+			# Could not identify scene — fall back to first slot.
+			target_scene = player_scenes[0]
+			target_idx = 0
+		if target_scene != null:
+			_slot_char[1] = remembered
+			_instantiate_player(target_scene, _char_spawn_index(remembered))
+			return
+	# No remembered character — spawn all assigned scenes and record the first.
+	var key_order_default: Array[String] = ["red_knight", "green_archer"]
 	for i in player_scenes.size():
 		var scene: PackedScene = player_scenes[i]
 		if scene == null:
 			continue
 		_instantiate_player(scene, i)
+		# Record the character key for the first spawned player so restarts remember it.
+		if i < key_order_default.size() and GameManager.my_character == "":
+			GameManager.my_character = key_order_default[i]
+			_slot_char[1] = GameManager.my_character
 
 
 ## In multiplayer each peer spawns ONLY its own character now.
@@ -842,8 +874,10 @@ func _spawn_display_enemy_arrow(data: Dictionary) -> void:
 	var lt: float = float(data.get("lt", 2.5))
 	arrow.configure(pos, dir, spd, 0.0, 0.0)
 	arrow.lifetime = lt
-	# Strip all collision so the display arrow can't trigger hit signals.
-	arrow.collision_mask = 0
+	# Keep detection mask so the arrow stops when it hits a player or the castle,
+	# matching the host's visual behaviour.  Layer 0 so nothing targets this arrow.
+	# Damage and knockback are both 0.0, so collision is purely cosmetic.
+	arrow.collision_mask = 1
 	arrow.collision_layer = 0
 	get_tree().current_scene.call_deferred("add_child", arrow)
 
