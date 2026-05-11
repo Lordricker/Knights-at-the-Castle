@@ -27,6 +27,7 @@
 [ext_resource type="PackedScene" uid="uid://bkyw3pybjuqjs" path="res://ui/hud/HPBar.tscn" id="17_08x7v"]
 [ext_resource type="Texture2D" uid="uid://chf7h63qrwf7i" path="res://core/Upgrades/plus50hp.png" id="18_5g4e1"]
 [ext_resource type="Texture2D" uid="uid://wxcyewyr8jxt" path="res://core/Upgrades/plus5spd.png" id="18_gwq2p"]
+[ext_resource type="PackedScene" uid="uid://cc5rsxrl2ed31" path="res://characters/enemies/melee/sheepdog.tscn" id="18_keknm"]
 [ext_resource type="Texture2D" uid="uid://dtovxjqw2h3pi" path="res://core/Upgrades/castlehp250.png" id="19_gwq2p"]
 [ext_resource type="PackedScene" uid="uid://0cyfncn8h6nd" path="res://ui/hud/hud.tscn" id="20_h2mhx"]
 [ext_resource type="Texture2D" uid="uid://c1vdscvx00hm0" path="res://core/Upgrades/healcastle250.png" id="20_tm2co"]
@@ -117,6 +118,11 @@ script = ExtResource("8_pr8jp")
 type_name = "Acher"
 variants = Array[ExtResource("9_154h8")]([SubResource("Resource_61uay")])
 metadata/_custom_type_script = "uid://dj8qa3itlkqdw"
+
+[sub_resource type="Curve" id="Curve_3hhgk"]
+_limits = [0.0, 20.0, 0.0, 2.0]
+_data = [Vector2(0, 20), 0.0, 0.0, 0, 0, Vector2(0.22222221, 5.819936), 0.0, 0.0, 0, 0, Vector2(0.8494625, 2.5), 0.0, 0.0, 0, 0]
+point_count = 3
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_xsjc2"]
 size = Vector2(20, 30)
@@ -222,7 +228,7 @@ _bundled = {
 script = ExtResource("9_154h8")
 display_name = "blackSpearman"
 scene = SubResource("PackedScene_tl8wq")
-pool_tickets_curve = SubResource("Curve_5g4e1")
+pool_tickets_curve = SubResource("Curve_3hhgk")
 flow_kill_coin_tier = 2
 metadata/_custom_type_script = "uid://dnnh0acalw8gk"
 
@@ -230,6 +236,23 @@ metadata/_custom_type_script = "uid://dnnh0acalw8gk"
 script = ExtResource("8_pr8jp")
 type_name = "spearman"
 variants = Array[ExtResource("9_154h8")]([SubResource("Resource_keknm")])
+metadata/_custom_type_script = "uid://dj8qa3itlkqdw"
+
+[sub_resource type="Curve" id="Curve_keknm"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0]
+point_count = 1
+
+[sub_resource type="Resource" id="Resource_karr3"]
+script = ExtResource("9_154h8")
+scene = ExtResource("18_keknm")
+pool_tickets_curve = SubResource("Curve_3hhgk")
+max_alive_curve = SubResource("Curve_keknm")
+metadata/_custom_type_script = "uid://dnnh0acalw8gk"
+
+[sub_resource type="Resource" id="Resource_62wvd"]
+script = ExtResource("8_pr8jp")
+type_name = "SheepDog"
+variants = Array[ExtResource("9_154h8")]([SubResource("Resource_karr3")])
 metadata/_custom_type_script = "uid://dj8qa3itlkqdw"
 
 [sub_resource type="Curve" id="Curve_hah43"]
@@ -646,7 +669,7 @@ color_initial_ramp = SubResource("Gradient_k7t6a")
 
 [node name="EnemySpawner" parent="." unique_id=348696290 instance=ExtResource("10_hlrrp")]
 position = Vector2(0, 171.13)
-enemy_types = Array[ExtResource("8_pr8jp")]([SubResource("Resource_chmu7"), SubResource("Resource_v4ptn"), SubResource("Resource_3hhgk")])
+enemy_types = Array[ExtResource("8_pr8jp")]([SubResource("Resource_chmu7"), SubResource("Resource_v4ptn"), SubResource("Resource_3hhgk"), SubResource("Resource_62wvd")])
 
 [node name="RunManager" type="Node2D" parent="." unique_id=1021112478 node_paths=PackedStringArray("castle", "spawner", "game_over_screen", "spawn_points")]
 script = ExtResource("11_hah43")
