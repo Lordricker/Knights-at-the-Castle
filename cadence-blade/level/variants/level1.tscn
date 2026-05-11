@@ -5,7 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://tguwfea61v0y" path="res://FX/DeathPoof.tscn" id="2_pfm7v"]
 [ext_resource type="Texture2D" uid="uid://bjrdk6nhhom4" path="res://level/backgroundSprites/paralax map.png" id="3_gtrn2"]
 [ext_resource type="Texture2D" uid="uid://c665lghwlbqwj" path="res://level/backgroundSprites/Tower.png" id="4_4v7nf"]
-[ext_resource type="Script" uid="uid://dledtke7x1i4g" path="res://level/variants/paralax_map.gd" id="4_p3vt1"]
+[ext_resource type="Script" path="res://level/variants/paralax_map.gd" id="4_p3vt1"]
 [ext_resource type="PackedScene" uid="uid://vqn6c6fo34d1" path="res://characters/castle.tscn" id="5_4v7nf"]
 [ext_resource type="Texture2D" uid="uid://bl41b5s5e5u7y" path="res://level/backgroundSprites/Clouds_02.png" id="8_hah43"]
 [ext_resource type="Script" uid="uid://dj8qa3itlkqdw" path="res://characters/enemies/enemy_type_config.gd" id="8_pr8jp"]
@@ -605,7 +605,7 @@ position = Vector2(159, -132)
 texture = ExtResource("4_4v7nf")
 
 [node name="Polygon2D" type="Polygon2D" parent="." unique_id=749098682 groups=["walk_area"]]
-position = Vector2(-1, -25)
+position = Vector2(0, 1)
 color = Color(1, 1, 1, 0)
 polygon = PackedVector2Array(-23.5, -10, -24, -62, -98, -79, -98, -145, 80, -150, 80, -67, 24, -63, 25, -10, 73, -6, 112, -8, 135, -28, 146, -39, 172, -33, 242, 1, 351, 24, 454, 62, 502, 76, 620, 75, 702, 80, 736, 83, 859, 74, 922, 77, 979, 81, 998, 87, 998, 223, 771, 220, 567, 210, 418, 178, 259, 134, 164, 99, 67, 78, 5, 64, -27, 65, -72, 75, -220, 118, -400, 181, -476, 194, -560, 199, -632, 215, -680, 220, -840, 227, -1000, 224, -1001, 108, -794, 107, -728, 103, -591, 78, -528, 60, -425, 41, -374, 26, -169, -37, -135, -34, -115, -9, -72, -10, -72, -10)
 
@@ -653,7 +653,7 @@ script = ExtResource("11_hah43")
 castle = NodePath("../Castle/Castlescript/Castle")
 spawner = NodePath("../EnemySpawner")
 game_over_screen = NodePath("../HUD")
-player_scenes = Array[PackedScene]([ExtResource("13_gwq2p")])
+player_scenes = Array[PackedScene]([ExtResource("14_8ow3n")])
 red_knight_scene = ExtResource("14_8ow3n")
 green_archer_scene = ExtResource("13_gwq2p")
 respawn_delay_curve = SubResource("Curve_hah43")
@@ -677,7 +677,7 @@ vertical_offset = 30.0
 
 [node name="Castle" type="Node2D" parent="." unique_id=654288399]
 
-[node name="Castlescript" type="Node2D" parent="Castle" unique_id=680612278 node_paths=PackedStringArray("monk_zone", "monk_sprite", "blacksmith_zone", "blacksmith_sprite", "upgrade_ui", "option1_icon", "option2_icon", "run_manager", "tower_archer_right", "tower_archer_left", "right_exclamation", "left_exclamation")]
+[node name="Castlescript" type="Node2D" parent="Castle" unique_id=680612278 node_paths=PackedStringArray("monk_zone", "monk_sprite", "blacksmith_zone", "blacksmith_sprite", "upgrade_ui", "option1_icon", "option2_icon", "option1_button", "option2_button", "run_manager", "tower_archer_right", "tower_archer_left", "right_exclamation", "left_exclamation")]
 script = ExtResource("15_154h8")
 heal_per_second = 75.0
 monk_zone = NodePath("Monk/Area2D")
@@ -688,6 +688,8 @@ blacksmith_sprite = NodePath("Blacksmith")
 upgrade_ui = NodePath("../Shop")
 option1_icon = NodePath("../Shop/upgrade1")
 option2_icon = NodePath("../Shop/upgrade2")
+option1_button = NodePath("../Shop/upgrade1/Button1")
+option2_button = NodePath("../Shop/upgrade2/Button2")
 run_manager = NodePath("../../RunManager")
 tower_archer_right = NodePath("../RTowerArcher")
 tower_archer_left = NodePath("../LTowerArcher")
@@ -745,6 +747,14 @@ offset_bottom = -109.0
 texture = ExtResource("17_5g4e1")
 expand_mode = 1
 
+[node name="Button1" type="Button" parent="Castle/Shop/upgrade1" unique_id=1315086891]
+z_index = -1
+layout_mode = 0
+offset_left = 45.0
+offset_top = 33.0
+offset_right = 88.0
+offset_bottom = 83.0
+
 [node name="upgrade2" type="TextureRect" parent="Castle/Shop" unique_id=364114191]
 layout_mode = 0
 offset_left = 77.0
@@ -753,6 +763,14 @@ offset_right = 210.0
 offset_bottom = -109.0
 texture = ExtResource("18_gwq2p")
 expand_mode = 1
+
+[node name="Button2" type="Button" parent="Castle/Shop/upgrade2" unique_id=2050751612]
+z_index = -1
+layout_mode = 0
+offset_left = 45.0
+offset_top = 33.0
+offset_right = 88.0
+offset_bottom = 83.0
 
 [node name="scout" type="AnimatedSprite2D" parent="Castle" unique_id=654565470]
 z_index = -1

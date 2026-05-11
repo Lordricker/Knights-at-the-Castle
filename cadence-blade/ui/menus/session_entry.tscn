@@ -48,7 +48,7 @@ corner_radius_bottom_left = 10
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rl1jp"]
 bg_color = Color(0.95000005, 1, 0, 1)
 
-[node name="SessionEntry" type="Control" unique_id=1428386207 node_paths=PackedStringArray("play_button", "join_button", "private_toggle", "session_id_label", "character_buttons", "character_covers")]
+[node name="SessionEntry" type="Control" unique_id=1428386207 node_paths=PackedStringArray("play_button", "join_button", "private_toggle", "session_id_label")]
 custom_minimum_size = Vector2(320, 936)
 layout_mode = 3
 anchors_preset = 0
@@ -57,8 +57,6 @@ play_button = NodePath("PlayButton")
 join_button = NodePath("JoinButton")
 private_toggle = NodePath("privateToggle")
 session_id_label = NodePath("sessionID")
-character_buttons = [NodePath("knightbutton"), NodePath("archerbutton")]
-character_covers = [NodePath("KnightCover"), NodePath("ArcherCover")]
 
 [node name="Longbanner" type="Sprite2D" parent="." unique_id=797657117]
 position = Vector2(468, 203)
