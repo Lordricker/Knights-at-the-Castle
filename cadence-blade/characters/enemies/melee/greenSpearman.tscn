@@ -1,0 +1,195 @@
+[gd_scene format=3 uid="uid://1rqlas7yg3a1"]
+
+[ext_resource type="Script" uid="uid://b2civ401woqp5" path="res://characters/enemies/melee/black_knight.gd" id="1_00qgw"]
+[ext_resource type="Texture2D" uid="uid://cmqha2pse5jai" path="res://assets/sprites/enemies/greenSpearman.png" id="2_c2ecf"]
+[ext_resource type="PackedScene" uid="uid://bkyw3pybjuqjs" path="res://ui/hud/HPBar.tscn" id="3_y77yk"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_xsjc2"]
+size = Vector2(20, 30)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_oxqa8"]
+atlas = ExtResource("2_c2ecf")
+region = Rect2(0, 0, 200, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_o8kyn"]
+atlas = ExtResource("2_c2ecf")
+region = Rect2(200, 0, 200, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_y7v1q"]
+atlas = ExtResource("2_c2ecf")
+region = Rect2(400, 0, 200, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_2gwiv"]
+atlas = ExtResource("2_c2ecf")
+region = Rect2(0, 100, 200, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_nt8k8"]
+atlas = ExtResource("2_c2ecf")
+region = Rect2(200, 100, 200, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_igbm1"]
+atlas = ExtResource("2_c2ecf")
+region = Rect2(400, 100, 200, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_tr0co"]
+atlas = ExtResource("2_c2ecf")
+region = Rect2(0, 200, 200, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_27opt"]
+atlas = ExtResource("2_c2ecf")
+region = Rect2(200, 200, 200, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_mav38"]
+atlas = ExtResource("2_c2ecf")
+region = Rect2(400, 200, 200, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_fbsf3"]
+atlas = ExtResource("2_c2ecf")
+region = Rect2(0, 300, 200, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_utpfy"]
+atlas = ExtResource("2_c2ecf")
+region = Rect2(0, 300, 200, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_4ic5f"]
+atlas = ExtResource("2_c2ecf")
+region = Rect2(200, 300, 200, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_k0nif"]
+atlas = ExtResource("2_c2ecf")
+region = Rect2(200, 300, 200, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_6a77h"]
+atlas = ExtResource("2_c2ecf")
+region = Rect2(400, 300, 200, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_jgt47"]
+atlas = ExtResource("2_c2ecf")
+region = Rect2(0, 400, 200, 100)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_ma6qb"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_oxqa8")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_o8kyn")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_y7v1q")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_2gwiv")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_nt8k8")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_igbm1")
+}],
+"loop": true,
+"name": &"running",
+"speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_tr0co")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_27opt")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_mav38")
+}],
+"loop": false,
+"name": &"slash",
+"speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_fbsf3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_utpfy")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_4ic5f")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_k0nif")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_6a77h")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_jgt47")
+}],
+"loop": false,
+"name": &"smash",
+"speed": 6.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ptajg"]
+size = Vector2(49, 13)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_0412h"]
+size = Vector2(58, 21)
+
+[node name="Node2D" type="Node2D" unique_id=1417772890]
+z_index = 1
+y_sort_enabled = true
+
+[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=160150496 node_paths=PackedStringArray("facing_pivot", "health_bar", "detection_zone")]
+y_sort_enabled = true
+position = Vector2(0, -11)
+collision_layer = 2
+script = ExtResource("1_00qgw")
+slash_damage = 15.0
+slash_hitbox_frames = Array[int]([1])
+knockback_force = 70.0
+max_health = 90.0
+move_speed = 120.0
+facing_pivot = NodePath("Pivot")
+health_bar = NodePath("Pivot/HPBar")
+detection_zone = NodePath("Pivot/DetectionZone")
+knockback_friction = 400.0
+oscillate = true
+oscillate_speed = 0.2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D" unique_id=1533444482]
+visible = false
+position = Vector2(0, 4)
+shape = SubResource("RectangleShape2D_xsjc2")
+
+[node name="Pivot" type="Node2D" parent="CharacterBody2D" unique_id=212786294]
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="CharacterBody2D/Pivot" unique_id=1220205241]
+sprite_frames = SubResource("SpriteFrames_ma6qb")
+animation = &"smash"
+frame = 5
+frame_progress = 1.0
+
+[node name="SlashHitbox" type="Area2D" parent="CharacterBody2D/Pivot" unique_id=1169559059]
+position = Vector2(17, 0)
+monitoring = false
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D/Pivot/SlashHitbox" unique_id=341442971]
+position = Vector2(12.5, 11.5)
+shape = SubResource("RectangleShape2D_ptajg")
+debug_color = Color(0.9536274, 7.70092e-07, 0.5495344, 0.41960785)
+
+[node name="DetectionZone" type="Area2D" parent="CharacterBody2D/Pivot" unique_id=1603263640]
+position = Vector2(7, 0)
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D/Pivot/DetectionZone" unique_id=1099174522]
+position = Vector2(14, 6.5)
+shape = SubResource("RectangleShape2D_0412h")
+debug_color = Color(0.6837786, 0.5034512, 0, 0.41960785)
+
+[node name="HPBar" parent="CharacterBody2D/Pivot" unique_id=1780535160 instance=ExtResource("3_y77yk")]
+position = Vector2(-12, 24)
+rotation = 3.1415927
+scale = Vector2(0.99999964, -1)
