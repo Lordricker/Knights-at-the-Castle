@@ -131,6 +131,17 @@ func _is_attacking() -> bool:
 	return bash_state == BashState.ATTACKING
 
 
+## Override: only players (KillCharacter group) trigger the bash — not the castle hitbox.
+func _get_targets_in_range() -> Array:
+	if detection_zone == null:
+		return []
+	var results: Array = []
+	for body in detection_zone.get_overlapping_bodies():
+		if body.is_in_group(&"KillCharacter") and not body.get("is_dead"):
+			results.append(body)
+	return results
+
+
 ## Returns the nearest CharacterBase node in the "KillCharacter" group that is alive.
 func _get_nearest_player() -> Node2D:
 	var players := get_tree().get_nodes_in_group("KillCharacter")

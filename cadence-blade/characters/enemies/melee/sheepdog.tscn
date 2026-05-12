@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://cc5rsxrl2ed31"]
 
-[ext_resource type="Script" path="res://characters/enemies/melee/sheepdog.gd" id="1_f2l6w"]
+[ext_resource type="Script" uid="uid://cqm7bxnrst6aw" path="res://characters/enemies/melee/sheepdog.gd" id="1_f2l6w"]
 [ext_resource type="Texture2D" uid="uid://dsh2ltcptotgs" path="res://assets/sprites/enemies/SheepDog.png" id="2_57bmp"]
 [ext_resource type="PackedScene" uid="uid://bkyw3pybjuqjs" path="res://ui/hud/HPBar.tscn" id="3_bdwof"]
 
@@ -107,12 +107,15 @@ collision_layer = 2
 script = ExtResource("1_f2l6w")
 bash_damage = 20.0
 bash_hitbox_frames = Array[int]([2, 3, 4])
-knockback_force = 100.0
-bash_lunge_speed = 400.0
+knockback_force = 50.0
+bash_lunge_speed = 300.0
 body_box = NodePath("CollisionShape2D")
+max_health = 20.0
+move_speed = 150.0
 facing_pivot = NodePath("Pivot")
 health_bar = NodePath("Pivot/HPBar")
 detection_zone = NodePath("Pivot/DetectionZone")
+knockback_friction = 50.0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D" unique_id=1533444482]
 position = Vector2(3.5, -8.5)
