@@ -5,7 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://tguwfea61v0y" path="res://FX/DeathPoof.tscn" id="2_pfm7v"]
 [ext_resource type="Texture2D" uid="uid://bjrdk6nhhom4" path="res://level/backgroundSprites/paralax map.png" id="3_gtrn2"]
 [ext_resource type="Texture2D" uid="uid://c665lghwlbqwj" path="res://level/backgroundSprites/Tower.png" id="4_4v7nf"]
-[ext_resource type="Script" path="res://level/variants/paralax_map.gd" id="4_p3vt1"]
+[ext_resource type="Script" uid="uid://dledtke7x1i4g" path="res://level/variants/paralax_map.gd" id="4_p3vt1"]
 [ext_resource type="PackedScene" uid="uid://vqn6c6fo34d1" path="res://characters/castle.tscn" id="5_4v7nf"]
 [ext_resource type="Texture2D" uid="uid://bl41b5s5e5u7y" path="res://level/backgroundSprites/Clouds_02.png" id="8_hah43"]
 [ext_resource type="Script" uid="uid://dj8qa3itlkqdw" path="res://characters/enemies/enemy_type_config.gd" id="8_pr8jp"]
@@ -67,7 +67,7 @@ point_count = 2
 
 [sub_resource type="Curve" id="Curve_5g4e1"]
 _limits = [0.0, 10.0, 0.0, 2.0]
-_data = [Vector2(0, 5), 0.0, 0.0, 0, 0, Vector2(0.8494625, 2.5), 0.0, 0.0, 0, 0]
+_data = [Vector2(0, 5), 0.0, 0.0, 0, 0, Vector2(0.60536397, 1.1173639), 0.0, 0.0, 0, 0]
 point_count = 2
 
 [sub_resource type="Resource" id="Resource_gwq2p"]
@@ -86,9 +86,9 @@ point_count = 2
 metadata/_snap_enabled = true
 
 [sub_resource type="Curve" id="Curve_pmto4"]
-_limits = [0.0, 10.0, 0.0, 2.0]
-_data = [Vector2(0.29999, 0), 0.0, 5.185185, 0, 0, Vector2(0.3, 2), 10.5880165, 10.5880165, 0, 0, Vector2(1.15, 10), 0.0, 0.0, 0, 0]
-point_count = 3
+_limits = [0.0, 87.5, 0.0, 2.0]
+_data = [Vector2(0, 87.5), 0.0, 0.0, 0, 0, Vector2(0.29997998, 87.5), 0.0, 0.0, 0, 0, Vector2(0.29999, 0), 0.0, 5.185185, 0, 0, Vector2(0.3, 2), 10.5880165, 10.5880165, 0, 0, Vector2(1.15, 10), 0.0, 0.0, 0, 0]
+point_count = 5
 metadata/_snap_enabled = true
 metadata/_snap_count = 20
 
@@ -139,8 +139,8 @@ metadata/_custom_type_script = "uid://dj8qa3itlkqdw"
 
 [sub_resource type="Curve" id="Curve_3hhgk"]
 _limits = [0.0, 20.0, 0.0, 2.0]
-_data = [Vector2(0, 20), 0.0, 0.0, 0, 0, Vector2(0.22222221, 5.819936), 0.0, 0.0, 0, 0, Vector2(0.8494625, 2.5), 0.0, 0.0, 0, 0]
-point_count = 3
+_data = [Vector2(0, 1.1897106), 0.0, 0.0, 0, 0]
+point_count = 1
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_xsjc2"]
 size = Vector2(20, 30)
@@ -252,6 +252,7 @@ metadata/_custom_type_script = "uid://dnnh0acalw8gk"
 
 [sub_resource type="Resource" id="Resource_4ddxt"]
 script = ExtResource("9_154h8")
+display_name = "green spearman"
 scene = ExtResource("19_trs4y")
 pool_tickets_curve = SubResource("Curve_pmto4")
 max_alive_curve = SubResource("Curve_karr3")

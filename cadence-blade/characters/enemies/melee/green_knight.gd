@@ -50,6 +50,10 @@ extends EnemyBase
 @export var slash2_attack_frame: int = 4
 ## Knockback force applied to targets hit by slash2.
 @export var slash2_knockback_force: float = 350.0
+## Parent CPUParticles2D node to emit during the slash2 animation.
+@export var slash2_particles: CPUParticles2D
+## Frame index (0-based) on which to emit slash2_particles.
+@export var slash2_particle_frame: int = 4
 
 
 # ---- Block -------------------------------------------------------------------
@@ -226,6 +230,8 @@ func _on_frame_changed() -> void:
 			_set_hitbox(slash_hitbox, animated_sprite.frame == slash_attack_frame)
 		GKState.SLASHING2:
 			_set_hitbox(slash2_hitbox, animated_sprite.frame == slash2_attack_frame)
+			if slash2_particles != null and animated_sprite.frame == slash2_particle_frame:
+				slash2_particles.restart()
 
 
 func _on_animation_finished() -> void:

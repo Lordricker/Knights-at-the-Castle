@@ -140,7 +140,7 @@ size = Vector2(58, 21)
 z_index = 1
 y_sort_enabled = true
 
-[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=160150496 node_paths=PackedStringArray("slash_hitbox", "slash2_hitbox", "block_zone", "facing_pivot", "health_bar", "detection_zone")]
+[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=160150496 node_paths=PackedStringArray("slash_hitbox", "slash2_hitbox", "slash2_particles", "block_zone", "facing_pivot", "health_bar", "detection_zone")]
 y_sort_enabled = true
 position = Vector2(0, -11)
 collision_layer = 2
@@ -148,6 +148,8 @@ script = ExtResource("1_00qgw")
 slash_hitbox = NodePath("Pivot/SlashHitbox")
 slash_attack_frame = 1
 slash2_hitbox = NodePath("Pivot/SlashHitbox")
+slash2_knockback_force = 600.0
+slash2_particles = NodePath("../Slash2Effect")
 block_zone = NodePath("Pivot/SlashHitbox")
 enable_block = false
 max_health = 150.0
@@ -193,3 +195,28 @@ debug_color = Color(0.6837786, 0.5034512, 0, 0.41960785)
 position = Vector2(-12, 24)
 rotation = 3.1415927
 scale = Vector2(0.99999964, -1)
+
+[node name="Slash2Effect" type="CPUParticles2D" parent="." unique_id=1638209499]
+position = Vector2(52, 11)
+emitting = false
+amount = 20
+lifetime = 0.09999999999999999
+one_shot = true
+explosiveness = 0.9
+spread = 12.63
+gravity = Vector2(0, 200)
+initial_velocity_min = 260.61
+initial_velocity_max = 260.61
+
+[node name="CPUParticles2D" type="CPUParticles2D" parent="Slash2Effect" unique_id=1138704513]
+position = Vector2(2, 0)
+emitting = false
+amount = 20
+lifetime = 0.09999999999999999
+one_shot = true
+explosiveness = 0.9
+direction = Vector2(-1, 0)
+spread = 12.63
+gravity = Vector2(0, 200)
+initial_velocity_min = 260.61
+initial_velocity_max = 260.61
