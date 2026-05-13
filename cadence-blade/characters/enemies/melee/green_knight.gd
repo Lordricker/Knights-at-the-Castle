@@ -63,6 +63,8 @@ extends EnemyBase
 @export_range(0.0, 100.0, 1.0) var block_damage_reduction: float = 20.0
 ## Knockback force applied back to the attacker when a hit is blocked.
 @export var block_knockback_force: float = 300.0
+## When unchecked the enemy never uses the block action (e.g. spearman variants).
+@export var enable_block: bool = true
 
 @export_group("")
 
@@ -143,10 +145,16 @@ func _is_attacking() -> bool:
 # ---- Actions -----------------------------------------------------------------
 
 func _begin_random_action() -> void:
-	match randi() % 3:
-		0: _begin_slash()
-		1: _begin_slash2()
-		2: _begin_block()
+	if enable_block:
+		match randi() % 3:
+			0: _begin_slash()
+			1: _begin_slash2()
+			2: _begin_block()
+	else:
+		if randi() % 2 == 0:
+			_begin_slash()
+		else:
+			_begin_slash2()
 
 
 func _begin_slash() -> void:

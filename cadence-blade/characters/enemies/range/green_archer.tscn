@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://b8gftcetbxiww"]
 
-[ext_resource type="Script" uid="uid://cblarch3rsc0p" path="res://characters/enemies/range/black_archer.gd" id="1_6fvnt"]
+[ext_resource type="Script" uid="uid://cmdxod78uwp8o" path="res://characters/enemies/range/green_archer.gd" id="1_6fvnt"]
 [ext_resource type="PackedScene" uid="uid://d7m3taty6w01" path="res://FX/arrow.tscn" id="2_8cfsu"]
 [ext_resource type="Texture2D" uid="uid://chlus6rpbaf5d" path="res://assets/sprites/enemies/greenArcher.png" id="3_yl5no"]
 [ext_resource type="PackedScene" uid="uid://bkyw3pybjuqjs" path="res://ui/hud/HPBar.tscn" id="4_jmff2"]
@@ -76,19 +76,19 @@ animations = [{
 "speed": 6.0
 }, {
 "frames": [{
-"duration": 1.0,
+"duration": 2.0,
 "texture": SubResource("AtlasTexture_v0qaa")
 }, {
-"duration": 1.0,
+"duration": 2.0,
 "texture": SubResource("AtlasTexture_brx7x")
 }, {
-"duration": 1.0,
+"duration": 2.0,
 "texture": SubResource("AtlasTexture_ripna")
 }, {
-"duration": 1.0,
+"duration": 2.0,
 "texture": SubResource("AtlasTexture_npmd4")
 }, {
-"duration": 1.0,
+"duration": 2.0,
 "texture": SubResource("AtlasTexture_55ple")
 }, {
 "duration": 1.0,
@@ -106,7 +106,7 @@ animations = [{
 }]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_c4v63"]
-size = Vector2(24.532898, 267.2583)
+size = Vector2(109.760956, 283.0622)
 
 [node name="BlackArcher" type="Node2D" unique_id=44163915]
 
@@ -120,7 +120,10 @@ arrow_damage = 20.0
 arrow_speed = 550.0
 arrow_lifetime = 1.5
 arrow_angle = 12.0
-max_health = 60.0
+combo_attack_modifier = 2.0
+combo_arrow_speed = 800.0
+combo_arrow_lifetime = 1.0
+combo_arrow_angle = 7.0
 facing_pivot = NodePath("Pivot")
 health_bar = NodePath("Pivot/HPBar")
 detection_zone = NodePath("Pivot/DetectionZone")
@@ -145,9 +148,9 @@ position = Vector2(7, 0)
 monitorable = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D/Pivot/DetectionZone" unique_id=688663001]
-position = Vector2(179.44667, -117.00061)
-rotation = -0.30892327
-scale = Vector2(0.9999999, 0.9999999)
+position = Vector2(194, -98.99999)
+rotation = -0.3089233
+scale = Vector2(0.9999998, 0.9999998)
 shape = SubResource("RectangleShape2D_c4v63")
 debug_color = Color(0.6837786, 0.5034512, 0, 0.41960785)
 

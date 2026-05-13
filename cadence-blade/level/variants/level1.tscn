@@ -20,6 +20,7 @@
 [ext_resource type="PackedScene" uid="uid://dbk1qvdllygxo" path="res://characters/Players/RedKnight.tscn" id="14_8ow3n"]
 [ext_resource type="Script" uid="uid://dcj5kusq32vwi" path="res://characters/castle_inside.gd" id="15_154h8"]
 [ext_resource type="Script" uid="uid://dpjae2t3dv3ia" path="res://core/level_camera.gd" id="15_lvlcam"]
+[ext_resource type="PackedScene" uid="uid://b8gftcetbxiww" path="res://characters/enemies/range/green_archer.tscn" id="15_pl843"]
 [ext_resource type="Script" uid="uid://b2civ401woqp5" path="res://characters/enemies/melee/black_knight.gd" id="15_v4ptn"]
 [ext_resource type="Texture2D" uid="uid://c8ilbggv3816p" path="res://assets/sprites/enemies/blackSpearman.png" id="16_0kldc"]
 [ext_resource type="Script" uid="uid://cidykeebxaujw" path="res://core/Upgrades/upgrade_config.gd" id="16_edmi1"]
@@ -29,6 +30,7 @@
 [ext_resource type="Texture2D" uid="uid://wxcyewyr8jxt" path="res://core/Upgrades/plus5spd.png" id="18_gwq2p"]
 [ext_resource type="PackedScene" uid="uid://cc5rsxrl2ed31" path="res://characters/enemies/melee/sheepdog.tscn" id="18_keknm"]
 [ext_resource type="Texture2D" uid="uid://dtovxjqw2h3pi" path="res://core/Upgrades/castlehp250.png" id="19_gwq2p"]
+[ext_resource type="PackedScene" uid="uid://1rqlas7yg3a1" path="res://characters/enemies/melee/greenSpearman.tscn" id="19_trs4y"]
 [ext_resource type="PackedScene" uid="uid://0cyfncn8h6nd" path="res://ui/hud/hud.tscn" id="20_h2mhx"]
 [ext_resource type="Texture2D" uid="uid://c1vdscvx00hm0" path="res://core/Upgrades/healcastle250.png" id="20_tm2co"]
 [ext_resource type="Texture2D" uid="uid://cne0q84ecjudd" path="res://assets/sprites/MonkSprites.png" id="21_tm2co"]
@@ -85,9 +87,10 @@ metadata/_snap_enabled = true
 
 [sub_resource type="Curve" id="Curve_pmto4"]
 _limits = [0.0, 10.0, 0.0, 2.0]
-_data = [Vector2(0.2, 0), 0.0, 5.185185, 0, 0, Vector2(0.20001, 2), 10.5880165, 10.5880165, 0, 0, Vector2(1.15, 10), 0.0, 0.0, 0, 0]
+_data = [Vector2(0.29999, 0), 0.0, 5.185185, 0, 0, Vector2(0.3, 2), 10.5880165, 10.5880165, 0, 0, Vector2(1.15, 10), 0.0, 0.0, 0, 0]
 point_count = 3
 metadata/_snap_enabled = true
+metadata/_snap_count = 20
 
 [sub_resource type="Resource" id="Resource_tm2co"]
 script = ExtResource("9_154h8")
@@ -113,10 +116,25 @@ pool_tickets_curve = SubResource("Curve_5g4e1")
 flow_kill_coin_tier = 2
 metadata/_custom_type_script = "uid://dnnh0acalw8gk"
 
+[sub_resource type="Curve" id="Curve_karr3"]
+_limits = [0.0, 5.0, 0.0, 1.0]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 4.620623), 4.890959, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Resource" id="Resource_732d0"]
+script = ExtResource("9_154h8")
+display_name = "greenArcher"
+scene = ExtResource("15_pl843")
+pool_tickets_curve = SubResource("Curve_pmto4")
+max_alive_curve = SubResource("Curve_karr3")
+coin_tier = 2
+flow_kill_coin_tier = 3
+metadata/_custom_type_script = "uid://dnnh0acalw8gk"
+
 [sub_resource type="Resource" id="Resource_v4ptn"]
 script = ExtResource("8_pr8jp")
 type_name = "Acher"
-variants = Array[ExtResource("9_154h8")]([SubResource("Resource_61uay")])
+variants = Array[ExtResource("9_154h8")]([SubResource("Resource_61uay"), SubResource("Resource_732d0")])
 metadata/_custom_type_script = "uid://dj8qa3itlkqdw"
 
 [sub_resource type="Curve" id="Curve_3hhgk"]
@@ -232,10 +250,19 @@ pool_tickets_curve = SubResource("Curve_3hhgk")
 flow_kill_coin_tier = 2
 metadata/_custom_type_script = "uid://dnnh0acalw8gk"
 
+[sub_resource type="Resource" id="Resource_4ddxt"]
+script = ExtResource("9_154h8")
+scene = ExtResource("19_trs4y")
+pool_tickets_curve = SubResource("Curve_pmto4")
+max_alive_curve = SubResource("Curve_karr3")
+coin_tier = 2
+flow_kill_coin_tier = 3
+metadata/_custom_type_script = "uid://dnnh0acalw8gk"
+
 [sub_resource type="Resource" id="Resource_3hhgk"]
 script = ExtResource("8_pr8jp")
 type_name = "spearman"
-variants = Array[ExtResource("9_154h8")]([SubResource("Resource_keknm")])
+variants = Array[ExtResource("9_154h8")]([SubResource("Resource_keknm"), SubResource("Resource_4ddxt")])
 metadata/_custom_type_script = "uid://dj8qa3itlkqdw"
 
 [sub_resource type="Curve" id="Curve_keknm"]

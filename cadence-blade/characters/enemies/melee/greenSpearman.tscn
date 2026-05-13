@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://1rqlas7yg3a1"]
 
-[ext_resource type="Script" uid="uid://b2civ401woqp5" path="res://characters/enemies/melee/black_knight.gd" id="1_00qgw"]
+[ext_resource type="Script" uid="uid://cgk8n3rp5txa1" path="res://characters/enemies/melee/green_knight.gd" id="1_00qgw"]
 [ext_resource type="Texture2D" uid="uid://cmqha2pse5jai" path="res://assets/sprites/enemies/greenSpearman.png" id="2_c2ecf"]
 [ext_resource type="PackedScene" uid="uid://bkyw3pybjuqjs" path="res://ui/hud/HPBar.tscn" id="3_y77yk"]
 
@@ -126,12 +126,12 @@ animations = [{
 "texture": SubResource("AtlasTexture_jgt47")
 }],
 "loop": false,
-"name": &"smash",
+"name": &"slash2",
 "speed": 6.0
 }]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ptajg"]
-size = Vector2(49, 13)
+size = Vector2(54, 13)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_0412h"]
 size = Vector2(58, 21)
@@ -140,22 +140,23 @@ size = Vector2(58, 21)
 z_index = 1
 y_sort_enabled = true
 
-[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=160150496 node_paths=PackedStringArray("facing_pivot", "health_bar", "detection_zone")]
+[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=160150496 node_paths=PackedStringArray("slash_hitbox", "slash2_hitbox", "block_zone", "facing_pivot", "health_bar", "detection_zone")]
 y_sort_enabled = true
 position = Vector2(0, -11)
 collision_layer = 2
 script = ExtResource("1_00qgw")
-slash_damage = 15.0
-slash_hitbox_frames = Array[int]([1])
-knockback_force = 70.0
-max_health = 90.0
-move_speed = 120.0
+slash_hitbox = NodePath("Pivot/SlashHitbox")
+slash_attack_frame = 1
+slash2_hitbox = NodePath("Pivot/SlashHitbox")
+block_zone = NodePath("Pivot/SlashHitbox")
+enable_block = false
+max_health = 150.0
+move_speed = 100.0
 facing_pivot = NodePath("Pivot")
 health_bar = NodePath("Pivot/HPBar")
 detection_zone = NodePath("Pivot/DetectionZone")
 knockback_friction = 400.0
 oscillate = true
-oscillate_speed = 0.2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D" unique_id=1533444482]
 visible = false
@@ -166,9 +167,8 @@ shape = SubResource("RectangleShape2D_xsjc2")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="CharacterBody2D/Pivot" unique_id=1220205241]
 sprite_frames = SubResource("SpriteFrames_ma6qb")
-animation = &"smash"
-frame = 5
-frame_progress = 1.0
+animation = &"slash2"
+frame = 4
 
 [node name="SlashHitbox" type="Area2D" parent="CharacterBody2D/Pivot" unique_id=1169559059]
 position = Vector2(17, 0)
@@ -176,7 +176,7 @@ monitoring = false
 monitorable = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D/Pivot/SlashHitbox" unique_id=341442971]
-position = Vector2(12.5, 11.5)
+position = Vector2(15, 11.5)
 shape = SubResource("RectangleShape2D_ptajg")
 debug_color = Color(0.9536274, 7.70092e-07, 0.5495344, 0.41960785)
 
