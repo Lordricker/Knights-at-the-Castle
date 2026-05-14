@@ -50,6 +50,10 @@ extends CanvasLayer
 var _buttons: Array[Button] = []
 var _selected: int = 0
 var _coins_connected: bool = false
+var _prev_coins: int = 0
+var _prev_minute: int = -1
+var _coins_tween: Tween = null
+var _timer_tween: Tween = null
 
 # ── Lifecycle ─────────────────────────────────────────────────────────────────
 
@@ -84,7 +88,11 @@ func _process(_delta: float) -> void:
 	# Update the live timer label every frame.
 	if hud_timer_label != null and run_manager != null and "time_elapsed" in run_manager:
 		var total: int = int(run_manager.time_elapsed)
-		hud_timer_label.text = "%d:%02d" % [total / 60, total % 60]
+		var minutes: int = total / 60
+		hud_timer_label.text = "%d:%02d" % [minutes, total % 60]
+		if minutes > 0 and minutes != _prev_minute:
+			_prev_minute = minutes
+			_play_timer_juice()
 	# Retry coin connection each frame until a player enters the scene tree.
 	if not _coins_connected:
 		_try_connect_coins()
@@ -144,14 +152,42 @@ func _try_connect_coins() -> void:
 		if p.has_signal(&"coins_changed"):
 			p.coins_changed.connect(_on_coins_changed)
 			if "coins" in p:
-				_on_coins_changed(int(p.coins))
+				var initial: int = int(p.coins)
+				hud_coins_label.text = str(initial)
+				_prev_coins = initial
 			_coins_connected = true
 			return
 
 
 func _on_coins_changed(new_coins: int) -> void:
-	if hud_coins_label != null:
-		hud_coins_label.text = str(new_coins)
+	if hud_coins_label == null:
+		return
+	hud_coins_label.text = str(new_coins)
+	if new_coins > _prev_coins:
+		_play_coins_juice(Color.GREEN)
+	elif new_coins < _prev_coins:
+		_play_coins_juice(Color.RED)
+	_prev_coins = new_coins
+
+
+func _play_coins_juice(color: Color) -> void:
+	hud_coins_label.pivot_offset = hud_coins_label.size / 3.0
+	if _coins_tween:
+		_coins_tween.kill()
+	hud_coins_label.modulate = color
+	_coins_tween = create_tween()
+	_coins_tween.tween_property(hud_coins_label, "scale", Vector2(1.35, 1.35), 0.12).set_ease(Tween.EASE_OUT)
+	_coins_tween.tween_property(hud_coins_label, "scale", Vector2(1.0, 1.0), 0.2).set_ease(Tween.EASE_IN)
+	_coins_tween.parallel().tween_property(hud_coins_label, "modulate", Color.WHITE, 0.25).set_ease(Tween.EASE_IN)
+
+
+func _play_timer_juice() -> void:
+	hud_timer_label.pivot_offset = hud_timer_label.size / 3.0
+	if _timer_tween:
+		_timer_tween.kill()
+	_timer_tween = create_tween()
+	_timer_tween.tween_property(hud_timer_label, "scale", Vector2(1.4, 1.4), 0.15).set_ease(Tween.EASE_OUT)
+	_timer_tween.tween_property(hud_timer_label, "scale", Vector2(1.0, 1.0), 0.25).set_ease(Tween.EASE_IN)
 
 
 # ── Game over ─────────────────────────────────────────────────────────────────

@@ -16,6 +16,9 @@ extends Label
 ## The RunManager node — must have a float property `time_elapsed`.
 @export var run_manager: Node
 
+var _prev_minute: int = -1
+var _active_tween: Tween = null
+
 
 func _process(_delta: float) -> void:
 	if run_manager == null or not "time_elapsed" in run_manager:
@@ -24,3 +27,17 @@ func _process(_delta: float) -> void:
 	var minutes: int = total_seconds / 60
 	var seconds: int = total_seconds % 60
 	text = "%d:%02d" % [minutes, seconds]
+
+	if minutes > 0 and minutes != _prev_minute:
+		_prev_minute = minutes
+		_play_minute_juice()
+
+
+func _play_minute_juice() -> void:
+	# Centre pivot so the label grows from its own centre.
+	pivot_offset = size / 2.0
+	if _active_tween:
+		_active_tween.kill()
+	_active_tween = create_tween()
+	_active_tween.tween_property(self, "scale", Vector2(1.4, 1.4), 0.15).set_ease(Tween.EASE_OUT)
+	_active_tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.25).set_ease(Tween.EASE_IN)

@@ -20,6 +20,8 @@ extends Label
 #   label grows from its centre regardless of anchor position.
 
 var _connected: bool = false
+var _prev_coins: int = 0
+var _active_tween: Tween = null
 
 
 func _ready() -> void:
@@ -38,24 +40,38 @@ func _try_connect_player() -> void:
 	for p: Node in players:
 		if p.has_signal(&"coins_changed"):
 			p.coins_changed.connect(_on_coins_changed)
-			# Read current value immediately if the property exists.
+			# Read current value immediately without triggering juice.
 			if "coins" in p:
-				_on_coins_changed(int(p.coins))
+				var initial: int = int(p.coins)
+				text = "Coins: %d" % initial
+				_prev_coins = initial
 			_connected = true
 			return
 
 
 func _on_coins_changed(new_coins: int) -> void:
 	text = "Coins: %d" % new_coins
+	if new_coins > _prev_coins:
+		_play_juice(Color.GREEN)
+	elif new_coins < _prev_coins:
+		_play_juice(Color.RED)
+	_prev_coins = new_coins
+
+
+func _play_juice(color: Color) -> void:
+	# Centre the scale pivot so the label grows outwards from its own centre.
+	pivot_offset = size / 2.0
+	if _active_tween:
+		_active_tween.kill()
+	modulate = color
+	_active_tween = create_tween()
+	_active_tween.tween_property(self, "scale", Vector2(1.35, 1.35), 0.12).set_ease(Tween.EASE_OUT)
+	_active_tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.2).set_ease(Tween.EASE_IN)
+	_active_tween.parallel().tween_property(self, "modulate", Color.WHITE, 0.25).set_ease(Tween.EASE_IN)
 
 
 ## Called by CastleInside when the player cannot afford an upgrade.
 ## Flashes the label red and briefly enlarges it, then returns to normal.
 func flash_insufficient() -> void:
-	# Centre the scale pivot so the label grows outwards from its own centre.
-	pivot_offset = size / 2.0
-	modulate = Color.RED
-	var tween := create_tween()
-	tween.tween_property(self, "scale", Vector2(1.35, 1.35), 0.12).set_ease(Tween.EASE_OUT)
-	tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.2).set_ease(Tween.EASE_IN)
+	_play_juice(Color.RED)
 	tween.tween_property(self, "modulate", Color.WHITE, 0.15)

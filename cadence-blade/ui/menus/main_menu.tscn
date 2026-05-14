@@ -4,6 +4,7 @@
 [ext_resource type="Texture2D" uid="uid://b56ydo3qajwgp" path="res://assets/sprites/UI/title.png" id="2_vuv8w"]
 [ext_resource type="PackedScene" uid="uid://bqd7aeac31hoi" path="res://ui/menus/session_entry.tscn" id="3_5ssi0"]
 [ext_resource type="FontFile" uid="uid://3k4f02awf4kq" path="res://assets/fonts/FRSCRIPT.TTF" id="3_h223f"]
+[ext_resource type="FontFile" uid="uid://eayy706a4ihb" path="res://assets/fonts/JMH Typewriter.ttf" id="3_w22xg"]
 [ext_resource type="Texture2D" uid="uid://bxiea3eu0sstp" path="res://assets/sprites/UI/redRibbon.png" id="4_l3r6a"]
 [ext_resource type="Texture2D" uid="uid://qp1cx7diu7ko" path="res://assets/sprites/UI/yellowRibbon.png" id="5_1kjlq"]
 [ext_resource type="Texture2D" uid="uid://fghf0bg470be" path="res://assets/Textures/stonewallTexture.png" id="6_u0fm7"]
@@ -92,7 +93,7 @@ pivot_offset_ratio = Vector2(0.5, 0.5)
 theme_override_colors/font_color = Color(0, 0, 0, 1)
 theme_override_colors/font_pressed_color = Color(0.15487596, 0.154876, 0.15487596, 1)
 theme_override_colors/font_hover_pressed_color = Color(0.16745102, 0.16745102, 0.16745102, 1)
-theme_override_fonts/font = ExtResource("3_h223f")
+theme_override_fonts/font = ExtResource("3_w22xg")
 theme_override_font_sizes/font_size = 59
 theme_override_styles/normal = SubResource("StyleBoxTexture_u0fm7")
 theme_override_styles/pressed = SubResource("StyleBoxTexture_vuv8w")
@@ -121,7 +122,7 @@ pivot_offset_ratio = Vector2(0.5, 0.5)
 theme_override_colors/font_color = Color(0, 0, 0, 1)
 theme_override_colors/font_pressed_color = Color(0.15487596, 0.154876, 0.15487596, 1)
 theme_override_colors/font_hover_pressed_color = Color(0.16745102, 0.16745102, 0.16745102, 1)
-theme_override_fonts/font = ExtResource("3_h223f")
+theme_override_fonts/font = ExtResource("3_w22xg")
 theme_override_font_sizes/font_size = 59
 theme_override_styles/normal = SubResource("StyleBoxTexture_u0fm7")
 theme_override_styles/pressed = SubResource("StyleBoxTexture_vuv8w")
@@ -150,6 +151,7 @@ theme_override_font_sizes/font_size = 50
 text = "10909"
 
 [node name="sessionscreen" type="Control" parent="." unique_id=1110293224]
+visible = false
 layout_mode = 3
 anchors_preset = 8
 anchor_left = 0.5

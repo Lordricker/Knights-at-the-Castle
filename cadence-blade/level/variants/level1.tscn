@@ -5,7 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://tguwfea61v0y" path="res://FX/DeathPoof.tscn" id="2_pfm7v"]
 [ext_resource type="Texture2D" uid="uid://bjrdk6nhhom4" path="res://level/backgroundSprites/paralax map.png" id="3_gtrn2"]
 [ext_resource type="Texture2D" uid="uid://c665lghwlbqwj" path="res://level/backgroundSprites/Tower.png" id="4_4v7nf"]
-[ext_resource type="Script" uid="uid://dledtke7x1i4g" path="res://level/variants/paralax_map.gd" id="4_p3vt1"]
+[ext_resource type="Script" path="res://level/variants/paralax_map.gd" id="4_p3vt1"]
 [ext_resource type="PackedScene" uid="uid://vqn6c6fo34d1" path="res://characters/castle.tscn" id="5_4v7nf"]
 [ext_resource type="Texture2D" uid="uid://bl41b5s5e5u7y" path="res://level/backgroundSprites/Clouds_02.png" id="8_hah43"]
 [ext_resource type="Script" uid="uid://dj8qa3itlkqdw" path="res://characters/enemies/enemy_type_config.gd" id="8_pr8jp"]
@@ -646,12 +646,12 @@ position = Vector2(0, 50)
 texture = ExtResource("1_0eib5")
 
 [node name="Tower" type="Sprite2D" parent="." unique_id=1940326821]
-z_index = -1
+z_index = -2
 position = Vector2(-156, -131)
 texture = ExtResource("4_4v7nf")
 
 [node name="Tower2" type="Sprite2D" parent="." unique_id=1200231326]
-z_index = -1
+z_index = -2
 position = Vector2(159, -132)
 texture = ExtResource("4_4v7nf")
 
