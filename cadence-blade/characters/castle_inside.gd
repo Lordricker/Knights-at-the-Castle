@@ -201,6 +201,10 @@ func _on_monk_zone_body_entered(body: Node2D) -> void:
 	player.healing_locked = true
 	if monk_sprite != null:
 		monk_sprite.play(&"Heal")
+	# Notify the host so it applies the same healing to the joiner's puppet.
+	# Without this the host's state snapshot overwrites the joiner's locally healed HP.
+	if GameManager.session_id != "" and not GameManager.is_host:
+		WebRTCManager.send_reliable({"t": "monk_zone", "in": 1})
 
 
 func _on_monk_zone_body_exited(body: Node2D) -> void:
@@ -213,6 +217,8 @@ func _on_monk_zone_body_exited(body: Node2D) -> void:
 	player.healing_locked = false
 	if monk_sprite != null:
 		monk_sprite.play(&"Idle")
+	if GameManager.session_id != "" and not GameManager.is_host:
+		WebRTCManager.send_reliable({"t": "monk_zone", "in": 0})
 	_clear_player_if_unused()
 
 
@@ -245,6 +251,13 @@ func _on_blacksmith_zone_body_entered(body: Node2D) -> void:
 		if GameManager.session_id == "" or GameManager.is_host:
 			_roll_upgrades()
 			_refresh_timer = refresh_interval
+		else:
+			# Joiner has no cached offers — ask the host for the current ones.
+			WebRTCManager.send_reliable({"t": "request_upgrade_offers"})
+	elif GameManager.session_id != "" and not GameManager.is_host:
+		# Joiner re-entered the shop with stale cached offers. Always re-sync
+		# with the host so the slot indices stay consistent for purchases.
+		WebRTCManager.send_reliable({"t": "request_upgrade_offers"})
 	_show_upgrade_ui(true)
 
 
@@ -274,8 +287,13 @@ func _handle_blacksmith_refresh(delta: float) -> void:
 		if _player_in_blacksmith_zone:
 			# Player is present -- re-roll and display immediately.
 			_roll_upgrades()
+		elif GameManager.session_id != "" and GameManager.is_host:
+			# Multiplayer host away from shop: re-roll and broadcast so the joiner
+			# always has valid offers to purchase. Never clear _offered on the host
+			# while a session is active — on_upgrade_buy depends on it being non-null.
+			_roll_upgrades()
 		else:
-			# Player is away -- clear stale offers so next visit re-rolls fresh.
+			# Solo: player is away -- clear stale offers so next visit re-rolls fresh.
 			_offered[0] = null
 			_offered[1] = null
 
@@ -574,8 +592,32 @@ func on_upgrade_applied(data: Dictionary) -> void:
 				if slot == buyer_slot and slot == local_slot:
 					_apply_upgrade_to_buyer(dummy, node as CharacterBase)
 					break
+	# Tower archer upgrades are world effects, but the joiner's scene also needs the
+	# archer activated — the host's _apply_upgrade_to_buyer only runs on the host side.
+	match dummy.stat_type:
+		UpgradeConfig.StatType.TOWER_ARCHER_RIGHT:
+			_activate_tower_archer(tower_archer_right)
+		UpgradeConfig.StatType.TOWER_ARCHER_LEFT:
+			_activate_tower_archer(tower_archer_left)
 	_flash_purchase_icon(0 if buyer_slot == 2 else 1)
 
+
+## Called by RunManager when the joiner requests current upgrade offers (host only).
+## Re-sends the existing offers, or rolls fresh ones if the host has none yet.
+func on_request_upgrade_offers() -> void:
+	if not GameManager.is_host:
+		return
+	if _offered[0] == null and _offered[1] == null:
+		# Host hasn't visited the blacksmith yet — roll now so the joiner sees something.
+		_roll_upgrades()
+		_refresh_timer = refresh_interval
+	else:
+		# Re-broadcast the existing offers.
+		WebRTCManager.send_reliable({
+			"t":  "upgrade_offers",
+			"s0": _upgrade_index(_offered[0]),
+			"s1": _upgrade_index(_offered[1]),
+		})
 
 ## Called by RunManager when an "upgrade_denied" packet arrives (joiner only).
 func on_upgrade_denied(data: Dictionary) -> void:

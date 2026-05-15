@@ -86,9 +86,9 @@ point_count = 2
 metadata/_snap_enabled = true
 
 [sub_resource type="Curve" id="Curve_pmto4"]
-_limits = [0.0, 87.5, 0.0, 2.0]
-_data = [Vector2(0, 87.5), 0.0, 0.0, 0, 0, Vector2(0.29997998, 87.5), 0.0, 0.0, 0, 0, Vector2(0.29999, 0), 0.0, 5.185185, 0, 0, Vector2(0.3, 2), 10.5880165, 10.5880165, 0, 0, Vector2(1.15, 10), 0.0, 0.0, 0, 0]
-point_count = 5
+_limits = [0.0, 10.0, 0.0, 2.0]
+_data = [Vector2(0.29999, 0), 0.0, 5.185185, 0, 0, Vector2(0.3, 2), 10.5880165, 10.5880165, 0, 0, Vector2(1.15, 10), 0.0, 0.0, 0, 0]
+point_count = 3
 metadata/_snap_enabled = true
 metadata/_snap_count = 20
 

@@ -89,6 +89,10 @@ var _joiner_last_input_seq: int = -1
 var _next_input_seq: int = 0
 var _last_acked_input_seq: int = -1
 var _pending_inputs: Array[Dictionary] = []
+## Host: true while the joiner's character is standing in the monk healing zone.
+var _joiner_in_monk_zone: bool = false
+## Host: heal rate (HP/sec) to apply to the joiner puppet while in the monk zone.
+var _joiner_heal_rate: float = 5.0
 
 
 # ── Lifecycle ─────────────────────────────────────────────────────────────────
@@ -147,6 +151,19 @@ func _process(delta: float) -> void:
 		while _state_snapshot_timer >= snapshot_interval:
 			_state_snapshot_timer -= snapshot_interval
 			_broadcast_state()
+		# Apply monk healing to the joiner's puppet so the healed HP is included in
+		# the next state snapshot (rather than the joiner healing locally and being
+		# overwritten by the next snapshot). Emit health_changed so the host's
+		# HP bar for the joiner's puppet redraws in real time.
+		if _joiner_in_monk_zone and _joiner_char_node != null and is_instance_valid(_joiner_char_node):
+			if "health" in _joiner_char_node and "max_health" in _joiner_char_node:
+				var _jc_dead: bool = bool(_joiner_char_node.get("is_dead")) if "is_dead" in _joiner_char_node else false
+				if not _jc_dead:
+					var _jc_new_hp: float = minf(_joiner_char_node.health + _joiner_heal_rate * delta, _joiner_char_node.max_health)
+					if _jc_new_hp != _joiner_char_node.health:
+						_joiner_char_node.health = _jc_new_hp
+						if _joiner_char_node.has_signal(&"health_changed"):
+							_joiner_char_node.emit_signal(&"health_changed", _jc_new_hp, _joiner_char_node.max_health)
 	elif not GameManager.is_host and GameManager.session_id != "":
 		# Joiner sends own character's position and animation every frame.
 		_send_joiner_pos()
@@ -185,11 +202,12 @@ func _resolve_castle(node: Node) -> Node:
 
 
 ## Searches the scene tree for a CastleInside node (has on_upgrade_offers method).
+## Uses a recursive search so CastleInside can be nested at any depth in the level.
 func _find_castle_inside() -> Node:
 	var scene := get_tree().current_scene
 	if scene == null:
 		return null
-	for child in scene.get_children(true):
+	for child in scene.find_children("*", "", true, false):
 		if child.has_method("on_upgrade_offers"):
 			return child
 	return null
@@ -512,6 +530,19 @@ func _on_packet_received(data: Dictionary) -> void:
 			# Host rejected joiner's buy request (insufficient coins).
 			if not GameManager.is_host and castle_inside != null and castle_inside.has_method("on_upgrade_denied"):
 				castle_inside.call("on_upgrade_denied", data)
+		"monk_zone":
+			# Joiner entered or exited the monk healing zone — host tracks this and
+			# applies the same healing rate to the joiner's puppet each frame so the
+			# state snapshot reflects the healed HP (local joiner healing would be
+			# overwritten by the snapshot otherwise).
+			if GameManager.is_host:
+				_joiner_in_monk_zone = int(data.get("in", 0)) == 1
+				if _joiner_in_monk_zone and castle_inside != null and "heal_per_second" in castle_inside:
+					_joiner_heal_rate = float(castle_inside.get("heal_per_second"))
+		"request_upgrade_offers":
+			# Joiner entered blacksmith zone with no cached offers — send current ones.
+			if GameManager.is_host and castle_inside != null and castle_inside.has_method("on_request_upgrade_offers"):
+				castle_inside.call("on_request_upgrade_offers")
 
 
 ## Host receives "hello" from joiner — spawn the joiner's character and reply.
@@ -577,6 +608,11 @@ func _send_joiner_pos() -> void:
 		var slot: int = int(ch.get("player_slot")) if "player_slot" in ch else 1
 		if not _is_locally_owned_slot(slot):
 			continue
+		# Don't send position while dead — the host respawns the puppet at the spawn point
+		# and jpos packets with the death position would overwrite it before the joiner
+		# receives the updated state snapshot, causing the joiner to revive at the wrong spot.
+		if "is_dead" in ch and bool(ch.get("is_dead")):
+			break
 		var anim_spr := ch.get("animated_sprite") as AnimatedSprite2D
 		WebRTCManager.send_unreliable({
 			"t":  "jpos",
