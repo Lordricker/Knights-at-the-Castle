@@ -5,7 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://tguwfea61v0y" path="res://FX/DeathPoof.tscn" id="2_pfm7v"]
 [ext_resource type="Texture2D" uid="uid://bjrdk6nhhom4" path="res://level/backgroundSprites/paralax map.png" id="3_gtrn2"]
 [ext_resource type="Texture2D" uid="uid://c665lghwlbqwj" path="res://level/backgroundSprites/Tower.png" id="4_4v7nf"]
-[ext_resource type="Script" path="res://level/variants/paralax_map.gd" id="4_p3vt1"]
+[ext_resource type="Script" uid="uid://dledtke7x1i4g" path="res://level/variants/paralax_map.gd" id="4_p3vt1"]
 [ext_resource type="PackedScene" uid="uid://vqn6c6fo34d1" path="res://characters/castle.tscn" id="5_4v7nf"]
 [ext_resource type="Texture2D" uid="uid://bl41b5s5e5u7y" path="res://level/backgroundSprites/Clouds_02.png" id="8_hah43"]
 [ext_resource type="Script" uid="uid://dj8qa3itlkqdw" path="res://characters/enemies/enemy_type_config.gd" id="8_pr8jp"]
@@ -49,6 +49,7 @@
 [ext_resource type="PackedScene" uid="uid://540q1u1nmwpv" path="res://level/tree_1.tscn" id="34_w77vi"]
 [ext_resource type="PackedScene" uid="uid://bhxy1x077s154" path="res://level/tree_2.tscn" id="35_2lfbx"]
 [ext_resource type="PackedScene" uid="uid://c5hc2fvndx545" path="res://characters/Players/TowerArcher.tscn" id="37_0kldc"]
+[ext_resource type="Texture2D" uid="uid://dp1q75royvjm2" path="res://assets/sprites/EnemyTower.png" id="50_trs4y"]
 
 [sub_resource type="Curve2D" id="Curve2D_0eib5"]
 _data = {
@@ -864,42 +865,89 @@ scale = Vector2(-1, 1)
 
 [node name="HUD" parent="." unique_id=263715054 instance=ExtResource("20_h2mhx")]
 
-[node name="Sheepidle" parent="." unique_id=397917978 instance=ExtResource("30_cblfy")]
+[node name="BelowCastleArea" type="Node" parent="." unique_id=1096428875]
+
+[node name="Sheepidle" parent="BelowCastleArea" unique_id=397917978 instance=ExtResource("30_cblfy")]
 position = Vector2(-195, 335)
 
-[node name="Sheepeat" parent="." unique_id=1406755309 instance=ExtResource("31_nkn60")]
+[node name="Sheepeat" parent="BelowCastleArea" unique_id=1406755309 instance=ExtResource("31_nkn60")]
 position = Vector2(-75, 288)
 
-[node name="Sheepeat2" parent="." unique_id=2144767622 instance=ExtResource("31_nkn60")]
+[node name="Sheepeat2" parent="BelowCastleArea" unique_id=2144767622 instance=ExtResource("31_nkn60")]
 position = Vector2(-8, 367)
-scale = Vector2(-1, 1)
+rotation = -3.1415927
+scale = Vector2(1, -1)
 
-[node name="waterRock1" parent="." unique_id=1511540458 instance=ExtResource("32_gtrn2")]
+[node name="waterRock1" parent="BelowCastleArea" unique_id=1511540458 instance=ExtResource("32_gtrn2")]
 position = Vector2(702, 347)
 
-[node name="waterRock2" parent="." unique_id=1152824597 instance=ExtResource("33_p3vt1")]
+[node name="waterRock2" parent="BelowCastleArea" unique_id=1152824597 instance=ExtResource("33_p3vt1")]
 position = Vector2(975, 370)
 
-[node name="waterRock3" parent="." unique_id=1629260997 instance=ExtResource("32_gtrn2")]
+[node name="waterRock3" parent="BelowCastleArea" unique_id=1629260997 instance=ExtResource("32_gtrn2")]
 position = Vector2(430, 382)
 
-[node name="waterRock4" parent="." unique_id=710525475 instance=ExtResource("32_gtrn2")]
+[node name="waterRock4" parent="BelowCastleArea" unique_id=710525475 instance=ExtResource("32_gtrn2")]
 position = Vector2(638, 372)
 
-[node name="tree1" parent="." unique_id=167099155 instance=ExtResource("34_w77vi")]
+[node name="tree1" parent="BelowCastleArea" unique_id=167099155 instance=ExtResource("34_w77vi")]
 position = Vector2(382, 220)
 
-[node name="tree2" parent="." unique_id=1657232701 instance=ExtResource("35_2lfbx")]
+[node name="tree2" parent="BelowCastleArea" unique_id=1657232701 instance=ExtResource("35_2lfbx")]
 position = Vector2(270, 367)
 
-[node name="tree3" parent="." unique_id=1935283235 instance=ExtResource("35_2lfbx")]
+[node name="tree3" parent="BelowCastleArea" unique_id=1935283235 instance=ExtResource("35_2lfbx")]
 position = Vector2(-984, 344)
 
-[node name="tree4" parent="." unique_id=1617130923 instance=ExtResource("34_w77vi")]
+[node name="tree4" parent="BelowCastleArea" unique_id=1617130923 instance=ExtResource("34_w77vi")]
 position = Vector2(-895, 324)
 
-[node name="tree5" parent="." unique_id=1095862996 instance=ExtResource("34_w77vi")]
+[node name="tree5" parent="BelowCastleArea" unique_id=1095862996 instance=ExtResource("34_w77vi")]
 position = Vector2(-854, 372)
 
-[node name="tree6" parent="." unique_id=1606923709 instance=ExtResource("35_2lfbx")]
+[node name="tree6" parent="BelowCastleArea" unique_id=1606923709 instance=ExtResource("35_2lfbx")]
 position = Vector2(-713, 359)
+
+[node name="enemy spawners" type="Node" parent="." unique_id=1495107793]
+
+[node name="EnemyTower" type="Sprite2D" parent="enemy spawners" unique_id=1915580237]
+position = Vector2(-1006, 72)
+texture = ExtResource("50_trs4y")
+
+[node name="spawnpoint" type="Marker2D" parent="enemy spawners/EnemyTower" unique_id=1382078980]
+position = Vector2(-3, 83)
+
+[node name="EnemyTower2" type="Sprite2D" parent="enemy spawners" unique_id=1830992759]
+position = Vector2(978, 65)
+texture = ExtResource("50_trs4y")
+
+[node name="spawnpoint2" type="Marker2D" parent="enemy spawners/EnemyTower2" unique_id=1356340082]
+position = Vector2(-3, 86)
+
+[node name="EnemyTower3" type="Sprite2D" parent="enemy spawners" unique_id=1265758602]
+position = Vector2(-1743, -403)
+texture = ExtResource("50_trs4y")
+
+[node name="spawnpoint3" type="Marker2D" parent="enemy spawners/EnemyTower3" unique_id=2040363851]
+
+[node name="EnemyTower4" type="Sprite2D" parent="enemy spawners" unique_id=1058655618]
+position = Vector2(1471, -310)
+texture = ExtResource("50_trs4y")
+
+[node name="spawnpoint4" type="Marker2D" parent="enemy spawners/EnemyTower4" unique_id=17482005]
+
+[node name="EnemyTower5" type="Sprite2D" parent="enemy spawners" unique_id=1252088140]
+position = Vector2(-1921, 557)
+texture = ExtResource("50_trs4y")
+
+[node name="spawnpoint5" type="Marker2D" parent="enemy spawners/EnemyTower5" unique_id=2127068376]
+
+[node name="EnemyTower6" type="Sprite2D" parent="enemy spawners" unique_id=1205774653]
+position = Vector2(1823, 729)
+texture = ExtResource("50_trs4y")
+
+[node name="spawnpoint6" type="Marker2D" parent="enemy spawners/EnemyTower6" unique_id=1953626020]
+position = Vector2(0, 78)
+
+[node name="spawnpoint7" type="Marker2D" parent="enemy spawners" unique_id=1638213504]
+position = Vector2(-131, -1456)
