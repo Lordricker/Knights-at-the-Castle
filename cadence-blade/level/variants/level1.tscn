@@ -50,6 +50,7 @@
 [ext_resource type="PackedScene" uid="uid://bhxy1x077s154" path="res://level/tree_2.tscn" id="35_2lfbx"]
 [ext_resource type="PackedScene" uid="uid://c5hc2fvndx545" path="res://characters/Players/TowerArcher.tscn" id="37_0kldc"]
 [ext_resource type="Texture2D" uid="uid://dp1q75royvjm2" path="res://assets/sprites/EnemyTower.png" id="50_trs4y"]
+[ext_resource type="PackedScene" uid="uid://e105y00k30fn" path="res://characters/enemies/elites/greenDragon.tscn" id="51_karr3"]
 
 [sub_resource type="Curve2D" id="Curve2D_0eib5"]
 _data = {
@@ -911,6 +912,7 @@ position = Vector2(-713, 359)
 [node name="enemy spawners" type="Node" parent="." unique_id=1495107793]
 
 [node name="EnemyTower" type="Sprite2D" parent="enemy spawners" unique_id=1915580237]
+z_index = -1
 position = Vector2(-1006, 72)
 texture = ExtResource("50_trs4y")
 
@@ -918,6 +920,7 @@ texture = ExtResource("50_trs4y")
 position = Vector2(-3, 83)
 
 [node name="EnemyTower2" type="Sprite2D" parent="enemy spawners" unique_id=1830992759]
+z_index = -1
 position = Vector2(978, 65)
 texture = ExtResource("50_trs4y")
 
@@ -925,24 +928,28 @@ texture = ExtResource("50_trs4y")
 position = Vector2(-3, 86)
 
 [node name="EnemyTower3" type="Sprite2D" parent="enemy spawners" unique_id=1265758602]
+z_index = -1
 position = Vector2(-1743, -403)
 texture = ExtResource("50_trs4y")
 
 [node name="spawnpoint3" type="Marker2D" parent="enemy spawners/EnemyTower3" unique_id=2040363851]
 
 [node name="EnemyTower4" type="Sprite2D" parent="enemy spawners" unique_id=1058655618]
+z_index = -1
 position = Vector2(1471, -310)
 texture = ExtResource("50_trs4y")
 
 [node name="spawnpoint4" type="Marker2D" parent="enemy spawners/EnemyTower4" unique_id=17482005]
 
 [node name="EnemyTower5" type="Sprite2D" parent="enemy spawners" unique_id=1252088140]
+z_index = -1
 position = Vector2(-1921, 557)
 texture = ExtResource("50_trs4y")
 
 [node name="spawnpoint5" type="Marker2D" parent="enemy spawners/EnemyTower5" unique_id=2127068376]
 
 [node name="EnemyTower6" type="Sprite2D" parent="enemy spawners" unique_id=1205774653]
+z_index = -1
 position = Vector2(1823, 729)
 texture = ExtResource("50_trs4y")
 
@@ -951,3 +958,6 @@ position = Vector2(0, 78)
 
 [node name="spawnpoint7" type="Marker2D" parent="enemy spawners" unique_id=1638213504]
 position = Vector2(-131, -1456)
+
+[node name="Node2D" parent="." unique_id=971904331 instance=ExtResource("51_karr3")]
+position = Vector2(-919, 146)
