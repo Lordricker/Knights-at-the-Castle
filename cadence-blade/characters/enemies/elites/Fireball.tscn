@@ -1,50 +1,55 @@
 [gd_scene format=3 uid="uid://bbjula4tp34fv"]
 
+[ext_resource type="Script" uid="uid://dpe33viucjnee" path="res://FX/fireball.gd" id="1_ldvry"]
+[ext_resource type="Texture2D" uid="uid://bom7bc6vqr4wq" path="res://assets/sprites/enemies/fireballsprite.png" id="2_ku8ui"]
+
 [sub_resource type="CircleShape2D" id="CircleShape2D_hyrg3"]
 radius = 5.0990195
+
+[sub_resource type="Curve" id="Curve_ku8ui"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0.743092), 0.0, 0.0, 0, 0]
+point_count = 2
 
 [sub_resource type="Curve" id="Curve_ldvry"]
 _data = [Vector2(0, 1), 0.0, -0.46075952, 0, 1, Vector2(1, 0.5392405), -0.46075952, 0.0, 1, 0]
 point_count = 2
 
-[sub_resource type="Gradient" id="Gradient_ku8ui"]
-colors = PackedColorArray(0.11764706, 0.47843137, 1, 1, 1, 1, 1, 1)
-
 [sub_resource type="Gradient" id="Gradient_t40mn"]
 colors = PackedColorArray(0.89459115, 0.731565, 0.18060651, 1, 0.7092767, 0.15213937, 0.18955913, 1)
 
-[node name="Area2D" type="Area2D" unique_id=692383866]
+[node name="Area2D" type="Area2D" unique_id=692383866 node_paths=PackedStringArray("trail_particles", "explosion_particles")]
+gravity = 300.0
+script = ExtResource("1_ldvry")
+trail_particles = NodePath("lifetimeParticles")
+explosion_particles = NodePath("deathexplosion")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1703352748]
 shape = SubResource("CircleShape2D_hyrg3")
 
 [node name="lifetimeParticles" type="CPUParticles2D" parent="." unique_id=977869280]
 z_index = 1
-amount = 20
-lifetime = 0.5
-emission_shape = 1
-emission_sphere_radius = 2.0
+amount = 1
+texture = ExtResource("2_ku8ui")
+lifetime = 1.5
+local_coords = true
 direction = Vector2(0, -1)
 spread = 0.0
-gravity = Vector2(0, 20)
-initial_velocity_min = 5.0
-initial_velocity_max = 10.0
-angular_velocity_min = -393.45
-angular_velocity_max = 322.19
-orbit_velocity_min = -1.0
-orbit_velocity_max = 1.0
+gravity = Vector2(0, 0)
+angular_velocity_min = -315.93
+angular_velocity_max = -315.93
 radial_accel_min = 23.45
 radial_accel_max = 23.45
+scale_amount_min = 2.0
 scale_amount_max = 2.0
-scale_amount_curve = SubResource("Curve_ldvry")
-color_ramp = SubResource("Gradient_ku8ui")
+scale_amount_curve = SubResource("Curve_ku8ui")
 
-[node name="CPUParticles2D" type="CPUParticles2D" parent="lifetimeParticles" unique_id=1882096542]
+[node name="CPUParticles2D3" type="CPUParticles2D" parent="." unique_id=1779818]
 position = Vector2(-1, 0)
-amount = 20
+amount = 30
 lifetime = 0.5
+local_coords = true
 emission_shape = 1
-emission_sphere_radius = 2.0
+emission_sphere_radius = 6.02
 direction = Vector2(0, -1)
 spread = 0.0
 gravity = Vector2(0, 20)
@@ -52,23 +57,21 @@ initial_velocity_min = 5.0
 initial_velocity_max = 10.0
 angular_velocity_min = -393.45
 angular_velocity_max = 322.19
-orbit_velocity_min = -1.0
-orbit_velocity_max = 1.0
 radial_accel_min = 23.45
 radial_accel_max = 23.45
-scale_amount_max = 2.0
+scale_amount_min = 3.0
+scale_amount_max = 3.0
 scale_amount_curve = SubResource("Curve_ldvry")
 color = Color(0.9999997, 0.9743219, 0.7750291, 1)
 color_ramp = SubResource("Gradient_t40mn")
 hue_variation_max = 1.0
 
-[node name="CPUParticles2D2" type="CPUParticles2D" parent="lifetimeParticles" unique_id=1352221281]
-visible = false
-position = Vector2(1, 0)
-amount = 20
+[node name="CPUParticles2D" type="CPUParticles2D" parent="." unique_id=1882096542]
+position = Vector2(-1, 0)
+amount = 30
 lifetime = 0.5
 emission_shape = 1
-emission_sphere_radius = 2.0
+emission_sphere_radius = 6.02
 direction = Vector2(0, -1)
 spread = 0.0
 gravity = Vector2(0, 20)
@@ -76,11 +79,35 @@ initial_velocity_min = 5.0
 initial_velocity_max = 10.0
 angular_velocity_min = -393.45
 angular_velocity_max = 322.19
-orbit_velocity_min = -1.0
-orbit_velocity_max = 1.0
 radial_accel_min = 23.45
 radial_accel_max = 23.45
-scale_amount_max = 2.0
+scale_amount_min = 3.0
+scale_amount_max = 3.0
+scale_amount_curve = SubResource("Curve_ldvry")
+color = Color(0.9999997, 0.9743219, 0.7750291, 1)
+color_ramp = SubResource("Gradient_t40mn")
+hue_variation_max = 1.0
+
+[node name="deathexplosion" type="CPUParticles2D" parent="." unique_id=1352221281]
+emitting = false
+amount = 30
+lifetime = 0.5
+one_shot = true
+explosiveness = 1.0
+fract_delta = false
+emission_shape = 1
+emission_sphere_radius = 6.02
+direction = Vector2(0, -1)
+spread = 78.51
+gravity = Vector2(0, 300)
+initial_velocity_min = 70.0
+initial_velocity_max = 150.0
+angular_velocity_min = -393.45
+angular_velocity_max = 322.19
+radial_accel_min = 23.45
+radial_accel_max = 23.45
+scale_amount_min = 4.0
+scale_amount_max = 4.0
 scale_amount_curve = SubResource("Curve_ldvry")
 color = Color(0.83291507, 0.7502015, 1.1551381e-06, 1)
 color_ramp = SubResource("Gradient_t40mn")

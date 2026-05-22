@@ -26,6 +26,8 @@ angular_velocity_min = -380.0
 angular_velocity_max = -380.0
 linear_accel_min = -100.0
 linear_accel_max = -100.0
+scale_amount_min = 2.0
+scale_amount_max = 3.0
 
 [node name="ParticalsUp" type="CPUParticles2D" parent="." unique_id=1946123696]
 position = Vector2(39, 5)
@@ -46,3 +48,5 @@ angular_velocity_min = -380.0
 angular_velocity_max = -380.0
 linear_accel_min = -100.0
 linear_accel_max = -100.0
+scale_amount_min = 2.0
+scale_amount_max = 3.0

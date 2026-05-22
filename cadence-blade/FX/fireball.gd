@@ -4,35 +4,23 @@ extends Area2D
 # fireball.gd — Projectile fired by the GreenDragon.
 #
 # USAGE:
-#   1. Instantiate the fireball scene.
+#   1. Attach this script to the root Area2D of Fireball.tscn.
 #   2. Call configure() with spawn position, direction, damage, and lifetime
 #      BEFORE calling add_child() on the parent scene.
-#   3. Fireball._ready() begins movement and starts the expiration timer automatically.
+#   3. Fireball._ready() begins movement automatically.
 #
-# SCENE STRUCTURE:
-#   Fireball (Area2D, this script)
-#   ├── CollisionShape2D    (set collision_mask to hit player layer)
-#   ├── ExpirationTimer     (Timer node — lifetime before auto-explode)
-#   ├── TrailParticles      (CPUParticles2D — continuous trail while flying)
-#   └── ExplosionParticles  (CPUParticles2D — one-shot burst on hit or expiry)
-#
-# The fireball explodes on impact with any Kill-group target, or when its
-# lifetime expires. Explosion particles play before the node frees itself.
+## Flying trail particles — hidden when the fireball dies.
+@export var trail_particles: CPUParticles2D
+## One-shot explosion particles — played for 1 second after the fireball dies.
+@export var explosion_particles: CPUParticles2D
 
-## Damage dealt to any Kill-group target on impact.
-@export var damage: float = 30.0
-## Knockback force applied to characters on impact.
-@export var knockback_force: float = 200.0
-## Seconds before the fireball auto-explodes if it hasn't hit anything.
-@export var lifetime: float = 3.0
+var damage: float = 0.0
+var knockback_force: float = 0.0
+var lifetime: float = 3.0
 
 var _velocity: Vector2 = Vector2.ZERO
 var _configured: bool = false
 var _exploding: bool = false
-
-@onready var _trail: CPUParticles2D = find_child("TrailParticles") as CPUParticles2D
-@onready var _explosion: CPUParticles2D = find_child("ExplosionParticles") as CPUParticles2D
-@onready var _timer: Timer = $ExpirationTimer
 
 
 ## Call this before add_child(). Sets spawn position and all combat values.
@@ -52,20 +40,17 @@ func configure(spawn_pos: Vector2, direction: Vector2, speed: float,
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 	area_entered.connect(_on_area_entered)
-	_timer.one_shot = true
-	_timer.timeout.connect(_on_expired)
 	# If configure() was already called before add_child(), start immediately.
 	if _configured:
 		_start_active_state()
 
 
-## Starts the expiration timer and trail particles.
+## Starts the lifetime timer and trail particles.
 ## Called from _ready() when pre-configured, or from configure() when already in tree.
 func _start_active_state() -> void:
-	_timer.wait_time = lifetime
-	_timer.start()
-	if _trail != null:
-		_trail.emitting = true
+	get_tree().create_timer(lifetime, false).timeout.connect(_on_expired, CONNECT_ONE_SHOT)
+	if trail_particles != null:
+		trail_particles.emitting = true
 
 
 func _physics_process(delta: float) -> void:
@@ -80,17 +65,14 @@ func _explode() -> void:
 	if _exploding:
 		return
 	_exploding = true
-	_timer.stop()
 	_velocity = Vector2.ZERO
-	if _trail != null:
-		_trail.emitting = false
-	if _explosion != null:
-		_explosion.emitting = true
-		# Wait for explosion particles to finish, then free the scene.
-		get_tree().create_timer(_explosion.lifetime + 0.1).timeout.connect(
-			queue_free, CONNECT_ONE_SHOT)
-	else:
-		queue_free()
+	# Hide the trail so it doesn't keep emitting during the death linger.
+	if trail_particles != null:
+		trail_particles.hide()
+	# Play the one-shot explosion and linger 1 second to let it finish.
+	if explosion_particles != null:
+		explosion_particles.restart()
+	get_tree().create_timer(1.0, false).timeout.connect(queue_free, CONNECT_ONE_SHOT)
 
 
 func _on_expired() -> void:

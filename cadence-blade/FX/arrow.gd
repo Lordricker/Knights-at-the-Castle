@@ -78,6 +78,11 @@ var _pending_particle_color: Color = Color.WHITE
 var _pending_color_set: bool = false
 
 
+## Returns the damage this arrow deals on hit. Used by external hit detectors (e.g. head hitbox).
+func get_damage() -> float:
+	return _damage
+
+
 func _apply_particle_color(c: Color) -> void:
 	if _particles != null:
 		_particles.color = c

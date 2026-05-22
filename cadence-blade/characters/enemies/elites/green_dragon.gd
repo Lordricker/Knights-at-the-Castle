@@ -52,16 +52,18 @@ extends EnemyBase
 ## Additional launch angle in degrees — mirrored by facing (negative = upward).
 @export_range(-90.0, 90.0, 1.0, "degrees") var fireball_angle: float = 0.0
 ## Animation frame on which the fireball is launched.
-@export var fireball_fire_frame: int = 6
+@export var fireball_fire_frame: int = 7
+## Animation frame on which the windup particles begin emitting.
+@export var fireball_windup_start_frame: int = 2
 ## Marker2D inside FireballZone indicating the fireball's spawn position.
 ## Drag the Marker2D node here in the Inspector.
 @export var fireball_marker: Marker2D
 ## Area2D with a wider range that triggers the fireball attack.
 ## Drag the FireballZone node here in the Inspector.
 @export var fireball_zone: Area2D
-## CPUParticles2D nodes to emit during the windup frames.
-## They are turned on when the fireball animation starts and off when the fireball launches.
-@export var fireball_windup_particles: Array[CPUParticles2D]
+## Parent node holding all windup particle effects.
+## Drag the parent CPUParticles2D (or Node2D) here — it will be shown/hidden as a group.
+@export var fireball_windup_particles: Node2D
 
 @export_group("Fireball Flight Offsets")
 ## Vertical offset applied to the Pivot node on each frame of the "fireball"
@@ -71,6 +73,15 @@ extends EnemyBase
 ## Array length should match the "fireball" animation frame count.
 @export var fireball_y_offsets: Array[float] = [0.0, -5.0, -12.0, -20.0, -28.0, -32.0, -28.0, -20.0, -10.0]
 
+@export_group("")
+
+
+# ── Head hitbox ───────────────────────────────────────────────────────────────
+
+@export_group("Head Hitbox")
+## Area2D positioned over the dragon's head (needs a CollisionShape2D child).
+## Fires area_entered independently from the body — deals 2× damage on its own.
+@export var head_hitbox: Area2D
 @export_group("")
 
 
@@ -95,6 +106,10 @@ func _ready() -> void:
 	if slash_hitbox != null:
 		slash_hitbox.body_entered.connect(_on_slash_hit_body)
 		slash_hitbox.area_entered.connect(_on_slash_hit_area)
+	if head_hitbox != null:
+		head_hitbox.collision_mask = 0xFFFF_FFFF
+		head_hitbox.monitoring = true
+		head_hitbox.area_entered.connect(_on_head_hit_area)
 	animated_sprite.play("running")
 
 
@@ -162,7 +177,7 @@ func _stop_slash() -> void:
 func _begin_fireball() -> void:
 	attack_state = AttackState.CASTING_FIREBALL
 	_fireball_fired = false
-	_set_windup_particles(true)
+	_set_windup_particles(false)
 	animated_sprite.stop()
 	animated_sprite.play("fireball")
 	_face_target()
@@ -206,16 +221,6 @@ func _fire_fireball() -> void:
 	fb.collision_mask = 1
 	fb.configure(spawn_pos, shoot_dir, fireball_speed, fireball_damage, 0.0, fireball_lifetime)
 
-	fb.area_entered.connect(func(area: Area2D) -> void:
-		if not area.is_in_group(&"Kill"):
-			return
-		var owner_node := area.get_parent()
-		if owner_node != null and owner_node.has_method("take_damage"):
-			owner_node.take_damage(fireball_damage)
-		if is_instance_valid(fb):
-			fb._explode()
-	)
-
 	get_tree().current_scene.call_deferred("add_child", fb)
 
 	if GameManager.session_id != "" and GameManager.is_host:
@@ -230,10 +235,9 @@ func _fire_fireball() -> void:
 		})
 
 
-func _set_windup_particles(emitting: bool) -> void:
-	for p in fireball_windup_particles:
-		if is_instance_valid(p):
-			p.emitting = emitting
+func _set_windup_particles(visible: bool) -> void:
+	if fireball_windup_particles != null and is_instance_valid(fireball_windup_particles):
+		fireball_windup_particles.visible = visible
 
 
 # ── Frame / animation signals ──────────────────────────────────────────────────
@@ -248,6 +252,9 @@ func _on_frame_changed() -> void:
 		# Apply per-frame vertical offset to all visuals via the Pivot node.
 		if facing_pivot != null and frame < fireball_y_offsets.size():
 			facing_pivot.position.y = fireball_y_offsets[frame]
+		# Start windup particles on the designated frame.
+		if frame == fireball_windup_start_frame:
+			_set_windup_particles(true)
 		# Stop windup particles and launch the fireball on the fire frame.
 		if frame == fireball_fire_frame and not _fireball_fired:
 			_fireball_fired = true
@@ -290,6 +297,32 @@ func _get_fireball_targets() -> Array:
 func _face_target() -> void:
 	if target != null:
 		_set_facing(1.0 if target.global_position.x > global_position.x else -1.0)
+
+
+# ── Head hitbox ────────────────────────────────────────────────────────────────
+
+## Called when an attacking Area2D (arrow, melee hitbox) enters the head zone.
+## Fires independently from the body — no take_damage override needed.
+func _on_head_hit_area(area: Area2D) -> void:
+	# Ignore areas that belong to this dragon.
+	if is_ancestor_of(area):
+		return
+	# Resolve the damage amount from the attacking area.
+	var dmg := 0.0
+	# Arrow exposes get_damage().
+	if area.has_method("get_damage"):
+		dmg = float(area.call("get_damage"))
+	# Generic: area has a public damage property (e.g. future projectile types).
+	elif "damage" in area:
+		dmg = float(area.get("damage"))
+	# Melee hitbox: damage lives on the owner character (CharacterBody2D).
+	elif area.owner != null:
+		if area.owner.has_method("_get_current_attack_damage"):
+			dmg = float(area.owner.call("_get_current_attack_damage"))
+		elif "attack_damage" in area.owner:
+			dmg = float(area.owner.get("attack_damage"))
+	if dmg > 0.0:
+		take_damage(dmg * 2.0)
 
 
 # ── Death ──────────────────────────────────────────────────────────────────────

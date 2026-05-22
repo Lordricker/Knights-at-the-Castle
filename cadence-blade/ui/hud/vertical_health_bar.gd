@@ -29,7 +29,14 @@ extends Node2D
 ## Local Y of the 0% HP mark (bottom of the fill, Y increases downward in Godot).
 @export var fill_bottom_y: float = 60.0
 
+const GHOST_HOLD_TIME := 1.0
+const GHOST_DRAIN_TIME := 0.35
+
 var _ratio: float = 1.0
+var _ghost_ratio: float = 1.0
+var _ghost_ratio_start: float = 1.0
+var _ghost_hold_timer: float = 0.0
+var _ghost_drain_timer: float = 0.0
 var _draw_node: Node2D
 
 
@@ -45,13 +52,43 @@ func _ready() -> void:
 
 
 func set_health(current_health: float, max_health: float) -> void:
-	_ratio = clampf(current_health / maxf(max_health, 0.001), 0.0, 1.0)
+	var new_ratio := clampf(current_health / maxf(max_health, 0.001), 0.0, 1.0)
+	if new_ratio < _ratio:
+		_ghost_ratio = _ratio
+		_ghost_ratio_start = _ratio
+		_ghost_hold_timer = GHOST_HOLD_TIME
+		_ghost_drain_timer = 0.0
+	_ratio = new_ratio
 	_redraw()
 
 
 func set_ratio(value: float) -> void:
-	_ratio = clampf(value, 0.0, 1.0)
+	var new_ratio := clampf(value, 0.0, 1.0)
+	if new_ratio < _ratio:
+		_ghost_ratio = _ratio
+		_ghost_ratio_start = _ratio
+		_ghost_hold_timer = GHOST_HOLD_TIME
+		_ghost_drain_timer = 0.0
+	_ratio = new_ratio
 	_redraw()
+
+
+func _process(delta: float) -> void:
+	if _ghost_hold_timer > 0.0:
+		_ghost_hold_timer -= delta
+		if _ghost_hold_timer <= 0.0:
+			_ghost_hold_timer = 0.0
+			_ghost_drain_timer = GHOST_DRAIN_TIME
+		_redraw()
+	elif _ghost_drain_timer > 0.0:
+		_ghost_drain_timer -= delta
+		if _ghost_drain_timer <= 0.0:
+			_ghost_drain_timer = 0.0
+			_ghost_ratio = _ratio
+		else:
+			var t := 1.0 - (_ghost_drain_timer / GHOST_DRAIN_TIME)
+			_ghost_ratio = lerpf(_ghost_ratio_start, _ratio, t)
+		_redraw()
 
 
 func _redraw() -> void:
@@ -83,6 +120,12 @@ func _on_draw_fill() -> void:
 	var filled_h := total_h * _ratio
 	if filled_h <= 0.0:
 		return
+
+	# Ghost (white) shows the recently lost portion for GHOST_HOLD_TIME seconds.
+	if _ghost_ratio > _ratio:
+		var ghost_h := (_ghost_ratio - _ratio) * total_h
+		var ghost_top_y := fill_bottom_y - _ghost_ratio * total_h
+		_draw_node.draw_rect(Rect2(Vector2(b.position.x, ghost_top_y), Vector2(b.size.x, ghost_h)), Color.WHITE)
 
 	var top_y := fill_bottom_y - filled_h
 	_draw_node.draw_rect(Rect2(Vector2(b.position.x, top_y), Vector2(b.size.x, filled_h)), fill_color)

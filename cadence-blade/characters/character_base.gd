@@ -1,6 +1,8 @@
 class_name CharacterBase
 extends CharacterBody2D
 
+const DamageNumber = preload("res://FX/damage_number.gd")
+
 # CharacterBase - shared base class for all playable characters.
 # Free 2D movement: WASD moves in X and Y.
 # Add a Polygon2D to the level scene in the group "walk_area" to constrain movement.
@@ -53,6 +55,8 @@ var facing: float = 1.0
 @export var health_bar: Node2D
 ## Drag the FlowBar Node2D (flow_timing_bar.gd) here in the Inspector.
 @export var flow_bar: Node2D
+## Drag a CPUParticles2D here to play it whenever the character takes damage.
+@export var hit_particles: CPUParticles2D
 
 # ── Flow timing ───────────────────────────────────────────────────────────────
 # ── Flow timing (set per-attack by _start_flow callers) ──────────────────────
@@ -298,6 +302,11 @@ func take_damage(amount: float, _flow_success: bool = false) -> void:
 		return
 	health = maxf(0.0, health - amount)
 	health_changed.emit(health, max_health)
+	DamageNumber.spawn_at(get_tree().current_scene, global_position, amount)
+	if hit_particles != null:
+		hit_particles.restart()
+	if GameManager.session_id != "" and GameManager.is_host:
+		WebRTCManager.send_reliable({"t": "hit_fx", "p": str(get_path())})
 	if health == 0.0:
 		die()
 

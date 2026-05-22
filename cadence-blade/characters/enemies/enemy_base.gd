@@ -1,6 +1,8 @@
 class_name EnemyBase
 extends CharacterBody2D
 
+const DamageNumber = preload("res://FX/damage_number.gd")
+
 # EnemyBase - shared base class for all enemy types.
 # Follows the same walk_path group as the player.
 
@@ -21,6 +23,8 @@ var facing: float = 1.0
 @export var health_bar: Node2D
 ## Area2D used to detect attackable targets. Bodies in the "Kill" group will be targeted.
 @export var detection_zone: Area2D
+## Drag a CPUParticles2D here to play it whenever the enemy takes damage.
+@export var hit_particles: CPUParticles2D
 
 var _health_bar_api: Node = null
 var _health_bar_right_pos: Vector2 = Vector2.ZERO
@@ -104,7 +108,6 @@ func _physics_process(delta: float) -> void:
 	knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, knockback_friction * delta)
 	if walk_path != null:
 		_constrain_to_path()
-	position = position.round()
 
 
 ## Push this character away from source_position.
@@ -146,6 +149,11 @@ func take_damage(amount: float, flow_success: bool = false) -> void:
 		return
 	health = maxf(0.0, health - amount)
 	health_changed.emit(health, max_health)
+	DamageNumber.spawn_at(get_tree().current_scene, global_position, amount)
+	if hit_particles != null:
+		hit_particles.restart()
+	if GameManager.session_id != "" and GameManager.is_host:
+		WebRTCManager.send_reliable({"t": "hit_fx", "p": str(get_path())})
 	if health == 0.0:
 		die(flow_success)
 

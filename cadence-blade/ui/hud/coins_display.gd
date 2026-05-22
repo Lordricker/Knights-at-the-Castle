@@ -74,4 +74,4 @@ func _play_juice(color: Color) -> void:
 ## Flashes the label red and briefly enlarges it, then returns to normal.
 func flash_insufficient() -> void:
 	_play_juice(Color.RED)
-	tween.tween_property(self, "modulate", Color.WHITE, 0.15)
+	_active_tween.tween_property(self, "modulate", Color.WHITE, 0.15)

@@ -504,6 +504,10 @@ func _on_packet_received(data: Dictionary) -> void:
 			# Host enemy fired an arrow — spawn a display-only copy on joiner.
 			if not GameManager.is_host:
 				_spawn_display_enemy_arrow(data)
+		"enemy_fireball":
+			# Host dragon fired a fireball — spawn a display-only copy on joiner.
+			if not GameManager.is_host:
+				_spawn_display_enemy_fireball(data)
 		"flow_done":
 			# Host resolved a flow bar — update joiner display immediately.
 			if not GameManager.is_host:
@@ -543,6 +547,14 @@ func _on_packet_received(data: Dictionary) -> void:
 			# Joiner entered blacksmith zone with no cached offers — send current ones.
 			if GameManager.is_host and castle_inside != null and castle_inside.has_method("on_request_upgrade_offers"):
 				castle_inside.call("on_request_upgrade_offers")
+		"hit_fx":
+			# Host entity was hit — restart its hit particles on the joiner.
+			if not GameManager.is_host:
+				var node := get_tree().current_scene.get_node_or_null(NodePath(data.get("p", "")))
+				if node != null and "hit_particles" in node:
+					var p := node.get("hit_particles") as CPUParticles2D
+					if p != null:
+						p.restart()
 
 
 ## Host receives "hello" from joiner — spawn the joiner's character and reply.
@@ -916,6 +928,35 @@ func _spawn_display_enemy_arrow(data: Dictionary) -> void:
 	arrow.collision_mask = 1
 	arrow.collision_layer = 0
 	get_tree().current_scene.call_deferred("add_child", arrow)
+
+
+## Joiner: spawn a visual-only fireball from an "enemy_fireball" packet.
+## Zero damage — purely visual.
+func _spawn_display_enemy_fireball(data: Dictionary) -> void:
+	# Find a live green dragon in the spawner to get its fireball_scene.
+	var scene: PackedScene
+	if spawner != null and "alive_enemy_map" in spawner:
+		for eid in spawner.alive_enemy_map:
+			var info: Dictionary = spawner.alive_enemy_map[eid]
+			var enemy: Node = info.get("node") as Node
+			if is_instance_valid(enemy) and "fireball_scene" in enemy:
+				var found := enemy.get("fireball_scene") as PackedScene
+				if found != null:
+					scene = found
+					break
+	if scene == null:
+		return
+	var fb := scene.instantiate() as Fireball
+	if fb == null:
+		return
+	var pos := Vector2(float(data.get("x", 0.0)), float(data.get("y", 0.0)))
+	var dir := Vector2(float(data.get("dx", 1.0)), float(data.get("dy", 0.0)))
+	var spd: float = float(data.get("sp", 300.0))
+	var lt: float = float(data.get("lt", 3.0))
+	# Zero damage so the joiner copy never deals damage — host is authoritative.
+	fb.collision_mask = 0
+	fb.configure(pos, dir, spd, 0.0, 0.0, lt)
+	get_tree().current_scene.call_deferred("add_child", fb)
 
 
 ## Joiner: spawn a visual-only arrow from an "arrow" packet.

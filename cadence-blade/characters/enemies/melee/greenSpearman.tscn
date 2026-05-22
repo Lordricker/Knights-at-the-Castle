@@ -136,11 +136,18 @@ size = Vector2(54, 13)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_0412h"]
 size = Vector2(58, 21)
 
+[sub_resource type="Curve" id="Curve_00qgw"]
+_data = [Vector2(0, 1), 0.0, -0.46075952, 0, 1, Vector2(1, 0.5392405), -0.46075952, 0.0, 1, 0]
+point_count = 2
+
+[sub_resource type="Gradient" id="Gradient_c2ecf"]
+colors = PackedColorArray(1, 0.35000002, 0, 1, 0.7092767, 0.15213937, 0.18955913, 1)
+
 [node name="Node2D" type="Node2D" unique_id=1417772890]
 z_index = 1
 y_sort_enabled = true
 
-[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=160150496 node_paths=PackedStringArray("slash_hitbox", "slash2_hitbox", "slash2_particles", "block_zone", "facing_pivot", "health_bar", "detection_zone")]
+[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=160150496 node_paths=PackedStringArray("slash_hitbox", "slash2_hitbox", "slash2_particles", "block_zone", "facing_pivot", "health_bar", "detection_zone", "hit_particles")]
 y_sort_enabled = true
 position = Vector2(0, -11)
 collision_layer = 2
@@ -149,7 +156,7 @@ slash_hitbox = NodePath("Pivot/SlashHitbox")
 slash_attack_frame = 1
 slash2_hitbox = NodePath("Pivot/SlashHitbox")
 slash2_knockback_force = 600.0
-slash2_particles = NodePath("../Slash2Effect")
+slash2_particles = NodePath("Slash2Effect")
 block_zone = NodePath("Pivot/SlashHitbox")
 enable_block = false
 max_health = 150.0
@@ -157,6 +164,7 @@ move_speed = 100.0
 facing_pivot = NodePath("Pivot")
 health_bar = NodePath("Pivot/HPBar")
 detection_zone = NodePath("Pivot/DetectionZone")
+hit_particles = NodePath("hitparticles")
 knockback_friction = 400.0
 oscillate = true
 
@@ -196,11 +204,37 @@ position = Vector2(-12, 24)
 rotation = 3.1415927
 scale = Vector2(0.99999964, -1)
 
-[node name="Slash2Effect" type="CPUParticles2D" parent="." unique_id=1638209499]
-position = Vector2(52, 11)
+[node name="hitparticles" type="CPUParticles2D" parent="CharacterBody2D" unique_id=1386131773]
+z_index = 2
+position = Vector2(0, 11)
+emitting = false
+amount = 10
+lifetime = 0.25
+one_shot = true
+explosiveness = 1.0
+fract_delta = false
+emission_shape = 1
+emission_sphere_radius = 6.02
+direction = Vector2(0, -1)
+spread = 78.51
+gravity = Vector2(0, 300)
+initial_velocity_min = 70.0
+initial_velocity_max = 150.0
+angular_velocity_min = -393.45
+angular_velocity_max = 322.19
+radial_accel_min = 23.45
+radial_accel_max = 23.45
+scale_amount_min = 4.0
+scale_amount_max = 4.0
+scale_amount_curve = SubResource("Curve_00qgw")
+color = Color(0.83291507, 0.7502015, 1.1551381e-06, 1)
+color_ramp = SubResource("Gradient_c2ecf")
+
+[node name="Slash2Effect" type="CPUParticles2D" parent="CharacterBody2D" unique_id=1638209499]
+position = Vector2(52, 22)
 emitting = false
 amount = 20
-lifetime = 0.09999999999999999
+lifetime = 0.1
 one_shot = true
 explosiveness = 0.9
 spread = 12.63
@@ -208,11 +242,11 @@ gravity = Vector2(0, 200)
 initial_velocity_min = 260.61
 initial_velocity_max = 260.61
 
-[node name="CPUParticles2D" type="CPUParticles2D" parent="Slash2Effect" unique_id=1138704513]
+[node name="CPUParticles2D" type="CPUParticles2D" parent="CharacterBody2D/Slash2Effect" unique_id=1138704513]
 position = Vector2(2, 0)
 emitting = false
 amount = 20
-lifetime = 0.09999999999999999
+lifetime = 0.1
 one_shot = true
 explosiveness = 0.9
 direction = Vector2(-1, 0)

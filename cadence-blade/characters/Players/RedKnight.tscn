@@ -393,12 +393,19 @@ size = Vector2(49, 10)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_vh32c"]
 size = Vector2(20, 28)
 
+[sub_resource type="Curve" id="Curve_ejw64"]
+_data = [Vector2(0, 1), 0.0, -0.46075952, 0, 1, Vector2(1, 0.5392405), -0.46075952, 0.0, 1, 0]
+point_count = 2
+
+[sub_resource type="Gradient" id="Gradient_wwfss"]
+colors = PackedColorArray(1, 0.35000002, 0, 1, 0.7092767, 0.15213937, 0.18955913, 1)
+
 [node name="RedKnight" type="Node2D" unique_id=306271988]
 z_index = 1
 z_as_relative = false
 y_sort_enabled = true
 
-[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=1552212822 node_paths=PackedStringArray("body_box", "facing_pivot", "health_bar", "flow_bar") groups=["Kill"]]
+[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=1552212822 node_paths=PackedStringArray("body_box", "facing_pivot", "health_bar", "flow_bar", "hit_particles") groups=["Kill"]]
 y_sort_enabled = true
 script = ExtResource("1_6xwxy")
 slash_damage = 30.0
@@ -430,6 +437,7 @@ max_health = 200.0
 facing_pivot = NodePath("Pivot")
 health_bar = NodePath("Pivot/HPBar")
 flow_bar = NodePath("Pivot/FlowBar")
+hit_particles = NodePath("hitparticles")
 
 [node name="Pivot" type="Node2D" parent="CharacterBody2D" unique_id=65507104]
 
@@ -484,3 +492,28 @@ debug_color = Color(0.32291138, 0.6252835, 3.85046e-07, 0.41960785)
 [node name="bodyBox" type="CollisionShape2D" parent="CharacterBody2D" unique_id=1370339960]
 position = Vector2(0, 14)
 shape = SubResource("RectangleShape2D_vh32c")
+
+[node name="hitparticles" type="CPUParticles2D" parent="CharacterBody2D" unique_id=1879082495]
+position = Vector2(0, 11)
+emitting = false
+amount = 10
+lifetime = 0.25
+one_shot = true
+explosiveness = 1.0
+fract_delta = false
+emission_shape = 1
+emission_sphere_radius = 6.02
+direction = Vector2(0, -1)
+spread = 78.51
+gravity = Vector2(0, 300)
+initial_velocity_min = 70.0
+initial_velocity_max = 150.0
+angular_velocity_min = -393.45
+angular_velocity_max = 322.19
+radial_accel_min = 23.45
+radial_accel_max = 23.45
+scale_amount_min = 4.0
+scale_amount_max = 4.0
+scale_amount_curve = SubResource("Curve_ejw64")
+color = Color(0.83291507, 0.7502015, 1.1551381e-06, 1)
+color_ramp = SubResource("Gradient_wwfss")

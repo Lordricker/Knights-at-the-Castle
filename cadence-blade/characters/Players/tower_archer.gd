@@ -1,5 +1,7 @@
 extends CharacterBody2D
 
+const DamageNumber = preload("res://FX/damage_number.gd")
+
 # tower_archer.gd — Stationary allied archer placed on a tower.
 #
 # SCENE STRUCTURE:
@@ -108,6 +110,7 @@ func take_damage(amount: float, _flow_success: bool = false) -> void:
 		return
 	health = maxf(0.0, health - amount)
 	health_changed.emit(health, max_health)
+	DamageNumber.spawn_at(get_tree().current_scene, global_position, amount)
 	if health == 0.0:
 		_die()
 
