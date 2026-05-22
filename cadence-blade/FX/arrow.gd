@@ -27,6 +27,13 @@ signal missed
 ## Downward acceleration in pixels/sec^2 applied every physics frame.
 @export var drop_gravity: float = 0.0
 
+@export_group("Hit Sound")
+## AudioStream to play when this arrow hits an enemy.
+@export var hit_sound: AudioStream
+## Hit sound volume in dB (0 = full volume, negative = quieter).
+@export_range(-40.0, 6.0, 0.1) var hit_sound_volume_db: float = 0.0
+@export_group("")
+
 @export_group("Combo Particle Colors")
 ## Particle color when the archer is on combo hit 1 (first streak hit).
 @export var combo_color_1: Color = Color(1.0, 0.65, 0.0, 1.0)  # orange
@@ -46,6 +53,7 @@ var pierce: bool = false
 var _hit_enemies: Array[Node] = []
 ## Set to true the first time any enemy is hit; used to decide whether to emit missed.
 var _hit_any: bool = false
+var _hit_audio: AudioStreamPlayer2D = null
 
 @onready var _sprite: Sprite2D = find_child("Sprite2D") as Sprite2D
 @onready var _particles: CPUParticles2D = find_child("CPUParticles2D") as CPUParticles2D
@@ -93,6 +101,12 @@ func _apply_particle_color(c: Color) -> void:
 func _ready() -> void:
 	if _sprite != null and _velocity != Vector2.ZERO:
 		rotation = _velocity.angle()
+	if hit_sound != null:
+		_hit_audio = AudioStreamPlayer2D.new()
+		_hit_audio.stream = hit_sound
+		_hit_audio.volume_db = hit_sound_volume_db
+		_hit_audio.bus = &"SFX"
+		add_child(_hit_audio)
 	body_entered.connect(_on_body_entered)
 	if _pending_color_set and (_particles != null or _particles_2 != null):
 		_apply_particle_color(_pending_particle_color)
@@ -124,6 +138,7 @@ func _on_body_entered(body: Node2D) -> void:
 			return
 		_hit_enemies.append(body)
 		_hit_any = true
+		_play_hit_sound()
 		if body.has_method("take_damage"):
 			body.take_damage(_damage, _flow_success)
 		if body.has_method("apply_knockback"):
@@ -132,8 +147,22 @@ func _on_body_entered(body: Node2D) -> void:
 	else:
 		# Normal arrow: stop on first hit.
 		_hit_any = true
+		_play_hit_sound()
 		if body.has_method("take_damage"):
 			body.take_damage(_damage, _flow_success)
 		if body.has_method("apply_knockback"):
 			body.apply_knockback(global_position, _knockback_force)
 		queue_free()
+
+
+## Plays the hit sound, reparenting its player to the scene root so the sound
+## survives this arrow's queue_free. Safe to call from both pierce and normal paths.
+func _play_hit_sound() -> void:
+	if _hit_audio == null:
+		return
+	if _hit_audio.get_parent() == self:
+		var scene := get_tree().current_scene
+		if scene != null:
+			_hit_audio.reparent(scene)
+			_hit_audio.finished.connect(_hit_audio.queue_free)
+	_hit_audio.play()

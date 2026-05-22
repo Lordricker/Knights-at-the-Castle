@@ -31,6 +31,12 @@ extends EnemyBase
 
 ## Drag the main CollisionShape2D here for polygon boundary constraint.
 @export var body_box: CollisionShape2D
+## Sound played when a bash begins.
+@export var bash_sound: AudioStream
+@export_range(-40.0, 6.0, 0.1) var bash_sound_volume_db: float = 0.0
+## Sound played when the bash hitbox contacts a target.
+@export var bash_hit_sound: AudioStream
+@export_range(-40.0, 6.0, 0.1) var bash_hit_sound_volume_db: float = 0.0
 
 # ── Internal state ─────────────────────────────────────────────────────────────
 
@@ -44,6 +50,9 @@ var walk_area: Polygon2D = null
 
 @onready var bash_hitbox: Area2D = find_child("BashHitbox") as Area2D
 
+var _bash_audio: AudioStreamPlayer2D = null
+var _bash_hit_audio: AudioStreamPlayer2D = null
+
 
 func _ready() -> void:
 	attack_damage = bash_damage
@@ -56,6 +65,8 @@ func _ready() -> void:
 		bash_hitbox.body_entered.connect(_on_hit_body)
 		bash_hitbox.area_entered.connect(_on_hit_area)
 	animated_sprite.play("running")
+	_bash_audio = _make_sfx_player(bash_sound, bash_sound_volume_db)
+	_bash_hit_audio = _make_sfx_player(bash_hit_sound, bash_hit_sound_volume_db)
 
 
 # ── Physics (replaces EnemyBase version to use walk_area instead of walk_path) ─
@@ -165,6 +176,7 @@ func _get_nearest_player() -> Node2D:
 func _begin_bash() -> void:
 	bash_state = BashState.ATTACKING
 	_bash_lunge_active = false
+	_play_sfx(_bash_audio)
 	animated_sprite.stop()
 	animated_sprite.play("bash")
 	if target != null:
@@ -216,6 +228,7 @@ func _set_hitbox(box: Area2D, enabled: bool) -> void:
 func _on_hit_body(body: Node2D) -> void:
 	if not body.is_in_group(&"Kill"):
 		return
+	_play_sfx(_bash_hit_audio)
 	if body.has_method("take_damage"):
 		body.take_damage(attack_damage)
 	# Apply knockback only to characters, not static objects like the castle.
@@ -227,6 +240,7 @@ func _on_hit_body(body: Node2D) -> void:
 func _on_hit_area(area: Area2D) -> void:
 	if not area.is_in_group(&"Kill"):
 		return
+	_play_sfx(_bash_hit_audio)
 	var owner_node := area.get_parent()
 	if owner_node != null and owner_node.has_method("take_damage"):
 		owner_node.take_damage(attack_damage)

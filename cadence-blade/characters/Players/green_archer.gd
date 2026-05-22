@@ -85,6 +85,9 @@ var _combo_hits: int = 0
 @export var shoot_flow_window_size_curve: Curve
 ## Run duration in seconds that maps to x=1 on the size curve.
 @export var shoot_flow_window_curve_max_time: float = 300.0
+## Sound played when a quickshot fires.
+@export var shoot_sound: AudioStream
+@export_range(-40.0, 6.0, 0.1) var shoot_sound_volume_db: float = 0.0
 @export_group("")
 
 @export_group("Pierce Attack")
@@ -110,6 +113,9 @@ var _combo_hits: int = 0
 @export var pierce_flow_window_size_curve: Curve
 ## Run duration in seconds that maps to x=1 on the pierce size curve.
 @export var pierce_flow_window_curve_max_time: float = 300.0
+## Sound played when a pierce shot fires.
+@export var pierce_sound: AudioStream
+@export_range(-40.0, 6.0, 0.1) var pierce_sound_volume_db: float = 0.0
 @export_group("")
 
 @export_group("Kick Attack")
@@ -133,6 +139,12 @@ var _combo_hits: int = 0
 @export var kick_flow_window_size_curve: Curve
 ## Run duration in seconds that maps to x=1 on the kick size curve.
 @export var kick_flow_window_curve_max_time: float = 300.0
+## Sound played when a kick begins.
+@export var kick_sound: AudioStream
+@export_range(-40.0, 6.0, 0.1) var kick_sound_volume_db: float = 0.0
+## Sound played when the kick hitbox contacts an enemy.
+@export var kick_hit_sound: AudioStream
+@export_range(-40.0, 6.0, 0.1) var kick_hit_sound_volume_db: float = 0.0
 @export_group("")
 ## Added damage multiplier per consecutive hit (stacks up to 2 extra hits).
 ## At combo hit 1: 1 + combo_step_multiplier. At hit 2+: 1 + 2*combo_step_multiplier.
@@ -162,6 +174,11 @@ var _combo_hits: int = 0
 ## Current aim angle in degrees. Updated each frame during a shoot action.
 var _aim_angle_deg: float = 0.0
 
+var _shoot_audio: AudioStreamPlayer2D = null
+var _pierce_audio: AudioStreamPlayer2D = null
+var _kick_audio: AudioStreamPlayer2D = null
+var _kick_hit_audio: AudioStreamPlayer2D = null
+
 
 func _ready() -> void:
 	super()
@@ -173,6 +190,10 @@ func _ready() -> void:
 	_set_kick_hitbox(false)
 	if kick_hitbox != null:
 		kick_hitbox.body_entered.connect(_on_kick_hit_body)
+	_shoot_audio = _make_sfx_player(shoot_sound, shoot_sound_volume_db)
+	_pierce_audio = _make_sfx_player(pierce_sound, pierce_sound_volume_db)
+	_kick_audio = _make_sfx_player(kick_sound, kick_sound_volume_db)
+	_kick_hit_audio = _make_sfx_player(kick_hit_sound, kick_hit_sound_volume_db)
 
 
 func _physics_process(delta: float) -> void:
@@ -263,6 +284,7 @@ func _begin_kick() -> void:
 	_kick_flow_checks_completed = 0
 	_kick_lunge_active = false
 	_stop_flow()
+	_play_sfx(_kick_audio)
 	animated_sprite.play("kick")
 	animated_sprite.frame = 0
 
@@ -306,6 +328,10 @@ func _begin_shoot(is_pierce: bool) -> void:
 		aim_pointer.rotation = 0.0
 		aim_pointer.show()
 	_stop_flow()
+	if is_pierce:
+		_play_sfx(_pierce_audio)
+	else:
+		_play_sfx(_shoot_audio)
 	animated_sprite.play("shoot")
 	animated_sprite.frame = 0
 	if is_pierce:
@@ -573,6 +599,7 @@ func _set_kick_hitbox(enabled: bool) -> void:
 
 
 func _on_kick_hit_body(body: Node2D) -> void:
+	_play_sfx(_kick_hit_audio)
 	var flow_success: bool = _current_attack_damage_multiplier >= 1.0
 	var dmg: float = (kick_damage + attack_bonus) * _current_attack_damage_multiplier
 	if body.has_method("take_damage"):

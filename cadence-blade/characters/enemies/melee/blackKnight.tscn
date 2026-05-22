@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://b2civ401woqp5" path="res://characters/enemies/melee/black_knight.gd" id="1_xsjc2"]
 [ext_resource type="Texture2D" uid="uid://b1nyqs5s41pot" path="res://assets/sprites/enemies/blackWarrior.png" id="2_ksc84"]
+[ext_resource type="AudioStream" uid="uid://cutqjehal5qrw" path="res://assets/Sounds/Tishing SFX.mp3" id="2_ma6aj"]
 [ext_resource type="PackedScene" uid="uid://bkyw3pybjuqjs" path="res://ui/hud/HPBar.tscn" id="3_0kexb"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_xsjc2"]
@@ -142,6 +143,7 @@ collision_layer = 2
 script = ExtResource("1_xsjc2")
 slash_damage = 30.0
 knockback_force = 100.0
+slash_hit_sound = ExtResource("2_ma6aj")
 facing_pivot = NodePath("Pivot")
 health_bar = NodePath("Pivot/HPBar")
 detection_zone = NodePath("Pivot/DetectionZone")

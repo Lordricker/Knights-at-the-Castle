@@ -88,6 +88,15 @@ var _orig_layer: int = 0
 ## How fast knockback decelerates in pixels/sec.
 @export var knockback_friction: float = 800.0
 
+@export_group("Walk Sound")
+## AudioStream to play on each footstep while running.
+@export var walk_sound: AudioStream
+## Per-footstep volume in dB (0 = full volume, negative = quieter).
+@export_range(-40.0, 6.0, 0.1) var walk_sound_volume_db: float = 0.0
+## Running animation frame indices that trigger a footstep sound.
+@export var walk_sound_footstep_frames: Array[int] = []
+@export_group("")
+
 signal died()
 
 # ── Player slot / input routing ───────────────────────────────────────────────
@@ -103,6 +112,8 @@ var input_override: Dictionary = {}
 ## Previous frame's snapshot — used to emulate is_action_just_pressed.
 var _prev_input_override: Dictionary = {}
 var disable_local_attack_input: bool = false
+var _walk_audio: AudioStreamPlayer2D = null
+var _prev_footstep_frame: int = -1
 ## Joiner-only visual lock used when the host is currently driving a non-locomotion animation.
 ## While this is set, local movement code leaves the sprite animation alone.
 var network_animation_override: StringName = &""
@@ -130,6 +141,7 @@ func _ready() -> void:
 	if flow_bar != null:
 		flow_bar.hide()
 	_apply_facing()
+	_walk_audio = _make_sfx_player(walk_sound, walk_sound_volume_db)
 
 
 ## Advance the override snapshot. Call once per physics frame before _handle_movement.
@@ -213,6 +225,8 @@ func _physics_process(delta: float) -> void:
 		_constrain_to_walk_area()
 	# Snap to whole pixels to prevent sub-pixel blur during movement.
 	position = position.round()
+	_check_footstep_sound()
+
 ## Push this character away from source_position.
 func apply_knockback(source_position: Vector2, force: float) -> void:
 	if _ignore_client_side_gameplay():
@@ -224,6 +238,35 @@ func apply_knockback(source_position: Vector2, force: float) -> void:
 ## Override in subclass to handle input and set velocity.
 func _handle_movement() -> void:
 	pass
+
+
+## Creates and adds an AudioStreamPlayer2D child routed to the SFX bus.
+func _make_sfx_player(stream: AudioStream, volume_db: float) -> AudioStreamPlayer2D:
+	var p := AudioStreamPlayer2D.new()
+	p.stream = stream
+	p.volume_db = volume_db
+	p.bus = &"SFX"
+	add_child(p)
+	return p
+
+
+## Plays the given SFX player only if a stream is assigned.
+func _play_sfx(player: AudioStreamPlayer2D) -> void:
+	if player != null and player.stream != null:
+		player.play()
+
+
+## Called each physics frame to trigger footstep sounds at configured running frames.
+func _check_footstep_sound() -> void:
+	if animated_sprite == null or walk_sound_footstep_frames.is_empty():
+		return
+	if animated_sprite.animation == &"running":
+		var f: int = animated_sprite.frame
+		if f != _prev_footstep_frame and f in walk_sound_footstep_frames:
+			_prev_footstep_frame = f
+			_play_sfx(_walk_audio)
+	else:
+		_prev_footstep_frame = -1
 
 
 ## Keeps the character inside the walk_area polygon.

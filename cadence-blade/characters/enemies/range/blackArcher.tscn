@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://cblarch3rsc0p" path="res://characters/enemies/range/black_archer.gd" id="1_7622n"]
 [ext_resource type="Texture2D" uid="uid://yspilpdcrwyc" path="res://assets/sprites/enemies/blackArchers.png" id="2_5thrq"]
 [ext_resource type="PackedScene" uid="uid://bkyw3pybjuqjs" path="res://ui/hud/HPBar.tscn" id="3_pejhy"]
+[ext_resource type="AudioStream" uid="uid://b6cujcbdhn6sg" path="res://assets/Sounds/thwing SFX.mp3" id="3_t1y0h"]
 [ext_resource type="PackedScene" uid="uid://d7m3taty6w01" path="res://FX/arrow.tscn" id="4_arrow"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_t1y0h"]
@@ -127,6 +128,7 @@ arrow_damage = 20.0
 arrow_speed = 550.0
 arrow_lifetime = 1.5
 arrow_angle = 12.0
+shoot_sound = ExtResource("3_t1y0h")
 max_health = 60.0
 facing_pivot = NodePath("Pivot")
 health_bar = NodePath("Pivot/HPBar")

@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://cn0xmqyf3xcqr" path="res://characters/enemies/elites/green_dragon.gd" id="1_fiqa8"]
 [ext_resource type="Texture2D" uid="uid://dmgpwnn11o5k0" path="res://assets/sprites/greendragon.png" id="2_2s2v6"]
 [ext_resource type="PackedScene" uid="uid://bbjula4tp34fv" path="res://characters/enemies/elites/Fireball.tscn" id="2_7wkot"]
+[ext_resource type="AudioStream" uid="uid://cpdexibo2y6oi" path="res://assets/Sounds/Shing SFX.mp3" id="2_8b27k"]
 [ext_resource type="PackedScene" uid="uid://bkyw3pybjuqjs" path="res://ui/hud/HPBar.tscn" id="3_7wkot"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_8b27k"]
@@ -205,12 +206,13 @@ colors = PackedColorArray(1, 0.35000002, 0, 1, 0.7092767, 0.15213937, 0.18955913
 [node name="Node2D" type="Node2D" unique_id=971904331]
 z_index = 1
 
-[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=1925760145 node_paths=PackedStringArray("slash_hitbox", "fireball_marker", "fireball_zone", "fireball_windup_particles", "head_hitbox_shape", "facing_pivot", "health_bar", "detection_zone", "hit_particles")]
+[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=1925760145 node_paths=PackedStringArray("slash_hitbox", "fireball_marker", "fireball_zone", "fireball_windup_particles", "facing_pivot", "health_bar", "detection_zone", "hit_particles")]
 y_sort_enabled = true
 position = Vector2(0, -11)
 collision_layer = 2
 script = ExtResource("1_fiqa8")
 slash_hitbox = NodePath("Pivot/SlashHitbox")
+slash_hit_sound = ExtResource("2_8b27k")
 fireball_scene = ExtResource("2_7wkot")
 fireball_lifetime = 1.0
 fireball_angle = -10.0
@@ -218,7 +220,6 @@ fireball_marker = NodePath("Pivot/FireballZone/Marker2D")
 fireball_zone = NodePath("Pivot/FireballZone")
 fireball_windup_particles = NodePath("Pivot/lifetimeParticles")
 fireball_y_offsets = Array[float]([0.0, 0.0, -4.0, -8.0, -8.0, -9.0, -10.0, -6.0, 0.0])
-head_hitbox_shape = NodePath("HeadCollision")
 max_health = 600.0
 move_speed = 21.0
 facing_pivot = NodePath("Pivot")

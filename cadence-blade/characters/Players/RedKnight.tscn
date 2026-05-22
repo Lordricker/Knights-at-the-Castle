@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://nj86mepfwaa3" path="res://characters/Players/red_knight.gd" id="1_6xwxy"]
 [ext_resource type="Texture2D" uid="uid://bklkubft4hlt0" path="res://assets/sprites/RedKnightSpritesSheet.png" id="2_jjg8s"]
+[ext_resource type="AudioStream" uid="uid://cutqjehal5qrw" path="res://assets/Sounds/Tishing SFX.mp3" id="2_wwfss"]
 [ext_resource type="PackedScene" uid="uid://b604hgjwaaiuj" path="res://FX/slashEffect.tscn" id="3_ufveg"]
 [ext_resource type="PackedScene" uid="uid://bkyw3pybjuqjs" path="res://ui/hud/HPBar.tscn" id="4_3og0q"]
 [ext_resource type="PackedScene" uid="uid://dh7thuuxwk7x1" path="res://ui/hud/FlowBar.tscn" id="5_d0uti"]
@@ -431,6 +432,7 @@ spin_flow_window_center = 0.4
 spin_flow_window_random_range = 0.0
 spin_flow_window_size_curve = SubResource("Curve_6qwqa")
 spin_flow_window_curve_max_time = 60.0
+spin_hit_sound = ExtResource("2_wwfss")
 display_name = "Arthur \"Steel, honor, and a sword too large for hesitation.\""
 body_box = NodePath("bodyBox")
 max_health = 200.0

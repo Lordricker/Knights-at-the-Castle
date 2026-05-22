@@ -28,6 +28,9 @@ const SHOOT_FRAME: int = 5
 @export var arrow_lifetime: float = 2.5
 ## Fixed angle offset added to the shot direction in degrees (negative = upward).
 @export_range(-90.0, 90.0, 1.0, "degrees") var arrow_angle: float = 0.0
+## Sound played when an arrow fires.
+@export var shoot_sound: AudioStream
+@export_range(-40.0, 6.0, 0.1) var shoot_sound_volume_db: float = 0.0
 
 # ── Internal state ─────────────────────────────────────────────────────────────
 
@@ -37,6 +40,8 @@ var shoot_state: ShootState = ShootState.NONE
 ## Guards against firing the arrow more than once per animation play.
 var _arrow_fired: bool = false
 
+var _shoot_audio: AudioStreamPlayer2D = null
+
 
 func _ready() -> void:
 	attack_damage = arrow_damage
@@ -45,6 +50,7 @@ func _ready() -> void:
 	animated_sprite.frame_changed.connect(_on_frame_changed)
 	detection_zone.monitoring = true
 	animated_sprite.play("running")
+	_shoot_audio = _make_sfx_player(shoot_sound, shoot_sound_volume_db)
 
 
 # ── AI ─────────────────────────────────────────────────────────────────────────
@@ -131,6 +137,7 @@ func _on_animation_finished() -> void:
 func _fire_arrow() -> void:
 	if arrow_scene == null:
 		return
+	_play_sfx(_shoot_audio)
 	var arrow := arrow_scene.instantiate() as Arrow
 	if arrow == null:
 		return

@@ -32,6 +32,9 @@ const SHOOT_FRAME: int = 5
 @export var arrow_lifetime: float = 2.5
 ## Fixed angle offset added to the shot direction in degrees (negative = upward).
 @export_range(-90.0, 90.0, 1.0, "degrees") var arrow_angle: float = 0.0
+## Sound played when a regular arrow fires.
+@export var shoot_sound: AudioStream
+@export_range(-40.0, 6.0, 0.1) var shoot_sound_volume_db: float = 0.0
 @export_group("")
 
 # ── Combo Shot ────────────────────────────────────────────────────────────────
@@ -45,6 +48,9 @@ const SHOOT_FRAME: int = 5
 @export var combo_arrow_lifetime: float = 2.5
 ## Angle offset for the combo shot in degrees (negative = upward).
 @export_range(-90.0, 90.0, 1.0, "degrees") var combo_arrow_angle: float = 0.0
+## Sound played when a combo arrow fires.
+@export var combo_shoot_sound: AudioStream
+@export_range(-40.0, 6.0, 0.1) var combo_shoot_sound_volume_db: float = 0.0
 @export_group("")
 
 # ── Internal state ─────────────────────────────────────────────────────────────
@@ -57,6 +63,9 @@ var _arrow_fired: bool = false
 ## True when the current attack cycle should fire the combo shot.
 var _firing_combo: bool = false
 
+var _shoot_audio: AudioStreamPlayer2D = null
+var _combo_shoot_audio: AudioStreamPlayer2D = null
+
 
 func _ready() -> void:
 	attack_damage = arrow_damage
@@ -65,6 +74,8 @@ func _ready() -> void:
 	animated_sprite.frame_changed.connect(_on_frame_changed)
 	detection_zone.monitoring = true
 	animated_sprite.play("running")
+	_shoot_audio = _make_sfx_player(shoot_sound, shoot_sound_volume_db)
+	_combo_shoot_audio = _make_sfx_player(combo_shoot_sound, combo_shoot_sound_volume_db)
 
 
 # ── AI ─────────────────────────────────────────────────────────────────────────
@@ -155,6 +166,7 @@ func _on_animation_finished() -> void:
 func _fire_arrow() -> void:
 	if arrow_scene == null:
 		return
+	_play_sfx(_shoot_audio)
 	var arrow := arrow_scene.instantiate() as Arrow
 	if arrow == null:
 		return
@@ -197,6 +209,7 @@ func _fire_arrow() -> void:
 func _fire_combo_arrow() -> void:
 	if arrow_scene == null:
 		return
+	_play_sfx(_combo_shoot_audio)
 	var arrow := arrow_scene.instantiate() as Arrow
 	if arrow == null:
 		return

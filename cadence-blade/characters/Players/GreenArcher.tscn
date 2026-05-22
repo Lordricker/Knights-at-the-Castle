@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://c4g7n2rb5xke" path="res://characters/Players/green_archer.gd" id="1_gshrq"]
 [ext_resource type="Texture2D" uid="uid://ck1td31w7kdfx" path="res://assets/sprites/ArcherSpriteSheet.png" id="2_6qwqa"]
 [ext_resource type="PackedScene" uid="uid://d7m3taty6w01" path="res://FX/arrow.tscn" id="2_8kpke"]
+[ext_resource type="AudioStream" uid="uid://b6cujcbdhn6sg" path="res://assets/Sounds/thwing SFX.mp3" id="3_j5lh5"]
 [ext_resource type="PackedScene" uid="uid://dh7thuuxwk7x1" path="res://ui/hud/FlowBar.tscn" id="4_p72ps"]
 [ext_resource type="PackedScene" uid="uid://bkyw3pybjuqjs" path="res://ui/hud/HPBar.tscn" id="5_jf3jw"]
 [ext_resource type="Texture2D" uid="uid://bt4sgc24myu8c" path="res://assets/sprites/ArcherPointer.png" id="6_8kpke"]
@@ -263,6 +264,7 @@ shoot_flow_window_half_size = 0.07
 shoot_flow_window_random_range = 0.0
 shoot_flow_window_size_curve = SubResource("Curve_6qwqa")
 shoot_flow_window_curve_max_time = 60.0
+shoot_sound = ExtResource("3_j5lh5")
 pierce_damage = 40.0
 pierce_speed = 900.0
 pierce_move_mult = 0.16

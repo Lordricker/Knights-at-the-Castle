@@ -35,8 +35,12 @@ extends EnemyBase
 ## Animation frame indices that activate the slash hitbox.
 @export var slash_hitbox_frames: Array[int] = [2, 3]
 ## Knockback force applied to targets hit by slash.
-@export var slash_knockback_force: float = 350.0
-
+@export var slash_knockback_force: float = 350.0## Sound played when the dragon begins a slash.
+@export var slash_swing_sound: AudioStream
+@export_range(-40.0, 6.0, 0.1) var slash_swing_sound_volume_db: float = 0.0
+## Sound played when the slash hitbox contacts a target.
+@export var slash_hit_sound: AudioStream
+@export_range(-40.0, 6.0, 0.1) var slash_hit_sound_volume_db: float = 0.0
 
 # ── Fireball ──────────────────────────────────────────────────────────────────
 
@@ -64,6 +68,9 @@ extends EnemyBase
 ## Parent node holding all windup particle effects.
 ## Drag the parent CPUParticles2D (or Node2D) here — it will be shown/hidden as a group.
 @export var fireball_windup_particles: Node2D
+## Sound played when the fireball launches.
+@export var fireball_sound: AudioStream
+@export_range(-40.0, 6.0, 0.1) var fireball_sound_volume_db: float = 0.0
 
 @export_group("Fireball Flight Offsets")
 ## Vertical offset applied to the Pivot node on each frame of the "fireball"
@@ -92,6 +99,10 @@ enum AttackState { NONE, SLASHING, CASTING_FIREBALL }
 var attack_state: AttackState = AttackState.NONE
 var _fireball_fired: bool = false
 
+var _slash_swing_audio: AudioStreamPlayer2D = null
+var _slash_hit_audio: AudioStreamPlayer2D = null
+var _fireball_audio: AudioStreamPlayer2D = null
+
 
 func _ready() -> void:
 	attack_damage = slash_damage
@@ -111,6 +122,9 @@ func _ready() -> void:
 		head_hitbox.monitoring = true
 		head_hitbox.area_entered.connect(_on_head_hit_area)
 	animated_sprite.play("running")
+	_slash_swing_audio = _make_sfx_player(slash_swing_sound, slash_swing_sound_volume_db)
+	_slash_hit_audio = _make_sfx_player(slash_hit_sound, slash_hit_sound_volume_db)
+	_fireball_audio = _make_sfx_player(fireball_sound, fireball_sound_volume_db)
 
 
 # ── AI ─────────────────────────────────────────────────────────────────────────
@@ -160,6 +174,7 @@ func _is_attacking() -> bool:
 
 func _begin_slash() -> void:
 	attack_state = AttackState.SLASHING
+	_play_sfx(_slash_swing_audio)
 	animated_sprite.stop()
 	animated_sprite.play("slash")
 	_face_target()
@@ -197,6 +212,7 @@ func _stop_fireball() -> void:
 func _fire_fireball() -> void:
 	if fireball_scene == null:
 		return
+	_play_sfx(_fireball_audio)
 	var fb := fireball_scene.instantiate() as Fireball
 	if fb == null:
 		return
@@ -348,6 +364,7 @@ func _set_hitbox(box: Area2D, enabled: bool) -> void:
 func _on_slash_hit_body(body: Node2D) -> void:
 	if not body.is_in_group(&"Kill"):
 		return
+	_play_sfx(_slash_hit_audio)
 	if body.has_method("take_damage"):
 		body.take_damage(slash_damage)
 	if body.is_in_group(&"KillCharacter") and body.has_method("apply_knockback"):
@@ -357,6 +374,7 @@ func _on_slash_hit_body(body: Node2D) -> void:
 func _on_slash_hit_area(area: Area2D) -> void:
 	if not area.is_in_group(&"Kill"):
 		return
+	_play_sfx(_slash_hit_audio)
 	var owner_node := area.get_parent()
 	if owner_node != null and owner_node.has_method("take_damage"):
 		owner_node.take_damage(slash_damage)

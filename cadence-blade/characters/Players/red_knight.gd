@@ -91,6 +91,12 @@ var _spin_flow_checks_completed: int = 0
 @export var slash_flow_window_size_curve: Curve
 ## Run duration in seconds that maps to x=1 on the size curve.
 @export var slash_flow_window_curve_max_time: float = 300.0
+## Sound played when a slash begins.
+@export var slash_swing_sound: AudioStream
+@export_range(-40.0, 6.0, 0.1) var slash_swing_sound_volume_db: float = 0.0
+## Sound played when the slash hitbox contacts an enemy.
+@export var slash_hit_sound: AudioStream
+@export_range(-40.0, 6.0, 0.1) var slash_hit_sound_volume_db: float = 0.0
 
 # ── Thrust Attack ─────────────────────────────────────────────────────────────
 
@@ -115,6 +121,12 @@ var _spin_flow_checks_completed: int = 0
 @export var thrust_flow_window_size_curve: Curve
 ## Run duration in seconds that maps to x=1 on the size curve.
 @export var thrust_flow_window_curve_max_time: float = 300.0
+## Sound played when a thrust begins.
+@export var thrust_swing_sound: AudioStream
+@export_range(-40.0, 6.0, 0.1) var thrust_swing_sound_volume_db: float = 0.0
+## Sound played when the thrust hitbox contacts an enemy.
+@export var thrust_hit_sound: AudioStream
+@export_range(-40.0, 6.0, 0.1) var thrust_hit_sound_volume_db: float = 0.0
 
 # ── Spin Attack ───────────────────────────────────────────────────────────────
 
@@ -137,6 +149,12 @@ var _spin_flow_checks_completed: int = 0
 @export var spin_flow_window_size_curve: Curve
 ## Run duration in seconds that maps to x=1 on the size curve.
 @export var spin_flow_window_curve_max_time: float = 300.0
+## Sound played when a spin begins.
+@export var spin_swing_sound: AudioStream
+@export_range(-40.0, 6.0, 0.1) var spin_swing_sound_volume_db: float = 0.0
+## Sound played when the spin hitbox contacts an enemy.
+@export var spin_hit_sound: AudioStream
+@export_range(-40.0, 6.0, 0.1) var spin_hit_sound_volume_db: float = 0.0
 @export_group("")
 
 # ── Movement bounds (pixels -- set to match your level art) ───────────────────
@@ -162,6 +180,13 @@ var _spin_hitbox_right_pos: Vector2 = Vector2.ZERO
 
 var _current_attack_damage_multiplier: float = 1.0
 
+var _slash_swing_audio: AudioStreamPlayer2D = null
+var _thrust_swing_audio: AudioStreamPlayer2D = null
+var _spin_swing_audio: AudioStreamPlayer2D = null
+var _slash_hit_audio: AudioStreamPlayer2D = null
+var _thrust_hit_audio: AudioStreamPlayer2D = null
+var _spin_hit_audio: AudioStreamPlayer2D = null
+
 
 func _ready() -> void:
 	super()
@@ -180,6 +205,12 @@ func _ready() -> void:
 		thrust_hitbox.body_entered.connect(_on_thrust_hit_body)
 	if spin_hitbox != null:
 		spin_hitbox.body_entered.connect(_on_spin_hit_body)
+	_slash_swing_audio = _make_sfx_player(slash_swing_sound, slash_swing_sound_volume_db)
+	_thrust_swing_audio = _make_sfx_player(thrust_swing_sound, thrust_swing_sound_volume_db)
+	_spin_swing_audio = _make_sfx_player(spin_swing_sound, spin_swing_sound_volume_db)
+	_slash_hit_audio = _make_sfx_player(slash_hit_sound, slash_hit_sound_volume_db)
+	_thrust_hit_audio = _make_sfx_player(thrust_hit_sound, thrust_hit_sound_volume_db)
+	_spin_hit_audio = _make_sfx_player(spin_hit_sound, spin_hit_sound_volume_db)
 
 
 # ── Movement ───────────────────────────────────────────────────────────────────
@@ -253,6 +284,7 @@ func _handle_attack_input() -> void:
 			# Suppress new attacks while the player is at the blacksmith.
 			if not attacks_locked:
 				if _action_just_pressed("action1"):
+					_play_sfx(_slash_swing_audio)
 					_begin_attack("slash", AttackState.SLASH_WINDUP)
 					var _sh := _sample_window_half(slash_flow_window_size_curve,
 							slash_flow_window_half_size, slash_flow_window_curve_max_time)
@@ -263,6 +295,7 @@ func _handle_attack_input() -> void:
 						slash_flow_fill_duration, slash_flow_miss_multiplier,
 						slash_flow_window_center, _sh, slash_flow_window_random_range)
 				elif _action_just_pressed("action2"):
+					_play_sfx(_thrust_swing_audio)
 					_begin_attack("thrust", AttackState.THRUST_WINDUP)
 					var _th := _sample_window_half(thrust_flow_window_size_curve,
 							thrust_flow_window_half_size, thrust_flow_window_curve_max_time)
@@ -274,6 +307,7 @@ func _handle_attack_input() -> void:
 						thrust_flow_fill_duration, thrust_flow_miss_multiplier,
 						thrust_flow_window_center, _th, thrust_flow_window_random_range)
 				elif _action_just_pressed("action3"):
+					_play_sfx(_spin_swing_audio)
 					_begin_attack("spin", AttackState.SPIN_WINDUP)
 					_start_spin_flow_check()
 
@@ -469,6 +503,7 @@ func _on_animation_finished() -> void:
 
 ## Called when any active hitbox touches an enemy body.
 func _on_slash_hit_body(body: Node2D) -> void:
+	_play_sfx(_slash_hit_audio)
 	_apply_hit_body(body)
 	_sync_slash_effect_facing()
 	_set_slash_effect_sprite(true)
@@ -478,10 +513,12 @@ func _on_slash_hit_body(body: Node2D) -> void:
 
 
 func _on_thrust_hit_body(body: Node2D) -> void:
+	_play_sfx(_thrust_hit_audio)
 	_apply_hit_body(body)
 
 
 func _on_spin_hit_body(body: Node2D) -> void:
+	_play_sfx(_spin_hit_audio)
 	var flow_success: bool = _current_attack_damage_multiplier >= 1.0
 	if body.has_method("take_damage"):
 		body.take_damage(_get_current_attack_damage(), flow_success)

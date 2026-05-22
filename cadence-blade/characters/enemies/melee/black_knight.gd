@@ -20,6 +20,12 @@ extends EnemyBase
 @export var slash_hitbox_frames: Array[int] = [2, 6]
 ## How hard the black knight's slash knocks the player back.
 @export var knockback_force: float = 300.0
+## Sound played when a slash begins.
+@export var slash_swing_sound: AudioStream
+@export_range(-40.0, 6.0, 0.1) var slash_swing_sound_volume_db: float = 0.0
+## Sound played when the slash hitbox contacts a target.
+@export var slash_hit_sound: AudioStream
+@export_range(-40.0, 6.0, 0.1) var slash_hit_sound_volume_db: float = 0.0
 
 
 # ── Internal state ─────────────────────────────────────────────────────────────
@@ -32,6 +38,9 @@ var _slash_hitbox_right_pos: Vector2 = Vector2.ZERO
 var _detection_zone_right_pos: Vector2 = Vector2.ZERO
 
 @onready var slash_hitbox: Area2D = find_child("SlashHitbox") as Area2D
+
+var _slash_swing_audio: AudioStreamPlayer2D = null
+var _slash_hit_audio: AudioStreamPlayer2D = null
 
 
 func _ready() -> void:
@@ -47,6 +56,8 @@ func _ready() -> void:
 		slash_hitbox.body_entered.connect(_on_hit_body)
 		slash_hitbox.area_entered.connect(_on_hit_area)
 	animated_sprite.play("running")
+	_slash_swing_audio = _make_sfx_player(slash_swing_sound, slash_swing_sound_volume_db)
+	_slash_hit_audio = _make_sfx_player(slash_hit_sound, slash_hit_sound_volume_db)
 
 
 # ── AI ─────────────────────────────────────────────────────────────────────────
@@ -95,6 +106,7 @@ func _is_attacking() -> bool:
 
 func _begin_slash() -> void:
 	slash_state = SlashState.ATTACKING
+	_play_sfx(_slash_swing_audio)
 	animated_sprite.stop()  # interrupt walk animation immediately
 	animated_sprite.play("slash")
 	# Face toward the detected player.
@@ -147,6 +159,7 @@ func _set_hitbox(box: Area2D, enabled: bool) -> void:
 func _on_hit_body(body: Node2D) -> void:
 	if not body.is_in_group(&"Kill"):
 		return
+	_play_sfx(_slash_hit_audio)
 	if body.has_method("take_damage"):
 		body.take_damage(attack_damage)
 	# Only apply knockback to characters, not static objects like the castle.
@@ -159,6 +172,7 @@ func _on_hit_body(body: Node2D) -> void:
 func _on_hit_area(area: Area2D) -> void:
 	if not area.is_in_group(&"Kill"):
 		return
+	_play_sfx(_slash_hit_audio)
 	var owner_node := area.get_parent()
 	if owner_node != null and owner_node.has_method("take_damage"):
 		owner_node.take_damage(attack_damage)

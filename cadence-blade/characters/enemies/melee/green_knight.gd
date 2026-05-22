@@ -37,6 +37,12 @@ extends EnemyBase
 @export var slash_attack_frame: int = 3
 ## Knockback force applied to targets hit by slash.
 @export var slash_knockback_force: float = 300.0
+## Sound played when a slash begins.
+@export var slash_swing_sound: AudioStream
+@export_range(-40.0, 6.0, 0.1) var slash_swing_sound_volume_db: float = 0.0
+## Sound played when the slash hitbox contacts a target.
+@export var slash_hit_sound: AudioStream
+@export_range(-40.0, 6.0, 0.1) var slash_hit_sound_volume_db: float = 0.0
 
 
 # ---- Slash2 ------------------------------------------------------------------
@@ -54,6 +60,12 @@ extends EnemyBase
 @export var slash2_particles: CPUParticles2D
 ## Frame index (0-based) on which to emit slash2_particles.
 @export var slash2_particle_frame: int = 4
+## Sound played when slash2 begins.
+@export var slash2_swing_sound: AudioStream
+@export_range(-40.0, 6.0, 0.1) var slash2_swing_sound_volume_db: float = 0.0
+## Sound played when the slash2 hitbox contacts a target.
+@export var slash2_hit_sound: AudioStream
+@export_range(-40.0, 6.0, 0.1) var slash2_hit_sound_volume_db: float = 0.0
 
 
 # ---- Block -------------------------------------------------------------------
@@ -83,6 +95,11 @@ var _slash_hitbox_right_pos: Vector2 = Vector2.ZERO
 var _slash2_hitbox_right_pos: Vector2 = Vector2.ZERO
 var _detection_zone_right_pos: Vector2 = Vector2.ZERO
 
+var _slash_swing_audio: AudioStreamPlayer2D = null
+var _slash2_swing_audio: AudioStreamPlayer2D = null
+var _slash_hit_audio: AudioStreamPlayer2D = null
+var _slash2_hit_audio: AudioStreamPlayer2D = null
+
 
 func _ready() -> void:
 	attack_damage = slash_damage
@@ -105,6 +122,10 @@ func _ready() -> void:
 	if block_zone != null:
 		block_zone.area_entered.connect(_on_block_zone_area_entered)
 	animated_sprite.play("running")
+	_slash_swing_audio = _make_sfx_player(slash_swing_sound, slash_swing_sound_volume_db)
+	_slash2_swing_audio = _make_sfx_player(slash2_swing_sound, slash2_swing_sound_volume_db)
+	_slash_hit_audio = _make_sfx_player(slash_hit_sound, slash_hit_sound_volume_db)
+	_slash2_hit_audio = _make_sfx_player(slash2_hit_sound, slash2_hit_sound_volume_db)
 
 
 # ---- AI ----------------------------------------------------------------------
@@ -164,6 +185,7 @@ func _begin_random_action() -> void:
 func _begin_slash() -> void:
 	_state = GKState.SLASHING
 	_set_hitbox(block_zone, false)
+	_play_sfx(_slash_swing_audio)
 	animated_sprite.stop()
 	animated_sprite.play("slash")
 	_face_target()
@@ -172,6 +194,7 @@ func _begin_slash() -> void:
 func _begin_slash2() -> void:
 	_state = GKState.SLASHING2
 	_set_hitbox(block_zone, false)
+	_play_sfx(_slash2_swing_audio)
 	animated_sprite.stop()
 	animated_sprite.play("slash2")
 	_face_target()
@@ -297,9 +320,11 @@ func _on_attack_hit_body(body: Node2D) -> void:
 	var kb: float
 	match _state:
 		GKState.SLASHING:
+			_play_sfx(_slash_hit_audio)
 			dmg = slash_damage
 			kb = slash_knockback_force
 		GKState.SLASHING2:
+			_play_sfx(_slash2_hit_audio)
 			dmg = slash2_damage
 			kb = slash2_knockback_force
 		_:
@@ -317,8 +342,10 @@ func _on_attack_hit_area(area: Area2D) -> void:
 	var dmg: float
 	match _state:
 		GKState.SLASHING:
+			_play_sfx(_slash_hit_audio)
 			dmg = slash_damage
 		GKState.SLASHING2:
+			_play_sfx(_slash2_hit_audio)
 			dmg = slash2_damage
 		_:
 			return
