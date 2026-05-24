@@ -94,9 +94,10 @@ var _spin_flow_checks_completed: int = 0
 ## Sound played when a slash begins.
 @export var slash_swing_sound: AudioStream
 @export_range(-40.0, 6.0, 0.1) var slash_swing_sound_volume_db: float = 0.0
-## Sound played when the slash hitbox contacts an enemy.
-@export var slash_hit_sound: AudioStream
-@export_range(-40.0, 6.0, 0.1) var slash_hit_sound_volume_db: float = 0.0
+## Animation frame indices that trigger the slash swing sound.
+@export var slash_swing_sound_frames: Array[int] = []
+## Weapon type reported to enemies hit by the slash.
+@export var slash_weapon_type: WeaponType.WeaponType = WeaponType.WeaponType.SWORD
 
 # ── Thrust Attack ─────────────────────────────────────────────────────────────
 
@@ -124,9 +125,10 @@ var _spin_flow_checks_completed: int = 0
 ## Sound played when a thrust begins.
 @export var thrust_swing_sound: AudioStream
 @export_range(-40.0, 6.0, 0.1) var thrust_swing_sound_volume_db: float = 0.0
-## Sound played when the thrust hitbox contacts an enemy.
-@export var thrust_hit_sound: AudioStream
-@export_range(-40.0, 6.0, 0.1) var thrust_hit_sound_volume_db: float = 0.0
+## Animation frame indices that trigger the thrust swing sound.
+@export var thrust_swing_sound_frames: Array[int] = []
+## Weapon type reported to enemies hit by the thrust.
+@export var thrust_weapon_type: WeaponType.WeaponType = WeaponType.WeaponType.SWORD
 
 # ── Spin Attack ───────────────────────────────────────────────────────────────
 
@@ -152,9 +154,10 @@ var _spin_flow_checks_completed: int = 0
 ## Sound played when a spin begins.
 @export var spin_swing_sound: AudioStream
 @export_range(-40.0, 6.0, 0.1) var spin_swing_sound_volume_db: float = 0.0
-## Sound played when the spin hitbox contacts an enemy.
-@export var spin_hit_sound: AudioStream
-@export_range(-40.0, 6.0, 0.1) var spin_hit_sound_volume_db: float = 0.0
+## Animation frame indices that trigger the spin swing sound.
+@export var spin_swing_sound_frames: Array[int] = []
+## Weapon type reported to enemies hit by the spin.
+@export var spin_weapon_type: WeaponType.WeaponType = WeaponType.WeaponType.SWORD
 @export_group("")
 
 # ── Movement bounds (pixels -- set to match your level art) ───────────────────
@@ -183,9 +186,6 @@ var _current_attack_damage_multiplier: float = 1.0
 var _slash_swing_audio: AudioStreamPlayer2D = null
 var _thrust_swing_audio: AudioStreamPlayer2D = null
 var _spin_swing_audio: AudioStreamPlayer2D = null
-var _slash_hit_audio: AudioStreamPlayer2D = null
-var _thrust_hit_audio: AudioStreamPlayer2D = null
-var _spin_hit_audio: AudioStreamPlayer2D = null
 
 
 func _ready() -> void:
@@ -208,9 +208,6 @@ func _ready() -> void:
 	_slash_swing_audio = _make_sfx_player(slash_swing_sound, slash_swing_sound_volume_db)
 	_thrust_swing_audio = _make_sfx_player(thrust_swing_sound, thrust_swing_sound_volume_db)
 	_spin_swing_audio = _make_sfx_player(spin_swing_sound, spin_swing_sound_volume_db)
-	_slash_hit_audio = _make_sfx_player(slash_hit_sound, slash_hit_sound_volume_db)
-	_thrust_hit_audio = _make_sfx_player(thrust_hit_sound, thrust_hit_sound_volume_db)
-	_spin_hit_audio = _make_sfx_player(spin_hit_sound, spin_hit_sound_volume_db)
 
 
 # ── Movement ───────────────────────────────────────────────────────────────────
@@ -284,7 +281,6 @@ func _handle_attack_input() -> void:
 			# Suppress new attacks while the player is at the blacksmith.
 			if not attacks_locked:
 				if _action_just_pressed("action1"):
-					_play_sfx(_slash_swing_audio)
 					_begin_attack("slash", AttackState.SLASH_WINDUP)
 					var _sh := _sample_window_half(slash_flow_window_size_curve,
 							slash_flow_window_half_size, slash_flow_window_curve_max_time)
@@ -295,7 +291,6 @@ func _handle_attack_input() -> void:
 						slash_flow_fill_duration, slash_flow_miss_multiplier,
 						slash_flow_window_center, _sh, slash_flow_window_random_range)
 				elif _action_just_pressed("action2"):
-					_play_sfx(_thrust_swing_audio)
 					_begin_attack("thrust", AttackState.THRUST_WINDUP)
 					var _th := _sample_window_half(thrust_flow_window_size_curve,
 							thrust_flow_window_half_size, thrust_flow_window_curve_max_time)
@@ -307,7 +302,6 @@ func _handle_attack_input() -> void:
 						thrust_flow_fill_duration, thrust_flow_miss_multiplier,
 						thrust_flow_window_center, _th, thrust_flow_window_random_range)
 				elif _action_just_pressed("action3"):
-					_play_sfx(_spin_swing_audio)
 					_begin_attack("spin", AttackState.SPIN_WINDUP)
 					_start_spin_flow_check()
 
@@ -361,10 +355,10 @@ func die() -> void:
 	super()
 
 ## Block incoming damage while the thrust lunge is active (i-frames).
-func take_damage(amount: float, flow_success: bool = false) -> void:
+func take_damage(amount: float, flow_success: bool = false, weapon_type: WeaponType.WeaponType = WeaponType.WeaponType.SWORD) -> void:
 	if _thrust_invincible:
 		return
-	super(amount, flow_success)
+	super(amount, flow_success, weapon_type)
 
 ## Reset all attack state on respawn so the player does not resume mid-swing.
 func revive(at: Vector2) -> void:
@@ -430,6 +424,8 @@ func _on_frame_changed() -> void:
 		AttackState.SLASH_WINDUP:
 			_set_hitbox(slash_hitbox, f in SLASH_HITBOX_FRAMES)
 			_flush_slash_effect_sprite()
+			if f in slash_swing_sound_frames:
+				_play_sfx(_slash_swing_audio)
 			if f >= SLASH_PAUSE_FRAME:
 				attack_state = AttackState.SLASH_PAUSED
 				if not _flow_set_can_resolve():
@@ -439,13 +435,19 @@ func _on_frame_changed() -> void:
 		AttackState.SLASH_PAUSED:
 			_set_hitbox(slash_hitbox, f in SLASH_HITBOX_FRAMES)
 			_flush_slash_effect_sprite()
+			if f in slash_swing_sound_frames:
+				_play_sfx(_slash_swing_audio)
 
 		AttackState.SLASH_FINISH:
 			_set_hitbox(slash_hitbox, f in SLASH_HITBOX_FRAMES)
 			_flush_slash_effect_sprite()
+			if f in slash_swing_sound_frames:
+				_play_sfx(_slash_swing_audio)
 
 		AttackState.THRUST_WINDUP:
 			_set_hitbox(thrust_hitbox, f in THRUST_HITBOX_FRAMES)
+			if f in thrust_swing_sound_frames:
+				_play_sfx(_thrust_swing_audio)
 			if f >= THRUST_PAUSE_FRAME:
 				attack_state = AttackState.THRUST_PAUSED
 				if not _flow_set_can_resolve():
@@ -454,9 +456,13 @@ func _on_frame_changed() -> void:
 
 		AttackState.THRUST_PAUSED:
 			_set_hitbox(thrust_hitbox, f in THRUST_HITBOX_FRAMES)
+			if f in thrust_swing_sound_frames:
+				_play_sfx(_thrust_swing_audio)
 
 		AttackState.THRUST_FINISH:
 			_set_hitbox(thrust_hitbox, f in THRUST_HITBOX_FRAMES)
+			if f in thrust_swing_sound_frames:
+				_play_sfx(_thrust_swing_audio)
 			if f == THRUST_LUNGE_START_FRAME:
 				lunge_active = true
 			elif f > THRUST_LUNGE_END_FRAME:
@@ -464,6 +470,8 @@ func _on_frame_changed() -> void:
 
 		AttackState.SPIN_WINDUP:
 			# Hitbox frames are past the pause point, so they only fire in SPIN_FINISH.
+			if f in spin_swing_sound_frames:
+				_play_sfx(_spin_swing_audio)
 			if f >= SPIN_PAUSE_FRAME:
 				attack_state = AttackState.SPIN_PAUSED
 				if not _flow_set_can_resolve():
@@ -471,9 +479,13 @@ func _on_frame_changed() -> void:
 					_flow_can_resolve = true
 
 		AttackState.SPIN_PAUSED:
-			pass  # waiting for flow input; hitbox not active until SPIN_FINISH
+			if f in spin_swing_sound_frames:
+				_play_sfx(_spin_swing_audio)
+			# waiting for flow input; hitbox not active until SPIN_FINISH
 
 		AttackState.SPIN_FINISH:
+			if f in spin_swing_sound_frames:
+				_play_sfx(_spin_swing_audio)
 			var spin_active: bool = f in SPIN_HITBOX_FRAMES
 			_set_hitbox(spin_hitbox, spin_active)
 			if spin_hitbox != null:
@@ -503,7 +515,6 @@ func _on_animation_finished() -> void:
 
 ## Called when any active hitbox touches an enemy body.
 func _on_slash_hit_body(body: Node2D) -> void:
-	_play_sfx(_slash_hit_audio)
 	_apply_hit_body(body)
 	_sync_slash_effect_facing()
 	_set_slash_effect_sprite(true)
@@ -513,15 +524,13 @@ func _on_slash_hit_body(body: Node2D) -> void:
 
 
 func _on_thrust_hit_body(body: Node2D) -> void:
-	_play_sfx(_thrust_hit_audio)
 	_apply_hit_body(body)
 
 
 func _on_spin_hit_body(body: Node2D) -> void:
-	_play_sfx(_spin_hit_audio)
 	var flow_success: bool = _current_attack_damage_multiplier >= 1.0
 	if body.has_method("take_damage"):
-		body.take_damage(_get_current_attack_damage(), flow_success)
+		body.take_damage(_get_current_attack_damage(), flow_success, spin_weapon_type)
 	if body.has_method("apply_knockback"):
 		body.apply_knockback(global_position, spin_knockback_force)
 	# Joiner: enemy take_damage returns early locally — forward the hit to the host.
@@ -536,19 +545,23 @@ func _on_spin_hit_body(body: Node2D) -> void:
 				"kbx": global_position.x,
 				"kby": global_position.y,
 				"s":   1 if flow_success else 0,
+				"wt":  int(spin_weapon_type),
 			})
 
 
 func _apply_hit_body(body: Node2D) -> void:
 	var flow_success: bool = _current_attack_damage_multiplier >= 1.0
 	var kforce: float
+	var wtype: WeaponType.WeaponType
 	match attack_state:
 		AttackState.THRUST_WINDUP, AttackState.THRUST_PAUSED, AttackState.THRUST_FINISH:
 			kforce = thrust_knockback_force
+			wtype = thrust_weapon_type
 		_:
 			kforce = slash_knockback_force
+			wtype = slash_weapon_type
 	if body.has_method("take_damage"):
-		body.take_damage(_get_current_attack_damage(), flow_success)
+		body.take_damage(_get_current_attack_damage(), flow_success, wtype)
 	if body.has_method("apply_knockback"):
 		body.apply_knockback(global_position, kforce)
 	# Joiner: enemy take_damage returns early locally — forward the hit to the host.
@@ -563,13 +576,14 @@ func _apply_hit_body(body: Node2D) -> void:
 				"kbx": global_position.x,
 				"kby": global_position.y,
 				"s":   1 if flow_success else 0,
+				"wt":  int(wtype),
 			})
 
 
 ## Enable or disable an Area2D hitbox.
 ## Always deferred so this is safe to call from body_entered / frame_changed signals.
 func _set_hitbox(box: Area2D, enabled: bool) -> void:
-	if box == null:
+	if not is_instance_valid(box):
 		return
 	box.set_deferred(&"monitoring", enabled)
 	box.set_deferred(&"monitorable", enabled)

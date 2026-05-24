@@ -1,8 +1,14 @@
 [gd_scene format=3 uid="uid://1rqlas7yg3a1"]
 
 [ext_resource type="Script" uid="uid://cgk8n3rp5txa1" path="res://characters/enemies/melee/green_knight.gd" id="1_00qgw"]
+[ext_resource type="AudioStream" uid="uid://bn3xfmbxbv51" path="res://assets/Sounds/airsword.mp3" id="2_2gwiv"]
 [ext_resource type="Texture2D" uid="uid://cmqha2pse5jai" path="res://assets/sprites/enemies/greenSpearman.png" id="2_c2ecf"]
+[ext_resource type="AudioStream" uid="uid://da0xq7mf7em2m" path="res://assets/Sounds/step.mp3" id="3_nt8k8"]
 [ext_resource type="PackedScene" uid="uid://bkyw3pybjuqjs" path="res://ui/hud/HPBar.tscn" id="3_y77yk"]
+[ext_resource type="AudioStream" uid="uid://cutqjehal5qrw" path="res://assets/Sounds/Tishing SFX.mp3" id="4_igbm1"]
+[ext_resource type="AudioStream" uid="uid://bfuayugjr2c0q" path="res://assets/Sounds/Tink SFX.mp3" id="5_tr0co"]
+[ext_resource type="AudioStream" uid="uid://cexot5v8qnyuo" path="res://assets/Sounds/fleshslice.mp3" id="6_27opt"]
+[ext_resource type="AudioStream" uid="uid://dub7f0kquia1l" path="res://assets/Sounds/arrowflesh.mp3" id="7_mav38"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_xsjc2"]
 size = Vector2(20, 30)
@@ -154,9 +160,13 @@ collision_layer = 2
 script = ExtResource("1_00qgw")
 slash_hitbox = NodePath("Pivot/SlashHitbox")
 slash_attack_frame = 1
+slash_swing_sound = ExtResource("2_2gwiv")
+slash_swing_sound_frames = Array[int]([0])
 slash2_hitbox = NodePath("Pivot/SlashHitbox")
 slash2_knockback_force = 600.0
 slash2_particles = NodePath("Slash2Effect")
+slash2_swing_sound = ExtResource("2_2gwiv")
+slash2_swing_sound_frames = Array[int]([4])
 block_zone = NodePath("Pivot/SlashHitbox")
 enable_block = false
 max_health = 150.0
@@ -166,6 +176,12 @@ health_bar = NodePath("Pivot/HPBar")
 detection_zone = NodePath("Pivot/DetectionZone")
 hit_particles = NodePath("hitparticles")
 knockback_friction = 400.0
+walk_sound = ExtResource("3_nt8k8")
+walk_sound_footstep_frames = Array[int]([1, 4])
+hit_sound_sword = ExtResource("4_igbm1")
+hit_sound_arrow = ExtResource("5_tr0co")
+hit_sound_sword_flow = ExtResource("6_27opt")
+hit_sound_arrow_flow = ExtResource("7_mav38")
 oscillate = true
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D" unique_id=1533444482]

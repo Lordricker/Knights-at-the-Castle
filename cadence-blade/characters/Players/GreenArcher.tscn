@@ -5,8 +5,14 @@
 [ext_resource type="PackedScene" uid="uid://d7m3taty6w01" path="res://FX/arrow.tscn" id="2_8kpke"]
 [ext_resource type="AudioStream" uid="uid://b6cujcbdhn6sg" path="res://assets/Sounds/thwing SFX.mp3" id="3_j5lh5"]
 [ext_resource type="PackedScene" uid="uid://dh7thuuxwk7x1" path="res://ui/hud/FlowBar.tscn" id="4_p72ps"]
+[ext_resource type="AudioStream" uid="uid://da0xq7mf7em2m" path="res://assets/Sounds/step.mp3" id="4_xavla"]
+[ext_resource type="AudioStream" uid="uid://cexot5v8qnyuo" path="res://assets/Sounds/fleshslice.mp3" id="5_f4cjn"]
 [ext_resource type="PackedScene" uid="uid://bkyw3pybjuqjs" path="res://ui/hud/HPBar.tscn" id="5_jf3jw"]
 [ext_resource type="Texture2D" uid="uid://bt4sgc24myu8c" path="res://assets/sprites/ArcherPointer.png" id="6_8kpke"]
+[ext_resource type="AudioStream" uid="uid://dub7f0kquia1l" path="res://assets/Sounds/arrowflesh.mp3" id="6_fu5ru"]
+[ext_resource type="AudioStream" uid="uid://nh1fexqobd3j" path="res://assets/Sounds/headbash.mp3" id="7_xbqft"]
+[ext_resource type="AudioStream" uid="uid://cpdexibo2y6oi" path="res://assets/Sounds/Shing SFX.mp3" id="8_5vt08"]
+[ext_resource type="AudioStream" uid="uid://cvoebarmgjnk7" path="res://assets/Sounds/explodefireball.mp3" id="9_u36f3"]
 
 [sub_resource type="Curve" id="Curve_6qwqa"]
 _limits = [0.0, 0.1, 0.0, 10.0]
@@ -206,13 +212,13 @@ animations = [{
 "speed": 6.0
 }, {
 "frames": [{
-"duration": 1.0,
+"duration": 0.5,
 "texture": SubResource("AtlasTexture_w1nsi")
 }, {
-"duration": 1.0,
+"duration": 0.5,
 "texture": SubResource("AtlasTexture_0qx2q")
 }, {
-"duration": 1.0,
+"duration": 0.5,
 "texture": SubResource("AtlasTexture_t31r5")
 }, {
 "duration": 1.0,
@@ -254,10 +260,10 @@ y_sort_enabled = true
 y_sort_enabled = true
 script = ExtResource("1_gshrq")
 arrow_scene = ExtResource("2_8kpke")
-arrow_damage = 19.0
+arrow_damage = 25.0
 arrow_knockback_force = 50.0
 shoot_move_mult = 0.17
-shoot_flow_fill_duration = 0.7
+shoot_flow_fill_duration = 0.5
 shoot_flow_miss_multiplier = 0.8
 shoot_flow_window_center = 0.4
 shoot_flow_window_half_size = 0.07
@@ -265,7 +271,8 @@ shoot_flow_window_random_range = 0.0
 shoot_flow_window_size_curve = SubResource("Curve_6qwqa")
 shoot_flow_window_curve_max_time = 60.0
 shoot_sound = ExtResource("3_j5lh5")
-pierce_damage = 40.0
+shoot_sound_frames = Array[int]([3])
+pierce_damage = 50.0
 pierce_speed = 900.0
 pierce_move_mult = 0.16
 pierce_flow_fill_duration = 1.5
@@ -275,6 +282,8 @@ pierce_flow_window_half_size = 0.03
 pierce_flow_window_random_range = 0.0
 pierce_flow_window_size_curve = SubResource("Curve_8kpke")
 pierce_flow_window_curve_max_time = 60.0
+pierce_sound = ExtResource("3_j5lh5")
+pierce_sound_frames = Array[int]([3])
 kick_damage = 55.0
 kick_knockback_force = 650.0
 kick_lunge_speed = 100.0
@@ -283,6 +292,7 @@ kick_flow_miss_multiplier = 0.8
 kick_flow_window_random_range = 0.0
 kick_flow_window_size_curve = SubResource("Curve_6qwqa")
 kick_flow_window_curve_max_time = 60.0
+kick_weapon_type = 2
 combo_step_multiplier = 0.3
 kick_hitbox = NodePath("Pivot/KickHitbox")
 aim_pointer = NodePath("Pivot/ArcherPointer")
@@ -295,6 +305,13 @@ health_bar = NodePath("Pivot/HPBar")
 flow_bar = NodePath("Pivot/FlowBar")
 hit_particles = NodePath("hitparticles")
 knockback_friction = 600.0
+walk_sound = ExtResource("4_xavla")
+walk_sound_footstep_frames = Array[int]([1, 4])
+hit_sound_sword = ExtResource("5_f4cjn")
+hit_sound_arrow = ExtResource("6_fu5ru")
+hit_sound_hammer = ExtResource("7_xbqft")
+hit_sound_claw = ExtResource("8_5vt08")
+hit_sound_fireball = ExtResource("9_u36f3")
 
 [node name="Pivot" type="Node2D" parent="CharacterBody2D" unique_id=65507104]
 
@@ -302,8 +319,6 @@ knockback_friction = 600.0
 position = Vector2(0, 13.785)
 sprite_frames = SubResource("SpriteFrames_rvc6b")
 animation = &"shoot"
-frame = 2
-frame_progress = 0.1334816
 
 [node name="FlowBar" parent="CharacterBody2D/Pivot" unique_id=1635173476 instance=ExtResource("4_p72ps")]
 visible = false

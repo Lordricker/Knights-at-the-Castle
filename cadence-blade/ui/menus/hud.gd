@@ -45,6 +45,18 @@ extends CanvasLayer
 ## Smaller quit button visible during play (not just on game-over screen).
 @export var in_game_quit_button: Button
 
+@export_group("Settings Screen")
+## Root Control for the in-run settings overlay. Hidden by default.
+@export var settings_control: Control
+## Button that opens/closes the settings overlay (visible during play).
+@export var settings_button: Button
+## HSlider for music volume (min 0, max 1).
+@export var music_slider: HSlider
+## HSlider for SFX volume (min 0, max 1).
+@export var sfx_slider: HSlider
+## Button inside the settings panel that closes it.
+@export var close_settings_button: Button
+
 # ── Runtime state ─────────────────────────────────────────────────────────────
 
 var _buttons: Array[Button] = []
@@ -62,6 +74,8 @@ func _ready() -> void:
 	_resolve_run_manager()
 	if game_over_control != null:
 		game_over_control.hide()
+	if settings_control != null:
+		settings_control.hide()
 	var _focus_empty := StyleBoxEmpty.new()
 	if restart_button != null:
 		restart_button.pressed.connect(_on_restart_pressed)
@@ -73,6 +87,22 @@ func _ready() -> void:
 		_buttons.append(quit_button)
 	if in_game_quit_button != null:
 		in_game_quit_button.pressed.connect(_on_quit_pressed)
+	if settings_button != null:
+		settings_button.pressed.connect(_on_settings_button_pressed)
+	if close_settings_button != null:
+		close_settings_button.pressed.connect(_on_close_settings_pressed)
+	if music_slider != null:
+		music_slider.min_value = 0.0
+		music_slider.max_value = 1.0
+		music_slider.step = 0.01
+		music_slider.value = AudioManager.music_volume_linear
+		music_slider.value_changed.connect(_on_music_slider_changed)
+	if sfx_slider != null:
+		sfx_slider.min_value = 0.0
+		sfx_slider.max_value = 1.0
+		sfx_slider.step = 0.01
+		sfx_slider.value = AudioManager.sfx_volume_linear
+		sfx_slider.value_changed.connect(_on_sfx_slider_changed)
 	if hud_coins_label != null:
 		hud_coins_label.text = "0"
 	if session_id_label != null:
@@ -220,6 +250,24 @@ func _refresh_best_time_label() -> void:
 
 
 # ── Button callbacks ──────────────────────────────────────────────────────────
+
+func _on_settings_button_pressed() -> void:
+	if settings_control != null:
+		settings_control.visible = not settings_control.visible
+
+
+func _on_close_settings_pressed() -> void:
+	if settings_control != null:
+		settings_control.hide()
+
+
+func _on_music_slider_changed(value: float) -> void:
+	AudioManager.set_music_volume(value)
+
+
+func _on_sfx_slider_changed(value: float) -> void:
+	AudioManager.set_sfx_volume(value)
+
 
 func _on_restart_pressed() -> void:
 	if GameManager.session_id == "" or GameManager.is_host:

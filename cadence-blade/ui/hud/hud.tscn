@@ -5,6 +5,7 @@
 [ext_resource type="Texture2D" uid="uid://dcnd0q3lk55mi" path="res://assets/sprites/CoinPNG.png" id="3_kwc50"]
 [ext_resource type="Texture2D" uid="uid://dvnkegprvdxot" path="res://assets/sprites/UI/RestartButton.png" id="4_kwc50"]
 [ext_resource type="Texture2D" uid="uid://cukrmkf3jrgb8" path="res://assets/sprites/UI/QuitButton.png" id="5_o2lis"]
+[ext_resource type="Texture2D" uid="uid://l3lo806r4s2q" path="res://assets/sprites/UI/Cog.png" id="5_olkg6"]
 [ext_resource type="FontFile" uid="uid://di588hyvkxc6w" path="res://assets/fonts/LATINWD.TTF" id="6_kwc50"]
 [ext_resource type="Texture2D" uid="uid://dcpm4pu8pp4k0" path="res://assets/sprites/UI/jButton.png" id="7_p3vm3"]
 [ext_resource type="Script" uid="uid://bidv0hafp4icx" path="res://ui/menus/hidenontouchscreen.gd" id="8_5uuaq"]
@@ -17,7 +18,7 @@
 [ext_resource type="Texture2D" uid="uid://b3qx6fqovdkk3" path="res://assets/sprites/UI/shiftButtonpng.png" id="15_uyo40"]
 [ext_resource type="Texture2D" uid="uid://cg85gm1scmvng" path="res://assets/sprites/UI/shiftButtonpressed.png" id="16_m6r7j"]
 
-[node name="HUD" type="CanvasLayer" unique_id=263715054 node_paths=PackedStringArray("hud_timer_label", "hud_coins_label", "hud_best_time_label", "session_id_label", "game_over_control", "game_over_label", "game_over_time_label", "restart_button", "quit_button", "in_game_quit_button")]
+[node name="HUD" type="CanvasLayer" unique_id=263715054 node_paths=PackedStringArray("hud_timer_label", "hud_coins_label", "hud_best_time_label", "session_id_label", "game_over_control", "game_over_label", "game_over_time_label", "restart_button", "quit_button", "in_game_quit_button", "settings_control", "settings_button", "music_slider", "sfx_slider", "close_settings_button")]
 script = ExtResource("1_imuuq")
 hud_timer_label = NodePath("Control/Time")
 hud_coins_label = NodePath("Control/Coins")
@@ -29,6 +30,11 @@ game_over_time_label = NodePath("Control/gameoverscreen/FinalTime")
 restart_button = NodePath("Control/gameoverscreen/Restart")
 quit_button = NodePath("Control/gameoverscreen/Quit")
 in_game_quit_button = NodePath("Control/Quits")
+settings_control = NodePath("Control/Settingscanvas")
+settings_button = NodePath("Control/Settings")
+music_slider = NodePath("Control/Settingscanvas/musicslider")
+sfx_slider = NodePath("Control/Settingscanvas/sfxslider")
+close_settings_button = NodePath("Control/Settingscanvas/hidesettings")
 
 [node name="Control" type="Control" parent="." unique_id=459797019]
 layout_mode = 3
@@ -99,6 +105,20 @@ offset_bottom = 189.0
 grow_horizontal = 0
 scale = Vector2(0.5, 0.5)
 icon = ExtResource("5_o2lis")
+flat = true
+
+[node name="Settings" type="Button" parent="Control" unique_id=1408419615]
+layout_direction = 2
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -394.0
+offset_top = 1.0
+offset_right = -316.0
+offset_bottom = 79.0
+grow_horizontal = 0
+icon = ExtResource("5_olkg6")
 flat = true
 
 [node name="Sprite2D" type="Sprite2D" parent="Control" unique_id=796565681]
@@ -241,8 +261,79 @@ texture_pressed = ExtResource("14_hk13k")
 action = "action3"
 
 [node name="shiftbutton" type="TouchScreenButton" parent="Control/Control" unique_id=1878120617]
-position = Vector2(-427, -1000.99994)
+position = Vector2(-414, -991.00006)
 scale = Vector2(1.25, 1.25)
 texture_normal = ExtResource("15_uyo40")
 texture_pressed = ExtResource("16_m6r7j")
 action = "face_lock"
+
+[node name="Settingscanvas" type="Control" parent="Control" unique_id=1328191663]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="hidesettings" type="Button" parent="Control/Settingscanvas" unique_id=719356879]
+layout_mode = 0
+offset_left = -976.0
+offset_top = -559.0
+offset_right = 1004.0
+offset_bottom = 610.0
+action_mode = 0
+
+[node name="sfxslider" type="HSlider" parent="Control/Settingscanvas" unique_id=695337006]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -324.5
+offset_top = -223.0
+offset_right = 5.25
+offset_bottom = -159.5
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(2, 2)
+
+[node name="Label" type="Label" parent="Control/Settingscanvas/sfxslider" unique_id=738246572]
+layout_mode = 0
+offset_left = -78.75
+offset_top = 3.125
+offset_right = -10.75
+offset_bottom = 58.125
+theme_override_font_sizes/font_size = 40
+text = "SFX"
+
+[node name="musicslider" type="HSlider" parent="Control/Settingscanvas" unique_id=794130313]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -324.5
+offset_top = -111.0
+offset_right = 5.25
+offset_bottom = -51.5
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(2, 2)
+
+[node name="Label" type="Label" parent="Control/Settingscanvas/musicslider" unique_id=1588398427]
+layout_mode = 0
+offset_left = -101.25
+offset_top = 6.5
+offset_right = -1.25
+offset_bottom = 58.125
+theme_override_font_sizes/font_size = 30
+text = "MUSIC"

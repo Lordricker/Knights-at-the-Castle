@@ -21,17 +21,18 @@ extends Area2D
 ## Emitted when the arrow despawns without having dealt damage to any enemy.
 ## Archer connects this to reset the combo streak.
 signal missed
+## Emitted each time the arrow registers a successful hit (body or hurtbox).
+## Archer connects this to advance the combo streak.
+signal enemy_hit
 
 ## Seconds before the arrow despawns automatically.
 @export var lifetime: float = 2.0
 ## Downward acceleration in pixels/sec^2 applied every physics frame.
 @export var drop_gravity: float = 0.0
 
-@export_group("Hit Sound")
-## AudioStream to play when this arrow hits an enemy.
-@export var hit_sound: AudioStream
-## Hit sound volume in dB (0 = full volume, negative = quieter).
-@export_range(-40.0, 6.0, 0.1) var hit_sound_volume_db: float = 0.0
+@export_group("Weapon Type")
+## Weapon type reported to the target when this arrow connects.
+@export var weapon_type: WeaponType.WeaponType = WeaponType.WeaponType.ARROW
 @export_group("")
 
 @export_group("Combo Particle Colors")
@@ -53,7 +54,9 @@ var pierce: bool = false
 var _hit_enemies: Array[Node] = []
 ## Set to true the first time any enemy is hit; used to decide whether to emit missed.
 var _hit_any: bool = false
-var _hit_audio: AudioStreamPlayer2D = null
+## Set to true by a HurtBox when it claims this arrow, preventing double-damage
+## if body_entered fires in the same physics step.
+var consumed: bool = false
 
 @onready var _sprite: Sprite2D = find_child("Sprite2D") as Sprite2D
 @onready var _particles: CPUParticles2D = find_child("CPUParticles2D") as CPUParticles2D
@@ -101,12 +104,9 @@ func _apply_particle_color(c: Color) -> void:
 func _ready() -> void:
 	if _sprite != null and _velocity != Vector2.ZERO:
 		rotation = _velocity.angle()
-	if hit_sound != null:
-		_hit_audio = AudioStreamPlayer2D.new()
-		_hit_audio.stream = hit_sound
-		_hit_audio.volume_db = hit_sound_volume_db
-		_hit_audio.bus = &"SFX"
-		add_child(_hit_audio)
+	# Layer 6 (value 32) makes this arrow detectable by monitoring Area2Ds
+	# (e.g. enemy head hitboxes) while staying safely separate from other layers.
+	collision_layer = 32
 	body_entered.connect(_on_body_entered)
 	if _pending_color_set and (_particles != null or _particles_2 != null):
 		_apply_particle_color(_pending_particle_color)
@@ -132,37 +132,27 @@ func _on_tree_exiting() -> void:
 
 
 func _on_body_entered(body: Node2D) -> void:
+	# A HurtBox already claimed this arrow in the same physics step — skip.
+	if consumed:
+		return
 	if pierce:
 		# Piercing: damage each enemy only once per flight, then keep going.
 		if body in _hit_enemies:
 			return
 		_hit_enemies.append(body)
 		_hit_any = true
-		_play_hit_sound()
 		if body.has_method("take_damage"):
-			body.take_damage(_damage, _flow_success)
+			body.take_damage(_damage, _flow_success, weapon_type)
 		if body.has_method("apply_knockback"):
 			body.apply_knockback(global_position, _knockback_force)
+		enemy_hit.emit()
 		# Do NOT queue_free — keep flying.
 	else:
 		# Normal arrow: stop on first hit.
 		_hit_any = true
-		_play_hit_sound()
 		if body.has_method("take_damage"):
-			body.take_damage(_damage, _flow_success)
+			body.take_damage(_damage, _flow_success, weapon_type)
 		if body.has_method("apply_knockback"):
 			body.apply_knockback(global_position, _knockback_force)
+		enemy_hit.emit()
 		queue_free()
-
-
-## Plays the hit sound, reparenting its player to the scene root so the sound
-## survives this arrow's queue_free. Safe to call from both pierce and normal paths.
-func _play_hit_sound() -> void:
-	if _hit_audio == null:
-		return
-	if _hit_audio.get_parent() == self:
-		var scene := get_tree().current_scene
-		if scene != null:
-			_hit_audio.reparent(scene)
-			_hit_audio.finished.connect(_hit_audio.queue_free)
-	_hit_audio.play()

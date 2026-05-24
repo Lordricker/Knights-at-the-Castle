@@ -106,7 +106,7 @@ func _player_is_inside() -> bool:
 
 # ── Damage ────────────────────────────────────────────────────────────────────
 
-func take_damage(amount: float) -> void:
+func take_damage(amount: float, flow_success: bool = false, weapon_type: WeaponType.WeaponType = WeaponType.WeaponType.SWORD) -> void:
 	# Castle health is host-authoritative. Joiner enemies have physics disabled so
 	# this should only fire on the host, but guard defensively.
 	if GameManager.session_id != "" and not GameManager.is_host:

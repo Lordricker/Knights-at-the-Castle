@@ -2,7 +2,10 @@
 
 [ext_resource type="Script" uid="uid://cqm7bxnrst6aw" path="res://characters/enemies/melee/sheepdog.gd" id="1_f2l6w"]
 [ext_resource type="Texture2D" uid="uid://dsh2ltcptotgs" path="res://assets/sprites/enemies/SheepDog.png" id="2_57bmp"]
+[ext_resource type="AudioStream" uid="uid://da0xq7mf7em2m" path="res://assets/Sounds/step.mp3" id="2_u0tfy"]
+[ext_resource type="AudioStream" uid="uid://cexot5v8qnyuo" path="res://assets/Sounds/fleshslice.mp3" id="3_84wp5"]
 [ext_resource type="PackedScene" uid="uid://bkyw3pybjuqjs" path="res://ui/hud/HPBar.tscn" id="3_bdwof"]
+[ext_resource type="AudioStream" uid="uid://dub7f0kquia1l" path="res://assets/Sounds/arrowflesh.mp3" id="4_xyrrl"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_xsjc2"]
 size = Vector2(45, 35)
@@ -117,6 +120,7 @@ bash_hitbox_frames = Array[int]([2, 3, 4])
 knockback_force = 50.0
 bash_lunge_speed = 300.0
 body_box = NodePath("CollisionShape2D")
+bash_weapon_type = 2
 max_health = 20.0
 move_speed = 150.0
 facing_pivot = NodePath("Pivot")
@@ -124,6 +128,12 @@ health_bar = NodePath("Pivot/HPBar")
 detection_zone = NodePath("Pivot/DetectionZone")
 hit_particles = NodePath("hitparticles")
 knockback_friction = 50.0
+walk_sound = ExtResource("2_u0tfy")
+walk_sound_footstep_frames = Array[int]([2, 3])
+hit_sound_sword = ExtResource("3_84wp5")
+hit_sound_arrow = ExtResource("4_xyrrl")
+hit_sound_sword_flow = ExtResource("3_84wp5")
+hit_sound_arrow_flow = ExtResource("4_xyrrl")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D" unique_id=1533444482]
 position = Vector2(3.5, -8.5)
@@ -133,9 +143,8 @@ shape = SubResource("RectangleShape2D_xsjc2")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="CharacterBody2D/Pivot" unique_id=1220205241]
 sprite_frames = SubResource("SpriteFrames_ma6qb")
-animation = &"bash"
-frame = 5
-frame_progress = 1.0
+animation = &"running"
+frame = 3
 
 [node name="BashHitbox" type="Area2D" parent="CharacterBody2D/Pivot" unique_id=1169559059]
 position = Vector2(17, 0)

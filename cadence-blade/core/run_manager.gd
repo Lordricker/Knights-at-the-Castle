@@ -548,13 +548,18 @@ func _on_packet_received(data: Dictionary) -> void:
 			if GameManager.is_host and castle_inside != null and castle_inside.has_method("on_request_upgrade_offers"):
 				castle_inside.call("on_request_upgrade_offers")
 		"hit_fx":
-			# Host entity was hit — restart its hit particles on the joiner.
+			# Host entity was hit — restart its hit particles and play the hit sound on the joiner.
 			if not GameManager.is_host:
 				var node := get_tree().current_scene.get_node_or_null(NodePath(data.get("p", "")))
-				if node != null and "hit_particles" in node:
-					var p := node.get("hit_particles") as CPUParticles2D
-					if p != null:
-						p.restart()
+				if node != null:
+					if "hit_particles" in node:
+						var p := node.get("hit_particles") as CPUParticles2D
+						if p != null:
+							p.restart()
+					if node.has_method("_play_weapon_hit_sound"):
+						var wt: WeaponType.WeaponType = int(data.get("wt", WeaponType.WeaponType.SWORD)) as WeaponType.WeaponType
+						var fs: bool = int(data.get("fs", 0)) == 1
+						node._play_weapon_hit_sound(wt, fs)
 
 
 ## Host receives "hello" from joiner — spawn the joiner's character and reply.
@@ -1062,7 +1067,8 @@ func _handle_melee_hit(data: Dictionary) -> void:
 	var kbf : float = float(data.get("kbf", 0.0))
 	var kb_src := Vector2(float(data.get("kbx", 0.0)), float(data.get("kby", 0.0)))
 	var s : bool = int(data.get("s", 0)) == 1
+	var wt: WeaponType.WeaponType = int(data.get("wt", WeaponType.WeaponType.SWORD)) as WeaponType.WeaponType
 	if enemy.has_method("take_damage"):
-		enemy.take_damage(dmg, s)
+		enemy.take_damage(dmg, s, wt)
 	if enemy.has_method("apply_knockback"):
 		enemy.apply_knockback(kb_src, kbf)

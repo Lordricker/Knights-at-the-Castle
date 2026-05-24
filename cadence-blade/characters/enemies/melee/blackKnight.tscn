@@ -3,7 +3,12 @@
 [ext_resource type="Script" uid="uid://b2civ401woqp5" path="res://characters/enemies/melee/black_knight.gd" id="1_xsjc2"]
 [ext_resource type="Texture2D" uid="uid://b1nyqs5s41pot" path="res://assets/sprites/enemies/blackWarrior.png" id="2_ksc84"]
 [ext_resource type="AudioStream" uid="uid://cutqjehal5qrw" path="res://assets/Sounds/Tishing SFX.mp3" id="2_ma6aj"]
+[ext_resource type="AudioStream" uid="uid://bn3xfmbxbv51" path="res://assets/Sounds/airsword.mp3" id="2_ylhmr"]
 [ext_resource type="PackedScene" uid="uid://bkyw3pybjuqjs" path="res://ui/hud/HPBar.tscn" id="3_0kexb"]
+[ext_resource type="AudioStream" uid="uid://da0xq7mf7em2m" path="res://assets/Sounds/step.mp3" id="3_3h5xb"]
+[ext_resource type="AudioStream" uid="uid://bfuayugjr2c0q" path="res://assets/Sounds/Tink SFX.mp3" id="5_b3pq4"]
+[ext_resource type="AudioStream" uid="uid://cexot5v8qnyuo" path="res://assets/Sounds/fleshslice.mp3" id="6_b3pq4"]
+[ext_resource type="AudioStream" uid="uid://dub7f0kquia1l" path="res://assets/Sounds/arrowflesh.mp3" id="7_cl1jx"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_xsjc2"]
 size = Vector2(20, 30)
@@ -136,19 +141,27 @@ colors = PackedColorArray(1, 0.35000002, 0, 1, 0.7092767, 0.15213937, 0.18955913
 z_index = 1
 y_sort_enabled = true
 
-[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=160150496 node_paths=PackedStringArray("facing_pivot", "health_bar", "detection_zone", "hit_particles")]
+[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=160150496 node_paths=PackedStringArray("facing_pivot", "health_bar", "detection_zone", "hit_particles", "hurtboxes")]
 y_sort_enabled = true
 position = Vector2(0, -11)
 collision_layer = 2
 script = ExtResource("1_xsjc2")
 slash_damage = 30.0
 knockback_force = 100.0
-slash_hit_sound = ExtResource("2_ma6aj")
+slash_swing_sound = ExtResource("2_ylhmr")
+slash_swing_sound_frames = Array[int]([2, 6])
 facing_pivot = NodePath("Pivot")
 health_bar = NodePath("Pivot/HPBar")
 detection_zone = NodePath("Pivot/DetectionZone")
 hit_particles = NodePath("hitparticles")
+hurtboxes = [null]
 knockback_friction = 400.0
+walk_sound = ExtResource("3_3h5xb")
+walk_sound_footstep_frames = Array[int]([0, 3])
+hit_sound_sword = ExtResource("2_ma6aj")
+hit_sound_arrow = ExtResource("5_b3pq4")
+hit_sound_sword_flow = ExtResource("6_b3pq4")
+hit_sound_arrow_flow = ExtResource("7_cl1jx")
 oscillate = true
 oscillate_speed = 0.2
 
@@ -161,6 +174,7 @@ shape = SubResource("RectangleShape2D_xsjc2")
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="CharacterBody2D/Pivot" unique_id=1220205241]
 sprite_frames = SubResource("SpriteFrames_ma6qb")
 animation = &"slash"
+frame = 7
 
 [node name="SlashHitbox" type="Area2D" parent="CharacterBody2D/Pivot" unique_id=1169559059]
 position = Vector2(17, 0)

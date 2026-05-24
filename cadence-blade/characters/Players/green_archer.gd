@@ -88,6 +88,8 @@ var _combo_hits: int = 0
 ## Sound played when a quickshot fires.
 @export var shoot_sound: AudioStream
 @export_range(-40.0, 6.0, 0.1) var shoot_sound_volume_db: float = 0.0
+## Animation frame indices that trigger the shoot sound.
+@export var shoot_sound_frames: Array[int] = []
 @export_group("")
 
 @export_group("Pierce Attack")
@@ -116,6 +118,8 @@ var _combo_hits: int = 0
 ## Sound played when a pierce shot fires.
 @export var pierce_sound: AudioStream
 @export_range(-40.0, 6.0, 0.1) var pierce_sound_volume_db: float = 0.0
+## Animation frame indices that trigger the pierce sound.
+@export var pierce_sound_frames: Array[int] = []
 @export_group("")
 
 @export_group("Kick Attack")
@@ -142,9 +146,10 @@ var _combo_hits: int = 0
 ## Sound played when a kick begins.
 @export var kick_sound: AudioStream
 @export_range(-40.0, 6.0, 0.1) var kick_sound_volume_db: float = 0.0
-## Sound played when the kick hitbox contacts an enemy.
-@export var kick_hit_sound: AudioStream
-@export_range(-40.0, 6.0, 0.1) var kick_hit_sound_volume_db: float = 0.0
+## Animation frame indices that trigger the kick sound.
+@export var kick_sound_frames: Array[int] = []
+## Weapon type reported to enemies hit by the kick.
+@export var kick_weapon_type: WeaponType.WeaponType = WeaponType.WeaponType.SWORD
 @export_group("")
 ## Added damage multiplier per consecutive hit (stacks up to 2 extra hits).
 ## At combo hit 1: 1 + combo_step_multiplier. At hit 2+: 1 + 2*combo_step_multiplier.
@@ -177,7 +182,6 @@ var _aim_angle_deg: float = 0.0
 var _shoot_audio: AudioStreamPlayer2D = null
 var _pierce_audio: AudioStreamPlayer2D = null
 var _kick_audio: AudioStreamPlayer2D = null
-var _kick_hit_audio: AudioStreamPlayer2D = null
 
 
 func _ready() -> void:
@@ -193,7 +197,6 @@ func _ready() -> void:
 	_shoot_audio = _make_sfx_player(shoot_sound, shoot_sound_volume_db)
 	_pierce_audio = _make_sfx_player(pierce_sound, pierce_sound_volume_db)
 	_kick_audio = _make_sfx_player(kick_sound, kick_sound_volume_db)
-	_kick_hit_audio = _make_sfx_player(kick_hit_sound, kick_hit_sound_volume_db)
 
 
 func _physics_process(delta: float) -> void:
@@ -284,7 +287,6 @@ func _begin_kick() -> void:
 	_kick_flow_checks_completed = 0
 	_kick_lunge_active = false
 	_stop_flow()
-	_play_sfx(_kick_audio)
 	animated_sprite.play("kick")
 	animated_sprite.frame = 0
 
@@ -328,10 +330,6 @@ func _begin_shoot(is_pierce: bool) -> void:
 		aim_pointer.rotation = 0.0
 		aim_pointer.show()
 	_stop_flow()
-	if is_pierce:
-		_play_sfx(_pierce_audio)
-	else:
-		_play_sfx(_shoot_audio)
 	animated_sprite.play("shoot")
 	animated_sprite.frame = 0
 	if is_pierce:
@@ -370,26 +368,48 @@ func _on_frame_changed() -> void:
 	var f: int = animated_sprite.frame
 	match attack_state:
 		AttackState.SHOOT_WINDUP:
+			if f in shoot_sound_frames:
+				_play_sfx(_shoot_audio)
 			if f >= SHOOT_PAUSE_FRAME:
 				attack_state = AttackState.SHOOT_PAUSED
 				if not _flow_set_can_resolve():
 					animated_sprite.pause()
 					_flow_can_resolve = true
+		AttackState.SHOOT_PAUSED:
+			if f in shoot_sound_frames:
+				_play_sfx(_shoot_audio)
+		AttackState.SHOOT_FINISH:
+			if f in shoot_sound_frames:
+				_play_sfx(_shoot_audio)
 		AttackState.PIERCE_WINDUP:
+			if f in pierce_sound_frames:
+				_play_sfx(_pierce_audio)
 			if f >= SHOOT_PAUSE_FRAME:
 				attack_state = AttackState.PIERCE_PAUSED
 				if not _flow_set_can_resolve():
 					animated_sprite.pause()
 					_flow_can_resolve = true
+		AttackState.PIERCE_PAUSED:
+			if f in pierce_sound_frames:
+				_play_sfx(_pierce_audio)
+		AttackState.PIERCE_FINISH:
+			if f in pierce_sound_frames:
+				_play_sfx(_pierce_audio)
 		AttackState.KICK_WINDUP:
+			if f in kick_sound_frames:
+				_play_sfx(_kick_audio)
 			if f >= KICK_PAUSE_FRAME:
 				attack_state = AttackState.KICK_PAUSED
 				if not _flow_set_can_resolve():
 					animated_sprite.pause()
 					_flow_can_resolve = true
 		AttackState.KICK_PAUSED:
-			pass  # waiting for flow; hitbox not active until KICK_FINISH
+			if f in kick_sound_frames:
+				_play_sfx(_kick_audio)
+			# waiting for flow; hitbox not active until KICK_FINISH
 		AttackState.KICK_FINISH:
+			if f in kick_sound_frames:
+				_play_sfx(_kick_audio)
 			var kick_active: bool = f in KICK_HITBOX_FRAMES
 			_set_kick_hitbox(kick_active)
 			_kick_invincible = kick_active
@@ -475,7 +495,7 @@ func _queue_fire_arrow(is_pierce: bool) -> void:
 				tracking.set_combo_color(tracking.combo_color_2)
 			elif _combo_hits == 1:
 				tracking.set_combo_color(tracking.combo_color_1)
-			tracking.body_entered.connect(_on_arrow_hit_enemy.bind(tracking))
+			tracking.enemy_hit.connect(_on_arrow_hit_enemy.bind(tracking))
 			tracking.missed.connect(_on_arrow_missed)
 			get_tree().current_scene.call_deferred("add_child", tracking)
 		var _aim_dir_j: Vector2 = _aim_direction()
@@ -511,7 +531,7 @@ func _queue_fire_arrow(is_pierce: bool) -> void:
 		arrow.set_combo_color(arrow.combo_color_1)
 	# Connect the arrow's body_entered to track combo hits (only when not display-only).
 	# We do this before add_child so the signal is wired from the start.
-	arrow.body_entered.connect(_on_arrow_hit_enemy.bind(arrow))
+	arrow.enemy_hit.connect(_on_arrow_hit_enemy.bind(arrow))
 	arrow.missed.connect(_on_arrow_missed)
 	get_tree().current_scene.call_deferred("add_child", arrow)
 	# Tell the joiner to spawn a visual-only arrow.
@@ -529,10 +549,8 @@ func _queue_fire_arrow(is_pierce: bool) -> void:
 		})
 
 
-## Fires when one of the host-side arrows hits an enemy — advances combo streak.
-func _on_arrow_hit_enemy(body: Node2D, _arrow: Arrow) -> void:
-	if not body.has_method("take_damage"):
-		return
+## Fires when one of the host-side arrows registers a hit (body or hurtbox) — advances combo streak.
+func _on_arrow_hit_enemy(_arrow: Arrow) -> void:
 	_combo_hits = mini(_combo_hits + 1, 999)
 
 
@@ -585,10 +603,10 @@ func revive(at: Vector2) -> void:
 
 
 ## Block incoming damage while the kick hitbox is active (i-frames).
-func take_damage(amount: float, flow_success: bool = false) -> void:
+func take_damage(amount: float, flow_success: bool = false, weapon_type: WeaponType.WeaponType = WeaponType.WeaponType.SWORD) -> void:
 	if _kick_invincible:
 		return
-	super(amount, flow_success)
+	super(amount, flow_success, weapon_type)
 
 
 func _set_kick_hitbox(enabled: bool) -> void:
@@ -599,11 +617,10 @@ func _set_kick_hitbox(enabled: bool) -> void:
 
 
 func _on_kick_hit_body(body: Node2D) -> void:
-	_play_sfx(_kick_hit_audio)
 	var flow_success: bool = _current_attack_damage_multiplier >= 1.0
 	var dmg: float = (kick_damage + attack_bonus) * _current_attack_damage_multiplier
 	if body.has_method("take_damage"):
-		body.take_damage(dmg, flow_success)
+		body.take_damage(dmg, flow_success, kick_weapon_type)
 	if body.has_method("apply_knockback"):
 		body.apply_knockback(global_position, kick_knockback_force)
 	if GameManager.session_id != "" and not GameManager.is_host:
@@ -617,6 +634,7 @@ func _on_kick_hit_body(body: Node2D) -> void:
 				"kbx": global_position.x,
 				"kby": global_position.y,
 				"s":   1 if flow_success else 0,
+				"wt":  int(kick_weapon_type),
 			})
 
 

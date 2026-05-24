@@ -31,6 +31,8 @@ const SHOOT_FRAME: int = 5
 ## Sound played when an arrow fires.
 @export var shoot_sound: AudioStream
 @export_range(-40.0, 6.0, 0.1) var shoot_sound_volume_db: float = 0.0
+## Animation frame indices that trigger the shoot sound.
+@export var shoot_sound_frames: Array[int] = []
 
 # ── Internal state ─────────────────────────────────────────────────────────────
 
@@ -117,11 +119,12 @@ func die(flow_success: bool = false) -> void:
 # ── Frame / animation signals ──────────────────────────────────────────────────
 
 func _on_frame_changed() -> void:
-	if shoot_state == ShootState.ATTACKING \
-			and animated_sprite.frame == SHOOT_FRAME \
-			and not _arrow_fired:
-		_arrow_fired = true
-		_fire_arrow()
+	if shoot_state == ShootState.ATTACKING:
+		if animated_sprite.frame in shoot_sound_frames:
+			_play_sfx(_shoot_audio)
+		if animated_sprite.frame == SHOOT_FRAME and not _arrow_fired:
+			_arrow_fired = true
+			_fire_arrow()
 
 
 func _on_animation_finished() -> void:
@@ -137,7 +140,6 @@ func _on_animation_finished() -> void:
 func _fire_arrow() -> void:
 	if arrow_scene == null:
 		return
-	_play_sfx(_shoot_audio)
 	var arrow := arrow_scene.instantiate() as Arrow
 	if arrow == null:
 		return
@@ -164,7 +166,7 @@ func _fire_arrow() -> void:
 			return
 		var owner_node := area.get_parent()
 		if owner_node != null and owner_node.has_method("take_damage"):
-			owner_node.take_damage(dmg)
+			owner_node.take_damage(dmg, false, arrow.weapon_type)
 		if is_instance_valid(arrow):
 			arrow.queue_free()
 	)

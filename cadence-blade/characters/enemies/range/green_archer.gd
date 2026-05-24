@@ -35,6 +35,8 @@ const SHOOT_FRAME: int = 5
 ## Sound played when a regular arrow fires.
 @export var shoot_sound: AudioStream
 @export_range(-40.0, 6.0, 0.1) var shoot_sound_volume_db: float = 0.0
+## Animation frame indices that trigger the shoot sound.
+@export var shoot_sound_frames: Array[int] = []
 @export_group("")
 
 # ── Combo Shot ────────────────────────────────────────────────────────────────
@@ -51,6 +53,8 @@ const SHOOT_FRAME: int = 5
 ## Sound played when a combo arrow fires.
 @export var combo_shoot_sound: AudioStream
 @export_range(-40.0, 6.0, 0.1) var combo_shoot_sound_volume_db: float = 0.0
+## Animation frame indices that trigger the combo shoot sound.
+@export var combo_shoot_sound_frames: Array[int] = []
 @export_group("")
 
 # ── Internal state ─────────────────────────────────────────────────────────────
@@ -143,14 +147,18 @@ func die(flow_success: bool = false) -> void:
 # ── Frame / animation signals ──────────────────────────────────────────────────
 
 func _on_frame_changed() -> void:
-	if shoot_state == ShootState.ATTACKING \
-			and animated_sprite.frame == SHOOT_FRAME \
-			and not _arrow_fired:
-		_arrow_fired = true
+	if shoot_state == ShootState.ATTACKING:
 		if _firing_combo:
-			_fire_combo_arrow()
-		else:
-			_fire_arrow()
+			if animated_sprite.frame in combo_shoot_sound_frames:
+				_play_sfx(_combo_shoot_audio)
+		elif animated_sprite.frame in shoot_sound_frames:
+			_play_sfx(_shoot_audio)
+		if animated_sprite.frame == SHOOT_FRAME and not _arrow_fired:
+			_arrow_fired = true
+			if _firing_combo:
+				_fire_combo_arrow()
+			else:
+				_fire_arrow()
 
 
 func _on_animation_finished() -> void:
@@ -166,7 +174,6 @@ func _on_animation_finished() -> void:
 func _fire_arrow() -> void:
 	if arrow_scene == null:
 		return
-	_play_sfx(_shoot_audio)
 	var arrow := arrow_scene.instantiate() as Arrow
 	if arrow == null:
 		return
@@ -180,7 +187,7 @@ func _fire_arrow() -> void:
 	if arrow_angle != 0.0:
 		shoot_dir = shoot_dir.rotated(deg_to_rad(arrow_angle * -facing))
 
-	arrow.collision_mask = 1
+	arrow.collision_mask = 1  # enemy arrows target players only (layer 1)
 	arrow.configure(global_position, shoot_dir, arrow_speed, arrow_damage, 0.0)
 	arrow.lifetime = arrow_lifetime
 	var dmg := arrow_damage
@@ -189,7 +196,7 @@ func _fire_arrow() -> void:
 			return
 		var owner_node := area.get_parent()
 		if owner_node != null and owner_node.has_method("take_damage"):
-			owner_node.take_damage(dmg)
+			owner_node.take_damage(dmg, false, arrow.weapon_type)
 		if is_instance_valid(arrow):
 			arrow.queue_free()
 	)
@@ -209,7 +216,6 @@ func _fire_arrow() -> void:
 func _fire_combo_arrow() -> void:
 	if arrow_scene == null:
 		return
-	_play_sfx(_combo_shoot_audio)
 	var arrow := arrow_scene.instantiate() as Arrow
 	if arrow == null:
 		return
@@ -226,7 +232,7 @@ func _fire_combo_arrow() -> void:
 	var combo_damage := arrow_damage * combo_attack_modifier
 	# Tint the arrow with its own combo_color_1 (set before add_child so _ready applies it).
 	arrow.set_combo_color(arrow.combo_color_1)
-	arrow.collision_mask = 1
+	arrow.collision_mask = 1  # enemy arrows target players only (layer 1)
 	arrow.configure(global_position, shoot_dir, combo_arrow_speed, combo_damage, 0.0)
 	arrow.lifetime = combo_arrow_lifetime
 	var dmg := combo_damage
@@ -235,7 +241,7 @@ func _fire_combo_arrow() -> void:
 			return
 		var owner_node := area.get_parent()
 		if owner_node != null and owner_node.has_method("take_damage"):
-			owner_node.take_damage(dmg)
+			owner_node.take_damage(dmg, false, arrow.weapon_type)
 		if is_instance_valid(arrow):
 			arrow.queue_free()
 	)

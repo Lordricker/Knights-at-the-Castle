@@ -5,6 +5,9 @@
 [ext_resource type="PackedScene" uid="uid://bkyw3pybjuqjs" path="res://ui/hud/HPBar.tscn" id="3_pejhy"]
 [ext_resource type="AudioStream" uid="uid://b6cujcbdhn6sg" path="res://assets/Sounds/thwing SFX.mp3" id="3_t1y0h"]
 [ext_resource type="PackedScene" uid="uid://d7m3taty6w01" path="res://FX/arrow.tscn" id="4_arrow"]
+[ext_resource type="AudioStream" uid="uid://da0xq7mf7em2m" path="res://assets/Sounds/step.mp3" id="4_jtij1"]
+[ext_resource type="AudioStream" uid="uid://cexot5v8qnyuo" path="res://assets/Sounds/fleshslice.mp3" id="5_kfoax"]
+[ext_resource type="AudioStream" uid="uid://dub7f0kquia1l" path="res://assets/Sounds/arrowflesh.mp3" id="6_3ptaw"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_t1y0h"]
 size = Vector2(20, 30)
@@ -129,12 +132,18 @@ arrow_speed = 550.0
 arrow_lifetime = 1.5
 arrow_angle = 12.0
 shoot_sound = ExtResource("3_t1y0h")
+shoot_sound_frames = Array[int]([5])
 max_health = 60.0
 facing_pivot = NodePath("Pivot")
 health_bar = NodePath("Pivot/HPBar")
 detection_zone = NodePath("Pivot/DetectionZone")
 hit_particles = NodePath("hitparticles")
 knockback_friction = 400.0
+walk_sound = ExtResource("4_jtij1")
+hit_sound_sword = ExtResource("5_kfoax")
+hit_sound_arrow = ExtResource("6_3ptaw")
+hit_sound_sword_flow = ExtResource("5_kfoax")
+hit_sound_arrow_flow = ExtResource("6_3ptaw")
 oscillate = true
 oscillate_speed = 0.2
 
@@ -148,7 +157,6 @@ shape = SubResource("RectangleShape2D_t1y0h")
 sprite_frames = SubResource("SpriteFrames_w7k1a")
 animation = &"shoot"
 frame = 5
-frame_progress = 0.32993263
 
 [node name="DetectionZone" type="Area2D" parent="CharacterBody2D/Pivot" unique_id=1890485749]
 position = Vector2(7, 0)

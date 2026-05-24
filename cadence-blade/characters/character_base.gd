@@ -57,6 +57,9 @@ var facing: float = 1.0
 @export var flow_bar: Node2D
 ## Drag a CPUParticles2D here to play it whenever the character takes damage.
 @export var hit_particles: CPUParticles2D
+## Drag HurtBox Area2D nodes here. Each box auto-applies its damage_multiplier when hit.
+## e.g. body box at 1.0×, head box at 2.0×. Boxes self-initialize via their own _ready().
+@export var hurtboxes: Array[Area2D] = []
 
 # ── Flow timing ───────────────────────────────────────────────────────────────
 # ── Flow timing (set per-attack by _start_flow callers) ──────────────────────
@@ -88,6 +91,13 @@ var _orig_layer: int = 0
 ## How fast knockback decelerates in pixels/sec.
 @export var knockback_friction: float = 800.0
 
+@export_group("SFX Distance")
+## Beyond this many pixels from the audio listener (camera / local player) volume falls to zero.
+@export_range(50.0, 3000.0, 10.0) var sfx_max_distance: float = 700.0
+## Rolloff exponent: 1 = linear, 2 = quadratic (drops faster). Higher = sharper fade.
+@export_range(0.1, 4.0, 0.1) var sfx_attenuation: float = 1.0
+@export_group("")
+
 @export_group("Walk Sound")
 ## AudioStream to play on each footstep while running.
 @export var walk_sound: AudioStream
@@ -95,6 +105,39 @@ var _orig_layer: int = 0
 @export_range(-40.0, 6.0, 0.1) var walk_sound_volume_db: float = 0.0
 ## Running animation frame indices that trigger a footstep sound.
 @export var walk_sound_footstep_frames: Array[int] = []
+@export_group("")
+
+@export_group("Hit Sounds")
+## Sound played when hit by a sword or spear.
+@export var hit_sound_sword: AudioStream
+@export_range(-40.0, 6.0, 0.1) var hit_sound_sword_volume_db: float = 0.0
+## Sound played when hit by an arrow.
+@export var hit_sound_arrow: AudioStream
+@export_range(-40.0, 6.0, 0.1) var hit_sound_arrow_volume_db: float = 0.0
+## Sound played when hit by a hammer.
+@export var hit_sound_hammer: AudioStream
+@export_range(-40.0, 6.0, 0.1) var hit_sound_hammer_volume_db: float = 0.0
+## Sound played when hit by claws or a natural weapon.
+@export var hit_sound_claw: AudioStream
+@export_range(-40.0, 6.0, 0.1) var hit_sound_claw_volume_db: float = 0.0
+## Sound played when hit by a fireball.
+@export var hit_sound_fireball: AudioStream
+@export_range(-40.0, 6.0, 0.1) var hit_sound_fireball_volume_db: float = 0.0
+## Flow-success variant: played instead of hit_sound_sword when the hit was in the green window.
+@export var hit_sound_sword_flow: AudioStream
+@export_range(-40.0, 6.0, 0.1) var hit_sound_sword_flow_volume_db: float = 0.0
+## Flow-success variant for arrow hits.
+@export var hit_sound_arrow_flow: AudioStream
+@export_range(-40.0, 6.0, 0.1) var hit_sound_arrow_flow_volume_db: float = 0.0
+## Flow-success variant for hammer hits.
+@export var hit_sound_hammer_flow: AudioStream
+@export_range(-40.0, 6.0, 0.1) var hit_sound_hammer_flow_volume_db: float = 0.0
+## Flow-success variant for claw hits.
+@export var hit_sound_claw_flow: AudioStream
+@export_range(-40.0, 6.0, 0.1) var hit_sound_claw_flow_volume_db: float = 0.0
+## Flow-success variant for fireball hits.
+@export var hit_sound_fireball_flow: AudioStream
+@export_range(-40.0, 6.0, 0.1) var hit_sound_fireball_flow_volume_db: float = 0.0
 @export_group("")
 
 signal died()
@@ -114,9 +157,25 @@ var _prev_input_override: Dictionary = {}
 var disable_local_attack_input: bool = false
 var _walk_audio: AudioStreamPlayer2D = null
 var _prev_footstep_frame: int = -1
+var _hit_audio_sword: AudioStreamPlayer2D = null
+var _hit_audio_arrow: AudioStreamPlayer2D = null
+var _hit_audio_hammer: AudioStreamPlayer2D = null
+var _hit_audio_claw: AudioStreamPlayer2D = null
+var _hit_audio_fireball: AudioStreamPlayer2D = null
+var _hit_audio_sword_flow: AudioStreamPlayer2D = null
+var _hit_audio_arrow_flow: AudioStreamPlayer2D = null
+var _hit_audio_hammer_flow: AudioStreamPlayer2D = null
+var _hit_audio_claw_flow: AudioStreamPlayer2D = null
+var _hit_audio_fireball_flow: AudioStreamPlayer2D = null
 ## Joiner-only visual lock used when the host is currently driving a non-locomotion animation.
 ## While this is set, local movement code leaves the sprite animation alone.
 var network_animation_override: StringName = &""
+
+# ── Hit-flash ─────────────────────────────────────────────────────────────────
+var _hit_flash_material: ShaderMaterial = null
+var _hit_flash_tween: Tween = null
+const _HIT_FLASH_SHADER := "res://assets/shaders/hit_flash.gdshader"
+const _HIT_FLASH_DURATION := 0.15
 
 
 func _ready() -> void:
@@ -142,6 +201,38 @@ func _ready() -> void:
 		flow_bar.hide()
 	_apply_facing()
 	_walk_audio = _make_sfx_player(walk_sound, walk_sound_volume_db)
+	_hit_audio_sword = _make_sfx_player(hit_sound_sword, hit_sound_sword_volume_db)
+	_hit_audio_arrow = _make_sfx_player(hit_sound_arrow, hit_sound_arrow_volume_db)
+	_hit_audio_hammer = _make_sfx_player(hit_sound_hammer, hit_sound_hammer_volume_db)
+	_hit_audio_claw = _make_sfx_player(hit_sound_claw, hit_sound_claw_volume_db)
+	_hit_audio_fireball = _make_sfx_player(hit_sound_fireball, hit_sound_fireball_volume_db)
+	_hit_audio_sword_flow = _make_sfx_player(hit_sound_sword_flow, hit_sound_sword_flow_volume_db)
+	_hit_audio_arrow_flow = _make_sfx_player(hit_sound_arrow_flow, hit_sound_arrow_flow_volume_db)
+	_hit_audio_hammer_flow = _make_sfx_player(hit_sound_hammer_flow, hit_sound_hammer_flow_volume_db)
+	_hit_audio_claw_flow = _make_sfx_player(hit_sound_claw_flow, hit_sound_claw_flow_volume_db)
+	_hit_audio_fireball_flow = _make_sfx_player(hit_sound_fireball_flow, hit_sound_fireball_flow_volume_db)
+	_setup_hit_flash()
+
+
+func _setup_hit_flash() -> void:
+	if animated_sprite == null:
+		return
+	var mat := ShaderMaterial.new()
+	mat.shader = load(_HIT_FLASH_SHADER)
+	animated_sprite.material = mat
+	_hit_flash_material = mat
+
+
+func _flash_white() -> void:
+	if _hit_flash_material == null:
+		return
+	if _hit_flash_tween != null and _hit_flash_tween.is_valid():
+		_hit_flash_tween.kill()
+	_hit_flash_material.set_shader_parameter(&"flash_amount", 1.0)
+	_hit_flash_tween = create_tween()
+	_hit_flash_tween.tween_method(
+		func(v: float) -> void: _hit_flash_material.set_shader_parameter(&"flash_amount", v),
+		1.0, 0.0, _HIT_FLASH_DURATION)
 
 
 ## Advance the override snapshot. Call once per physics frame before _handle_movement.
@@ -246,6 +337,8 @@ func _make_sfx_player(stream: AudioStream, volume_db: float) -> AudioStreamPlaye
 	p.stream = stream
 	p.volume_db = volume_db
 	p.bus = &"SFX"
+	p.max_distance = sfx_max_distance
+	p.attenuation = sfx_attenuation
 	add_child(p)
 	return p
 
@@ -338,7 +431,7 @@ func _nearest_point_on_segment(p: Vector2, a: Vector2, b: Vector2) -> Vector2:
 	return a + ab * t
 
 
-func take_damage(amount: float, _flow_success: bool = false) -> void:
+func take_damage(amount: float, flow_success: bool = false, weapon_type: WeaponType.WeaponType = WeaponType.WeaponType.SWORD) -> void:
 	if is_dead:
 		return
 	if _ignore_client_side_gameplay():
@@ -346,12 +439,29 @@ func take_damage(amount: float, _flow_success: bool = false) -> void:
 	health = maxf(0.0, health - amount)
 	health_changed.emit(health, max_health)
 	DamageNumber.spawn_at(get_tree().current_scene, global_position, amount)
+	_flash_white()
 	if hit_particles != null:
 		hit_particles.restart()
+	_play_weapon_hit_sound(weapon_type, flow_success)
+	Input.vibrate_handheld(200, 0.7)
 	if GameManager.session_id != "" and GameManager.is_host:
-		WebRTCManager.send_reliable({"t": "hit_fx", "p": str(get_path())})
+		WebRTCManager.send_reliable({"t": "hit_fx", "p": str(get_path()), "wt": int(weapon_type), "fs": 1 if flow_success else 0})
 	if health == 0.0:
 		die()
+
+
+func _play_weapon_hit_sound(weapon_type: WeaponType.WeaponType, flow_success: bool = false) -> void:
+	match weapon_type:
+		WeaponType.WeaponType.SWORD:
+			_play_sfx(_hit_audio_sword_flow if flow_success and _hit_audio_sword_flow != null and _hit_audio_sword_flow.stream != null else _hit_audio_sword)
+		WeaponType.WeaponType.ARROW:
+			_play_sfx(_hit_audio_arrow_flow if flow_success and _hit_audio_arrow_flow != null and _hit_audio_arrow_flow.stream != null else _hit_audio_arrow)
+		WeaponType.WeaponType.HAMMER:
+			_play_sfx(_hit_audio_hammer_flow if flow_success and _hit_audio_hammer_flow != null and _hit_audio_hammer_flow.stream != null else _hit_audio_hammer)
+		WeaponType.WeaponType.CLAW:
+			_play_sfx(_hit_audio_claw_flow if flow_success and _hit_audio_claw_flow != null and _hit_audio_claw_flow.stream != null else _hit_audio_claw)
+		WeaponType.WeaponType.FIREBALL:
+			_play_sfx(_hit_audio_fireball_flow if flow_success and _hit_audio_fireball_flow != null and _hit_audio_fireball_flow.stream != null else _hit_audio_fireball)
 
 
 func _on_health_changed(new_health: float, max_hp: float) -> void:

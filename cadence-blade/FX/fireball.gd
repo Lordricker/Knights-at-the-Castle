@@ -14,19 +14,20 @@ extends Area2D
 ## One-shot explosion particles — played for 1 second after the fireball dies.
 @export var explosion_particles: CPUParticles2D
 
-@export_group("Hit Sound")
-@export var hit_sound: AudioStream
-@export_range(-40.0, 6.0, 0.1) var hit_sound_volume_db: float = 0.0
+@export_group("Weapon Type")
+## Weapon type reported to the target when this fireball connects.
+@export var weapon_type: WeaponType.WeaponType = WeaponType.WeaponType.FIREBALL
 @export_group("")
 
 var damage: float = 0.0
 var knockback_force: float = 0.0
 var lifetime: float = 3.0
+## Set to the node that fired this fireball so it never damages itself.
+var shooter: Node = null
 
 var _velocity: Vector2 = Vector2.ZERO
 var _configured: bool = false
 var _exploding: bool = false
-var _hit_audio: AudioStreamPlayer2D = null
 
 
 ## Call this before add_child(). Sets spawn position and all combat values.
@@ -37,6 +38,8 @@ func configure(spawn_pos: Vector2, direction: Vector2, speed: float,
 	lifetime = p_lifetime
 	_velocity = direction.normalized() * speed
 	global_position = spawn_pos
+	if _velocity != Vector2.ZERO:
+		rotation = _velocity.angle()
 	_configured = true
 	# If already in the tree (buildup pattern: add_child before configure), start now.
 	if is_inside_tree():
@@ -46,15 +49,11 @@ func configure(spawn_pos: Vector2, direction: Vector2, speed: float,
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 	area_entered.connect(_on_area_entered)
-	if hit_sound != null:
-		_hit_audio = AudioStreamPlayer2D.new()
-		_hit_audio.stream = hit_sound
-		_hit_audio.volume_db = hit_sound_volume_db
-		_hit_audio.bus = &"SFX"
-		add_child(_hit_audio)
 	# If configure() was already called before add_child(), start immediately.
 	if _configured:
 		_start_active_state()
+		if _velocity != Vector2.ZERO:
+			rotation = _velocity.angle()
 
 
 ## Starts the lifetime timer and trail particles.
@@ -78,8 +77,6 @@ func _explode() -> void:
 		return
 	_exploding = true
 	_velocity = Vector2.ZERO
-	if _hit_audio != null and _hit_audio.stream != null:
-		_hit_audio.play()
 	# Hide the trail so it doesn't keep emitting during the death linger.
 	if trail_particles != null:
 		trail_particles.hide()
@@ -98,8 +95,13 @@ func _on_expired() -> void:
 func _on_body_entered(body: Node2D) -> void:
 	if _exploding:
 		return
+	if body == shooter:
+		return
+	# Only damage Kill-group targets (players, castle) — not other enemies.
+	if not body.is_in_group(&"Kill"):
+		return
 	if body.has_method("take_damage"):
-		body.take_damage(damage)
+		body.take_damage(damage, false, weapon_type)
 	if body.is_in_group(&"KillCharacter") and body.has_method("apply_knockback"):
 		body.apply_knockback(global_position, knockback_force)
 	_explode()
@@ -108,9 +110,11 @@ func _on_body_entered(body: Node2D) -> void:
 func _on_area_entered(area: Area2D) -> void:
 	if _exploding:
 		return
+	if area == shooter or (shooter != null and shooter.is_ancestor_of(area)):
+		return
 	if not area.is_in_group(&"Kill"):
 		return
 	var owner_node := area.get_parent()
 	if owner_node != null and owner_node.has_method("take_damage"):
-		owner_node.take_damage(damage)
+		owner_node.take_damage(damage, false, weapon_type)
 	_explode()

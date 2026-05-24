@@ -1,10 +1,15 @@
 [gd_scene format=3 uid="uid://bbjula4tp34fv"]
 
 [ext_resource type="Script" uid="uid://dpe33viucjnee" path="res://FX/fireball.gd" id="1_ldvry"]
-[ext_resource type="Texture2D" uid="uid://bom7bc6vqr4wq" path="res://assets/sprites/enemies/fireballsprite.png" id="2_ku8ui"]
+[ext_resource type="Texture2D" uid="uid://dt4ysa1mldxfn" path="res://assets/sprites/VFX/fireballsprite.png" id="2_xfvnu"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_hyrg3"]
-radius = 5.0990195
+radius = 6.0
+
+[sub_resource type="Curve" id="Curve_psdcy"]
+_limits = [-360.0, 360.0, 0.0, 1.0]
+_data = [Vector2(0, 57.16681), 0.0, 0.0, 0, 0, Vector2(0.092975214, -60.692596), 0.0, 0.0, 0, 0, Vector2(0.24793391, 45.708252), 0.0, 0.0, 0, 0, Vector2(0.40082645, -14.858368), 0.0, 0.0, 0, 0, Vector2(0.5475207, 19.517273), 0.0, 0.0, 0, 0, Vector2(0.6838844, -9.947571), 0.0, 0.0, 0, 0, Vector2(0.8698348, 12.969543), 0.0, 0.0, 0, 0, Vector2(1, 9.695679), 141.47836, 0.0, 0, 0]
+point_count = 8
 
 [sub_resource type="Curve" id="Curve_ku8ui"]
 _data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0.743092), 0.0, 0.0, 0, 0]
@@ -28,15 +33,17 @@ shape = SubResource("CircleShape2D_hyrg3")
 
 [node name="lifetimeParticles" type="CPUParticles2D" parent="." unique_id=977869280]
 z_index = 1
+rotation = -0.49218285
 amount = 1
-texture = ExtResource("2_ku8ui")
+texture = ExtResource("2_xfvnu")
 lifetime = 1.5
 local_coords = true
 direction = Vector2(0, -1)
 spread = 0.0
 gravity = Vector2(0, 0)
-angular_velocity_min = -315.93
-angular_velocity_max = -315.93
+angular_velocity_min = 1.0
+angular_velocity_max = 1.0
+angular_velocity_curve = SubResource("Curve_psdcy")
 radial_accel_min = 23.45
 radial_accel_max = 23.45
 scale_amount_min = 2.0
@@ -44,6 +51,7 @@ scale_amount_max = 2.0
 scale_amount_curve = SubResource("Curve_ku8ui")
 
 [node name="CPUParticles2D3" type="CPUParticles2D" parent="." unique_id=1779818]
+z_index = 1
 position = Vector2(-1, 0)
 amount = 30
 lifetime = 0.5
@@ -67,6 +75,7 @@ color_ramp = SubResource("Gradient_t40mn")
 hue_variation_max = 1.0
 
 [node name="CPUParticles2D" type="CPUParticles2D" parent="." unique_id=1882096542]
+z_index = 1
 position = Vector2(-1, 0)
 amount = 30
 lifetime = 0.5

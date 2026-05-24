@@ -2,8 +2,12 @@
 
 [ext_resource type="Script" uid="uid://cmdxod78uwp8o" path="res://characters/enemies/range/green_archer.gd" id="1_6fvnt"]
 [ext_resource type="PackedScene" uid="uid://d7m3taty6w01" path="res://FX/arrow.tscn" id="2_8cfsu"]
+[ext_resource type="AudioStream" uid="uid://b6cujcbdhn6sg" path="res://assets/Sounds/thwing SFX.mp3" id="3_dutqu"]
 [ext_resource type="Texture2D" uid="uid://chlus6rpbaf5d" path="res://assets/sprites/enemies/greenArcher.png" id="3_yl5no"]
+[ext_resource type="AudioStream" uid="uid://da0xq7mf7em2m" path="res://assets/Sounds/step.mp3" id="4_4nv2q"]
 [ext_resource type="PackedScene" uid="uid://bkyw3pybjuqjs" path="res://ui/hud/HPBar.tscn" id="4_jmff2"]
+[ext_resource type="AudioStream" uid="uid://cexot5v8qnyuo" path="res://assets/Sounds/fleshslice.mp3" id="5_qg33t"]
+[ext_resource type="AudioStream" uid="uid://dub7f0kquia1l" path="res://assets/Sounds/arrowflesh.mp3" id="6_a3kir"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_t1y0h"]
 size = Vector2(20, 30)
@@ -127,15 +131,24 @@ arrow_damage = 20.0
 arrow_speed = 550.0
 arrow_lifetime = 1.5
 arrow_angle = 12.0
+shoot_sound = ExtResource("3_dutqu")
+shoot_sound_frames = Array[int]([5])
 combo_attack_modifier = 2.0
 combo_arrow_speed = 800.0
 combo_arrow_lifetime = 1.0
 combo_arrow_angle = 7.0
+combo_shoot_sound = ExtResource("3_dutqu")
 facing_pivot = NodePath("Pivot")
 health_bar = NodePath("Pivot/HPBar")
 detection_zone = NodePath("Pivot/DetectionZone")
 hit_particles = NodePath("hitparticles")
 knockback_friction = 400.0
+walk_sound = ExtResource("4_4nv2q")
+walk_sound_footstep_frames = Array[int]([0])
+hit_sound_sword = ExtResource("5_qg33t")
+hit_sound_arrow = ExtResource("6_a3kir")
+hit_sound_sword_flow = ExtResource("5_qg33t")
+hit_sound_arrow_flow = ExtResource("6_a3kir")
 oscillate = true
 oscillate_speed = 0.2
 
