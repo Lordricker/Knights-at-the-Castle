@@ -21,11 +21,8 @@
 [ext_resource type="Script" uid="uid://dcj5kusq32vwi" path="res://characters/castle_inside.gd" id="15_154h8"]
 [ext_resource type="Script" uid="uid://dpjae2t3dv3ia" path="res://core/level_camera.gd" id="15_lvlcam"]
 [ext_resource type="PackedScene" uid="uid://b8gftcetbxiww" path="res://characters/enemies/range/green_archer.tscn" id="15_pl843"]
-[ext_resource type="Script" uid="uid://b2civ401woqp5" path="res://characters/enemies/melee/black_knight.gd" id="15_v4ptn"]
-[ext_resource type="Texture2D" uid="uid://c8ilbggv3816p" path="res://assets/sprites/enemies/blackSpearman.png" id="16_0kldc"]
 [ext_resource type="Script" uid="uid://cidykeebxaujw" path="res://core/Upgrades/upgrade_config.gd" id="16_edmi1"]
 [ext_resource type="Texture2D" uid="uid://bhfpc1w4dqq0y" path="res://core/Upgrades/plus5atk.png" id="17_5g4e1"]
-[ext_resource type="PackedScene" uid="uid://bkyw3pybjuqjs" path="res://ui/hud/HPBar.tscn" id="17_08x7v"]
 [ext_resource type="Texture2D" uid="uid://chf7h63qrwf7i" path="res://core/Upgrades/plus50hp.png" id="18_5g4e1"]
 [ext_resource type="Texture2D" uid="uid://wxcyewyr8jxt" path="res://core/Upgrades/plus5spd.png" id="18_gwq2p"]
 [ext_resource type="PackedScene" uid="uid://cc5rsxrl2ed31" path="res://characters/enemies/melee/sheepdog.tscn" id="18_keknm"]
@@ -38,6 +35,7 @@
 [ext_resource type="Texture2D" uid="uid://jvow1lpkr13n" path="res://assets/sprites/BlacksmithSprites.png" id="22_chmu7"]
 [ext_resource type="PackedScene" uid="uid://1brrmdyvuppp" path="res://characters/enemies/melee/blackKnight.tscn" id="23_154h8"]
 [ext_resource type="Texture2D" uid="uid://cc743ee51ef1m" path="res://core/Upgrades/5secFreeze.png" id="23_ll8mu"]
+[ext_resource type="PackedScene" uid="uid://bbjula4tp34fv" path="res://FX/Fireball.tscn" id="23_trs4y"]
 [ext_resource type="PackedScene" uid="uid://csdfv0d4v5teo" path="res://level/sheepidle.tscn" id="30_cblfy"]
 [ext_resource type="PackedScene" uid="uid://cukpgklhpndg0" path="res://level/sheepeat.tscn" id="31_nkn60"]
 [ext_resource type="Texture2D" uid="uid://ev4niddbcvxm" path="res://assets/sprites/towerscout.png" id="31_p3vt1"]
@@ -51,6 +49,7 @@
 [ext_resource type="PackedScene" uid="uid://c5hc2fvndx545" path="res://characters/Players/TowerArcher.tscn" id="37_0kldc"]
 [ext_resource type="Texture2D" uid="uid://dp1q75royvjm2" path="res://assets/sprites/EnemyTower.png" id="50_trs4y"]
 [ext_resource type="PackedScene" uid="uid://e105y00k30fn" path="res://characters/enemies/elites/greenDragon.tscn" id="51_karr3"]
+[ext_resource type="PackedScene" uid="uid://df7kwq8ydgev6" path="res://characters/enemies/melee/blackSpearman.tscn" id="52_df7kw"]
 
 [sub_resource type="Curve2D" id="Curve2D_0eib5"]
 _data = {
@@ -90,8 +89,8 @@ point_count = 1
 
 [sub_resource type="Curve" id="Curve_slhly"]
 _limits = [0.0, 10.0, 0.0, 30.0]
-_data = [Vector2(3.968504, 0), 0.0, 0.12649392, 0, 0, Vector2(30, 10), 0.4583328, 0.0, 0, 0]
-point_count = 2
+_data = [Vector2(4.2992125, 0), 0.0, 0.12649392, 0, 0, Vector2(4.3937006, 1.143426), 0.49382088, 0.49382088, 0, 0, Vector2(30, 10), 0.4583328, 0.0, 0, 0]
+point_count = 3
 
 [sub_resource type="Resource" id="Resource_tm2co"]
 script = ExtResource("9_154h8")
@@ -139,110 +138,10 @@ type_name = "Acher"
 variants = Array[ExtResource("9_154h8")]([SubResource("Resource_61uay"), SubResource("Resource_732d0")])
 metadata/_custom_type_script = "uid://dj8qa3itlkqdw"
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_xsjc2"]
-size = Vector2(20, 30)
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_wif16"]
-atlas = ExtResource("16_0kldc")
-region = Rect2(0, 0, 200, 100)
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_sdsps"]
-atlas = ExtResource("16_0kldc")
-region = Rect2(200, 0, 200, 100)
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_li75f"]
-atlas = ExtResource("16_0kldc")
-region = Rect2(400, 0, 200, 100)
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_3injy"]
-atlas = ExtResource("16_0kldc")
-region = Rect2(0, 100, 200, 100)
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_rs5jy"]
-atlas = ExtResource("16_0kldc")
-region = Rect2(200, 100, 200, 100)
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_rhr3q"]
-atlas = ExtResource("16_0kldc")
-region = Rect2(400, 100, 200, 100)
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_bvf32"]
-atlas = ExtResource("16_0kldc")
-region = Rect2(0, 200, 200, 100)
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_5t2un"]
-atlas = ExtResource("16_0kldc")
-region = Rect2(200, 200, 200, 100)
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_hitsi"]
-atlas = ExtResource("16_0kldc")
-region = Rect2(400, 200, 200, 100)
-
-[sub_resource type="SpriteFrames" id="SpriteFrames_ma6qb"]
-animations = [{
-"frames": [{
-"duration": 1.0,
-"texture": SubResource("AtlasTexture_wif16")
-}, {
-"duration": 1.0,
-"texture": SubResource("AtlasTexture_sdsps")
-}, {
-"duration": 1.0,
-"texture": SubResource("AtlasTexture_li75f")
-}, {
-"duration": 1.0,
-"texture": SubResource("AtlasTexture_3injy")
-}, {
-"duration": 1.0,
-"texture": SubResource("AtlasTexture_rs5jy")
-}, {
-"duration": 1.0,
-"texture": SubResource("AtlasTexture_rhr3q")
-}],
-"loop": true,
-"name": &"running",
-"speed": 6.0
-}, {
-"frames": [{
-"duration": 1.0,
-"texture": SubResource("AtlasTexture_bvf32")
-}, {
-"duration": 1.0,
-"texture": SubResource("AtlasTexture_5t2un")
-}, {
-"duration": 1.0,
-"texture": SubResource("AtlasTexture_hitsi")
-}],
-"loop": false,
-"name": &"slash",
-"speed": 6.0
-}]
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_ptajg"]
-size = Vector2(49, 13)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_0412h"]
-size = Vector2(58, 21)
-
-[sub_resource type="PackedScene" id="PackedScene_tl8wq"]
-_bundled = {
-"conn_count": 0,
-"conns": PackedInt32Array(),
-"editable_instances": [],
-"id_paths": [PackedInt32Array(), PackedInt32Array(), PackedInt32Array(), PackedInt32Array(), PackedInt32Array(), PackedInt32Array(), PackedInt32Array(), PackedInt32Array(), PackedInt32Array()],
-"names": PackedStringArray("Node2D", "Node2D", "z_index", "y_sort_enabled", "CharacterBody2D", "CharacterBody2D", "y_sort_enabled", "position", "collision_layer", "script", "slash_damage", "slash_hitbox_frames", "facing_pivot", "health_bar", "detection_zone", "knockback_friction", "oscillate", "oscillate_speed", "CollisionShape2D", "CollisionShape2D", "visible", "position", "shape", "Pivot", "Node2D", "AnimatedSprite2D", "AnimatedSprite2D", "sprite_frames", "animation", "frame", "frame_progress", "SlashHitbox", "Area2D", "position", "monitoring", "monitorable", "CollisionShape2D", "CollisionShape2D", "position", "shape", "debug_color", "DetectionZone", "Area2D", "position", "monitorable", "CollisionShape2D", "CollisionShape2D", "position", "shape", "debug_color", "HPBar", "position", "rotation", "scale"),
-"node_count": 10,
-"node_ids": PackedInt32Array(1417772890, 160150496, 1533444482, 212786294, 1220205241, 1169559059, 341442971, 1603263640, 1099174522, 1780535160),
-"node_paths": [NodePath("."), NodePath("./CharacterBody2D"), NodePath("./CharacterBody2D"), NodePath("./CharacterBody2D/Pivot"), NodePath("./CharacterBody2D/Pivot"), NodePath("./CharacterBody2D/Pivot/SlashHitbox"), NodePath("./CharacterBody2D/Pivot"), NodePath("./CharacterBody2D/Pivot/DetectionZone"), NodePath("./CharacterBody2D/Pivot")],
-"nodes": PackedInt32Array(-1, -1, 1, 0, -1, 2, 2, 0, 3, 1, 0, 1073741824, 0, 5, 4, -1, 12, 6, 2, 7, 3, 8, 4, 9, 5, 10, 6, 11, 7, 1073741836, 8, 1073741837, 9, 1073741838, 10, 15, 11, 16, 12, 17, 13, 0, 1073741825, 0, 19, 18, -1, 3, 20, 14, 21, 15, 22, 16, 0, 1073741826, 0, 24, 23, -1, 0, 0, 1073741827, 0, 26, 25, -1, 4, 27, 17, 28, 18, 29, 19, 30, 20, 0, 1073741828, 0, 32, 31, -1, 3, 33, 21, 34, 22, 35, 23, 0, 1073741829, 0, 37, 36, -1, 3, 38, 24, 39, 25, 40, 26, 0, 1073741830, 0, 42, 41, -1, 2, 43, 27, 44, 28, 0, 1073741831, 0, 46, 45, -1, 3, 47, 29, 48, 30, 49, 31, 0, 1073741832, 0, 2147483647, 50, 32, 3, 51, 33, 52, 34, 53, 35, 0),
-"variants": [1, true, true, Vector2(0, -11), 2, ExtResource("15_v4ptn"), 30.0, Array[int]([1]), NodePath("Pivot"), NodePath("Pivot/HPBar"), NodePath("Pivot/DetectionZone"), 400.0, true, 0.2, false, Vector2(0, 4), SubResource("RectangleShape2D_xsjc2"), SubResource("SpriteFrames_ma6qb"), &"slash", 2, 1.0, Vector2(17, 0), false, false, Vector2(12.5, 11.5), SubResource("RectangleShape2D_ptajg"), Color(0.9536274, 7.70092e-07, 0.5495344, 0.41960785), Vector2(7, 0), false, Vector2(14, 6.5), SubResource("RectangleShape2D_0412h"), Color(0.6837786, 0.5034512, 0, 0.41960785), ExtResource("17_08x7v"), Vector2(-12, 24), 3.1415927, Vector2(0.99999964, -1)],
-"version": 3
-}
-
 [sub_resource type="Resource" id="Resource_keknm"]
 script = ExtResource("9_154h8")
 display_name = "blackSpearman"
-scene = SubResource("PackedScene_tl8wq")
+scene = ExtResource("52_df7kw")
 pool_tickets_curve = SubResource("Curve_v3s87")
 max_alive_curve = SubResource("Curve_1h1xf")
 flow_kill_coin_tier = 2
@@ -293,10 +192,23 @@ type_name = "SheepDog"
 variants = Array[ExtResource("9_154h8")]([SubResource("Resource_karr3")])
 metadata/_custom_type_script = "uid://dj8qa3itlkqdw"
 
+[sub_resource type="Curve" id="Curve_pl843"]
+_limits = [0.0, 2.0, 0.0, 1.0]
+_data = [Vector2(1e-05, 1.996547), 0.0, 0.0, 0, 0]
+point_count = 1
+
+[sub_resource type="Curve" id="Curve_trs4y"]
+_limits = [0.0, 5.0, 0.0, 30.0]
+_data = [Vector2(10.677165, 0), 0.0, 0.0, 0, 0, Vector2(21, 5), 0.0, 0.0, 0, 0]
+point_count = 2
+metadata/_snap_enabled = true
+
 [sub_resource type="Resource" id="Resource_1h1xf"]
 script = ExtResource("9_154h8")
 display_name = "Green Dragon"
 scene = ExtResource("51_karr3")
+pool_tickets_curve = SubResource("Curve_trs4y")
+max_alive_curve = SubResource("Curve_pl843")
 guaranteed_spawn_minutes = Array[float]([5.0, 10.0])
 coin_tier = 3
 flow_kill_coin_tier = 3
@@ -310,8 +222,8 @@ metadata/_custom_type_script = "uid://dj8qa3itlkqdw"
 
 [sub_resource type="Curve" id="Curve_732d0"]
 _limits = [0.0, 10.0, 0.0, 30.0]
-_data = [Vector2(0, 0.50709915), 0.0, 0.0, 0, 0, Vector2(0.01, 10), 0.0, 0.0023232235, 0, 0, Vector2(29.759035, 1.1809778), -0.29257885, 0.0, 0, 0]
-point_count = 3
+_data = [Vector2(0, 0.50709915), 0.0, 0.0, 0, 0, Vector2(0.01, 10), 0.0, 0.0023232235, 0, 0, Vector2(6.7469873, 3.0121703), -0.35879362, -0.35879362, 0, 0, Vector2(14.9799185, 1.0198336), -0.29257885, 0.0, 0, 0]
+point_count = 4
 
 [sub_resource type="Curve" id="Curve_4ddxt"]
 _limits = [0.0, 20.0, 0.0, 30.0]
@@ -735,6 +647,7 @@ position = Vector2(0, 171.13)
 enemy_types = Array[ExtResource("8_pr8jp")]([SubResource("Resource_chmu7"), SubResource("Resource_v4ptn"), SubResource("Resource_3hhgk"), SubResource("Resource_62wvd"), SubResource("Resource_v3s87")])
 spawn_rate_curve = SubResource("Curve_732d0")
 max_total_curve = SubResource("Curve_4ddxt")
+curve_time_scale_minutes = 10.0
 
 [node name="RunManager" type="Node2D" parent="." unique_id=1021112478 node_paths=PackedStringArray("castle", "spawner", "game_over_screen", "spawn_points")]
 script = ExtResource("11_hah43")
@@ -744,6 +657,7 @@ game_over_screen = NodePath("../HUD")
 player_scenes = Array[PackedScene]([ExtResource("14_8ow3n")])
 red_knight_scene = ExtResource("14_8ow3n")
 green_archer_scene = ExtResource("13_gwq2p")
+enemy_fireball_scene = ExtResource("23_trs4y")
 respawn_delay_curve = SubResource("Curve_hah43")
 spawn_points = [NodePath("KnightSpawn"), NodePath("ArcherSpawn"), NodePath("RogueSpawn")]
 

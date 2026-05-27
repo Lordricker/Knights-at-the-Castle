@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://nkamljh1f3t0"]
 
 [ext_resource type="Script" uid="uid://bp8xsb0bkidtc" path="res://FX/coin.gd" id="1_7y7lw"]
+[ext_resource type="AudioStream" uid="uid://kfd3m74yb66r" path="res://assets/Sounds/CoinSound.mp3" id="2_22grd"]
 [ext_resource type="Texture2D" uid="uid://d17uykc2xhfgb" path="res://assets/sprites/CoinShadow.png" id="2_qddvg"]
 [ext_resource type="Texture2D" uid="uid://blsjc0u7oxv7h" path="res://assets/sprites/Coin4.png" id="2_soilh"]
 
@@ -110,6 +111,7 @@ animations = [{
 z_index = 2
 script = ExtResource("1_7y7lw")
 coin_value = 4
+pickup_sound = ExtResource("2_22grd")
 
 [node name="CoinShadow" type="Sprite2D" parent="." unique_id=406406283]
 texture = ExtResource("2_qddvg")

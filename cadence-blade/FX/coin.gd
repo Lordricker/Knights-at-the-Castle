@@ -23,11 +23,21 @@ extends Area2D
 @export var coin_value: int = 1
 ## When true, non-looping coin animations hold on the final frame.
 @export var freeze_on_last_frame: bool = true
+## Sound played when a player collects this coin.
+@export var pickup_sound: AudioStream
+@export_range(-40.0, 6.0, 0.1) var pickup_sound_volume_db: float = 0.0
 
 @onready var animated_sprite: AnimatedSprite2D = get_node_or_null("AnimatedSprite2D") as AnimatedSprite2D
+var _pickup_audio: AudioStreamPlayer2D = null
 
 
 func _ready() -> void:
+	if pickup_sound != null:
+		_pickup_audio = AudioStreamPlayer2D.new()
+		_pickup_audio.stream = pickup_sound
+		_pickup_audio.volume_db = pickup_sound_volume_db
+		_pickup_audio.bus = &"SFX"
+		add_child(_pickup_audio)
 	body_entered.connect(_on_body_entered)
 	if animated_sprite != null:
 		animated_sprite.animation_finished.connect(_on_animation_finished)
@@ -47,7 +57,7 @@ func _on_body_entered(body: Node2D) -> void:
 		if GameManager.session_id != "":
 			var coin_id: int = int(get_meta(&"coin_id", -1))
 			WebRTCManager.send_reliable({"t": "coins_add", "v": coin_value, "coin_id": coin_id})
-		queue_free()
+		_collect()
 
 
 func _distribute_coins() -> void:
@@ -55,6 +65,22 @@ func _distribute_coins() -> void:
 	for p in players:
 		if p.has_method("add_coins"):
 			p.add_coins(coin_value)
+
+
+func _collect() -> void:
+	# Hide visuals immediately so the coin looks gone.
+	if animated_sprite != null:
+		animated_sprite.hide()
+	set_deferred(&"monitoring", false)
+	set_deferred(&"monitorable", false)
+	if _pickup_audio != null and _pickup_audio.stream != null:
+		_pickup_audio.global_position = global_position
+		_pickup_audio.play()
+		# Free the node once the sound finishes; fall back to a short timer.
+		var dur: float = _pickup_audio.stream.get_length() + 0.05
+		get_tree().create_timer(dur).timeout.connect(queue_free, CONNECT_ONE_SHOT)
+	else:
+		queue_free()
 
 
 func _on_animation_finished() -> void:

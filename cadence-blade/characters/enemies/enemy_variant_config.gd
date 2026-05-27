@@ -6,8 +6,8 @@ extends Resource
 #
 # Attach one of these resources to each entry in EnemyTypeConfig.variants.
 #
-# All curves: X axis = minutes into the run.  X=0 → start, X=1 → 1 minute.
-# The curve holds its last value for the rest of the run after X=1.
+# All curves: X = minutes into the run.  X=1 = 1 min, X=5 = 5 min.
+# X range is set automatically from EnemySpawner.curve_time_scale_minutes on run start.
 
 @export_group("Identity")
 ## Human-readable label shown in the Inspector (no effect at runtime).
@@ -17,13 +17,13 @@ extends Resource
 
 @export_group("Lottery Pool")
 ## How many tickets this variant contributes to the spawn lottery pool over time.
-## X = minutes into the run (X=1 → 1 min).  Y = ticket count (rounded to int).
+## X = minutes into the run (X=1 → 1 min, X=5 → 5 min).  Y = ticket count (rounded to int).
 ## Set Y to 0 until the minute this variant should start appearing.
 @export var pool_tickets_curve: Curve
 
 @export_group("Alive Cap")
 ## Maximum number of this variant that may be simultaneously alive.
-## X = minutes into the run (X=1 → 1 min).  Y = max alive count (rounded to int).
+## X = minutes into the run (X=1 → 1 min, X=5 → 5 min).  Y = max alive count (rounded to int).
 ## The lottery skips this variant when the cap is reached and retries.
 @export var max_alive_curve: Curve
 

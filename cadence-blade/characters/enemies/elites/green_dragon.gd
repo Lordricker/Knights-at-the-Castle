@@ -232,6 +232,7 @@ func _fire_fireball() -> void:
 	else:
 		spawn_pos = global_position
 
+	fb.collision_layer = 0  # invisible to Area2D monitors; damage via own body_entered
 	fb.collision_mask = 1
 	fb.shooter = self
 	fb.configure(spawn_pos, shoot_dir, fireball_speed, fireball_damage, 0.0, fireball_lifetime)

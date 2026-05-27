@@ -84,7 +84,7 @@ var _combo_hits: int = 0
 ## Overrides the fixed half-size above when assigned.
 @export var shoot_flow_window_size_curve: Curve
 ## Run duration in seconds that maps to x=1 on the size curve.
-@export var shoot_flow_window_curve_max_time: float = 300.0
+@export var shoot_flow_window_curve_max_time: float = 60.0
 ## Sound played when a quickshot fires.
 @export var shoot_sound: AudioStream
 @export_range(-40.0, 6.0, 0.1) var shoot_sound_volume_db: float = 0.0
@@ -114,7 +114,7 @@ var _combo_hits: int = 0
 ## Optional Curve: Y = window half-size at normalized run time.
 @export var pierce_flow_window_size_curve: Curve
 ## Run duration in seconds that maps to x=1 on the pierce size curve.
-@export var pierce_flow_window_curve_max_time: float = 300.0
+@export var pierce_flow_window_curve_max_time: float = 60.0
 ## Sound played when a pierce shot fires.
 @export var pierce_sound: AudioStream
 @export_range(-40.0, 6.0, 0.1) var pierce_sound_volume_db: float = 0.0
@@ -142,7 +142,7 @@ var _combo_hits: int = 0
 ## Optional Curve: Y = window half-size at normalized run time.
 @export var kick_flow_window_size_curve: Curve
 ## Run duration in seconds that maps to x=1 on the kick size curve.
-@export var kick_flow_window_curve_max_time: float = 300.0
+@export var kick_flow_window_curve_max_time: float = 60.0
 ## Sound played when a kick begins.
 @export var kick_sound: AudioStream
 @export_range(-40.0, 6.0, 0.1) var kick_sound_volume_db: float = 0.0
@@ -653,4 +653,6 @@ func _sample_window_half(curve: Curve, default_half: float, curve_max_time: floa
 	if curve == null:
 		return default_half
 	var t := clampf(_get_run_elapsed() / maxf(curve_max_time, 1.0), 0.0, 1.0)
-	return curve.sample_baked(t)
+	var half := curve.sample_baked(t)
+	half = clampf(half, 0.0, default_half)
+	return 0.0 if half < 0.005 else half

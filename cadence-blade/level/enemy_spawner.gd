@@ -9,7 +9,8 @@ extends Node2D
 #   └── Marker2D  "RightSpawnPoint"   — world position on the right edge of the map
 #
 # ── HOW IT WORKS ──────────────────────────────────────────────────────────────
-#   1. A global timer counts up; the fraction t = minutes/1.0 drives all curves.
+#   1. A global timer counts up; elapsed minutes drive all curves.
+#      X=1 on every curve = 1 minute.  X=curve_time_scale_minutes = end of run.
 #   2. Each tick a lottery pool is built: per variant, sample pool_tickets_curve → N
 #      tickets added for that variant.  Variants with 0 tickets at the current time
 #      are absent from the pool (natural unlock mechanic).
@@ -20,12 +21,13 @@ extends Node2D
 #   5. spawn_rate_curve controls how many seconds between spawn attempts.
 #
 # ── EDITOR SETUP ──────────────────────────────────────────────────────────────
+#   • Set curve_time_scale_minutes to your total run length (e.g. 10 for 10 minutes).
+#   • Run the scene once after changing it — this updates every curve’s X axis so
+#     X=1 = 1 min, X=5 = 5 min, X=curve_time_scale_minutes = end of run.
 #   • Create EnemyTypeConfig resources and add them to enemy_types.
 #   • Inside each EnemyTypeConfig, create EnemyVariantConfig resources.
 #   • Assign a PackedScene and two Curve resources to every EnemyVariantConfig.
-#   • All curves: X = minutes (X=0 → start, X=1 → 1 min, X=0.5 → 30 s, etc.).
-#     After X=1.0 the curve holds its last value for the rest of the run.
-#   • Enemies are parented to enemy_container (defaults to this node's parent).
+#   • Enemies are parented to enemy_container (defaults to this node’s parent).
 #   • The walk path is found automatically by EnemyBase via the "walk_path" group
 #     in the scene tree — no manual wiring needed here.
 
@@ -38,14 +40,17 @@ extends Node2D
 
 @export_group("Global Spawn Curves")
 ## Seconds between spawn attempts over time.
-## X = minutes into the run (X=1 → 1 min, X=0.5 → 30 s).  Y = seconds between spawns.
-## Minimum interval: 0.1 s.  Curve holds its last value after X=1.
+## X = minutes into the run (X=1 → 1 min, X=5 → 5 min).  Y = seconds between spawns.
+## Lower Y = faster spawns.  Minimum interval enforced: 0.1 s.
 @export var spawn_rate_curve: Curve
 
-## Maximum total enemies alive simultaneously over time.
-## X = minutes into the run (X=1 → 1 min, X=0.5 → 30 s).  Y = max alive count.
-## Curve holds its last value after X=1.
+## Maximum total enemies alive simultaneously before spawn attempts are skipped.
+## X = minutes into the run (X=1 → 1 min, X=5 → 5 min).  Y = max alive count.
 @export var max_total_curve: Curve
+
+## Total run length in minutes.  Sets the X axis range of every curve so X=1 = 1 min.
+## After changing this value, run the scene once to update the curve editors.
+@export var curve_time_scale_minutes: float = 10.0
 
 @export_group("Scene Wiring")
 ## Node that spawned enemies are added to.  Defaults to this node's parent
@@ -95,6 +100,10 @@ func _ready() -> void:
 			_alive_counts[key] = 0
 			_guaranteed_next_index[key] = 0
 
+	# Apply curve_time_scale_minutes as the X axis max on every curve so
+	# X=1 = 1 minute in the curve editor.  Re-run after changing the export.
+	_apply_curve_domains()
+
 	# Prime the timer so the first spawn fires after one full interval.
 	_spawn_timer = _sample_spawn_interval(0.0)
 
@@ -108,7 +117,7 @@ func _process(delta: float) -> void:
 	_spawn_timer -= delta
 	if _spawn_timer <= 0.0:
 		_attempt_spawn()
-		_spawn_timer = _sample_spawn_interval(_normalized_time())
+		_spawn_timer = _sample_spawn_interval(_elapsed_minutes())
 
 
 # ── Guaranteed spawn tracking ─────────────────────────────────────────────────
@@ -134,38 +143,54 @@ func _check_guaranteed_spawns() -> void:
 			_guaranteed_next_index[key] = next_idx
 
 
+# ── Curve domain setup ─────────────────────────────────────────────────────────────
+
+## Sets max_domain on every curve to curve_time_scale_minutes so X=1 = 1 minute.
+func _apply_curve_domains() -> void:
+	for curve in [spawn_rate_curve, max_total_curve]:
+		if curve != null:
+			curve.max_domain = curve_time_scale_minutes
+	for type_cfg: EnemyTypeConfig in enemy_types:
+		for vi_cfg: EnemyVariantConfig in type_cfg.variants:
+			if vi_cfg == null:
+				continue
+			if vi_cfg.pool_tickets_curve != null:
+				vi_cfg.pool_tickets_curve.max_domain = curve_time_scale_minutes
+			if vi_cfg.max_alive_curve != null:
+				vi_cfg.max_alive_curve.max_domain = curve_time_scale_minutes
+
+
 # ── Curve helpers ─────────────────────────────────────────────────────────────
 
-## Returns elapsed time as a fraction of 1 minute, clamped to [0, 1].
-## X=1.0 on every curve = 1 minute into the run.
-func _normalized_time() -> float:
-	return clampf(time_elapsed / 60.0, 0.0, 1.0)
+## Returns elapsed minutes, clamped to [0, curve_time_scale_minutes].
+func _elapsed_minutes() -> float:
+	return clampf(time_elapsed / 60.0, 0.0, curve_time_scale_minutes)
 
 
-func _sample_spawn_interval(t: float) -> float:
+func _sample_spawn_interval(minutes: float) -> float:
 	if spawn_rate_curve == null:
 		return 3.0
-	return maxf(0.1, spawn_rate_curve.sample_baked(t))
+	return maxf(0.1, spawn_rate_curve.sample(minutes))
 
 
-func _sample_max_total(t: float) -> int:
+func _sample_max_total(minutes: float) -> int:
 	if max_total_curve == null:
 		return 20
-	return roundi(max_total_curve.sample_baked(t))
+	return roundi(max_total_curve.sample(minutes))
 
 
-func _sample_curve_count(curve: Curve, t: float, default_value: int = 0, zero_before_first_point: bool = false) -> int:
+func _sample_curve_count(curve: Curve, minutes: float, default_value: int = 0, zero_before_first_point: bool = false) -> int:
 	if curve == null:
 		return default_value
-	if zero_before_first_point and curve.point_count > 0 and t < curve.get_point_position(0).x:
+	if zero_before_first_point and curve.point_count > 0 and minutes < curve.get_point_position(0).x:
 		return 0
-	return maxi(0, roundi(curve.sample_baked(t)))
+	return maxi(0, roundi(curve.sample(minutes)))
 
 
 # ── Spawn logic ───────────────────────────────────────────────────────────────
 
 func _attempt_spawn() -> void:
-	var t := _normalized_time()
+	var t := _elapsed_minutes()
 
 	# Global cap check — if capped, keep any guaranteed entries in the queue.
 	if _total_alive >= _sample_max_total(t):
@@ -368,8 +393,24 @@ func on_despawn_packet(data: Dictionary) -> void:
 	if spawn_id < 0:
 		return
 	var existing_name: String = "En%d" % spawn_id
-	if enemy_container != null and enemy_container.has_node(existing_name):
-		enemy_container.get_node(existing_name).queue_free()
+	if enemy_container == null or not enemy_container.has_node(existing_name):
+		return
+	var root: Node = enemy_container.get_node(existing_name)
+	# Find the EnemyBase child (or the root itself if the scene is flat).
+	var enemy_node: Node = root
+	if not root.has_method("die"):
+		for child in root.get_children():
+			if child.has_method("die"):
+				enemy_node = child
+				break
+	# Call die() instead of queue_free() so the enemy hides visuals immediately
+	# but defers the actual node free by ~2.5 s — the same as the host does.
+	# This ensures any concurrent hit_fx sound packet has time to play out before
+	# the AudioStreamPlayer2D children are freed.
+	if enemy_node.has_method("die"):
+		enemy_node.call("die")
+	else:
+		root.queue_free()
 
 
 ## Called by RunManager with the "e" section of a state snapshot.

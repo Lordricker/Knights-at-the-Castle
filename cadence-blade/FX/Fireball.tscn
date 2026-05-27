@@ -22,7 +22,7 @@ point_count = 2
 [sub_resource type="Gradient" id="Gradient_t40mn"]
 colors = PackedColorArray(0.89459115, 0.731565, 0.18060651, 1, 0.7092767, 0.15213937, 0.18955913, 1)
 
-[node name="Area2D" type="Area2D" unique_id=692383866 node_paths=PackedStringArray("trail_particles", "explosion_particles")]
+[node name="Fireball" type="Area2D" unique_id=692383866 node_paths=PackedStringArray("trail_particles", "explosion_particles")]
 gravity = 300.0
 script = ExtResource("1_ldvry")
 trail_particles = NodePath("lifetimeParticles")

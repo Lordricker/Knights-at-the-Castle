@@ -42,6 +42,11 @@ extends Node
 ## PackedScene for the Green Archer character (used in multiplayer spawning).
 @export var green_archer_scene: PackedScene
 
+@export_group("Enemy Projectile Scenes")
+## Drag Fireball.tscn here so the joiner can display visual-only fireballs.
+@export var enemy_fireball_scene: PackedScene
+@export_group("")
+
 # ── Respawn ───────────────────────────────────────────────────────────────────
 
 @export_group("Respawn")
@@ -118,6 +123,12 @@ func _ready() -> void:
 		if castle_inside == null:
 			push_warning("RunManager: castle_inside not assigned — upgrade packets will be ignored.")
 		WebRTCManager.packet_received.connect(_on_packet_received)
+		if GameManager.is_host:
+			GameManager.joiner_left.connect(_on_joiner_left)
+			# Re-enter hosting if WebRTC is idle (e.g. after a restart following a
+			# joiner-timeout, so the session stays joinable in the lobby).
+			if WebRTCManager.state == WebRTCManager.State.IDLE:
+				WebRTCManager.host_session(GameManager.session_id)
 
 
 func _process(delta: float) -> void:
@@ -548,7 +559,8 @@ func _on_packet_received(data: Dictionary) -> void:
 			if GameManager.is_host and castle_inside != null and castle_inside.has_method("on_request_upgrade_offers"):
 				castle_inside.call("on_request_upgrade_offers")
 		"hit_fx":
-			# Host entity was hit — restart its hit particles and play the hit sound on the joiner.
+			# Host entity was hit — restart its hit particles, play the hit sound, and
+			# spawn a damage number on the joiner.
 			if not GameManager.is_host:
 				var node := get_tree().current_scene.get_node_or_null(NodePath(data.get("p", "")))
 				if node != null:
@@ -560,6 +572,29 @@ func _on_packet_received(data: Dictionary) -> void:
 						var wt: WeaponType.WeaponType = int(data.get("wt", WeaponType.WeaponType.SWORD)) as WeaponType.WeaponType
 						var fs: bool = int(data.get("fs", 0)) == 1
 						node._play_weapon_hit_sound(wt, fs)
+				if data.has("dmg"):
+					var hit_pos := Vector2(float(data.get("dx", 0.0)), float(data.get("dy", 0.0)))
+					DamageNumber.spawn_at(get_tree().current_scene, hit_pos, float(data["dmg"]))
+
+
+## Host: joiner disconnected mid-run — remove their puppet and continue solo.
+func _on_joiner_left() -> void:
+	var i := _players.size() - 1
+	while i >= 0:
+		var player_root: Node = _players[i]
+		var ch: Node = _resolve_character(player_root)
+		var slot: int = int(ch.get("player_slot")) if ch != null and "player_slot" in ch else 1
+		if slot == 2:
+			_players.remove_at(i)
+			if is_instance_valid(player_root):
+				player_root.queue_free()
+		i -= 1
+	_joiner_char_node = null
+	_joiner_in_monk_zone = false
+	_slot_char.erase(2)
+	_char_net_targets.erase(2)
+	_prev_flow_states.erase(2)
+	print("RunManager: joiner left — puppet removed, continuing solo")
 
 
 ## Host receives "hello" from joiner — spawn the joiner's character and reply.
@@ -932,15 +967,24 @@ func _spawn_display_enemy_arrow(data: Dictionary) -> void:
 	# Damage and knockback are both 0.0, so collision is purely cosmetic.
 	arrow.collision_mask = 1
 	arrow.collision_layer = 0
+	# Stop on castle Area2D hitbox (which is in the Kill group but is an Area2D, not a body).
+	var _arrow_ref := arrow
+	arrow.area_entered.connect(func(area: Area2D) -> void:
+		if not area.is_in_group(&"Kill"):
+			return
+		if is_instance_valid(_arrow_ref):
+			_arrow_ref.queue_free()
+	)
 	get_tree().current_scene.call_deferred("add_child", arrow)
 
 
 ## Joiner: spawn a visual-only fireball from an "enemy_fireball" packet.
 ## Zero damage — purely visual.
 func _spawn_display_enemy_fireball(data: Dictionary) -> void:
-	# Find a live green dragon in the spawner to get its fireball_scene.
-	var scene: PackedScene
-	if spawner != null and "alive_enemy_map" in spawner:
+	# Use the directly-exported scene first (most reliable).
+	# Fall back to finding a live dragon in alive_enemy_map.
+	var scene: PackedScene = enemy_fireball_scene
+	if scene == null and spawner != null and "alive_enemy_map" in spawner:
 		for eid in spawner.alive_enemy_map:
 			var info: Dictionary = spawner.alive_enemy_map[eid]
 			var enemy: Node = info.get("node") as Node
@@ -951,16 +995,19 @@ func _spawn_display_enemy_fireball(data: Dictionary) -> void:
 					break
 	if scene == null:
 		return
-	var fb := scene.instantiate() as Fireball
+	var fb: Node = scene.instantiate()
 	if fb == null:
 		return
 	var pos := Vector2(float(data.get("x", 0.0)), float(data.get("y", 0.0)))
 	var dir := Vector2(float(data.get("dx", 1.0)), float(data.get("dy", 0.0)))
 	var spd: float = float(data.get("sp", 300.0))
 	var lt: float = float(data.get("lt", 3.0))
-	# Zero damage so the joiner copy never deals damage — host is authoritative.
-	fb.collision_mask = 0
-	fb.configure(pos, dir, spd, 0.0, 0.0, lt)
+	# Zero damage, no collision — purely visual on the joiner.
+	if fb is CollisionObject2D:
+		(fb as CollisionObject2D).collision_mask = 0
+		(fb as CollisionObject2D).collision_layer = 0
+	if fb.has_method("configure"):
+		fb.call("configure", pos, dir, spd, 0.0, 0.0, lt)
 	get_tree().current_scene.call_deferred("add_child", fb)
 
 
@@ -986,6 +1033,8 @@ func _spawn_display_arrow(data: Dictionary) -> void:
 	var spd: float = float(data.get("sp", 600.0))
 	# Configure position/velocity before entering the tree; damage is 0 so no harm on hit.
 	arrow.configure(pos, dir, spd, 0.0, 0.0)
+	# Ensure display arrows still stop visually on enemy bodies (layer 2 = enemies).
+	arrow.collision_mask = 2
 	# Set pierce flag so it doesn't stop (display arrows have no collision anyway,
 	# but setting it keeps behaviour consistent if collision mask is ever changed).
 	if int(data.get("pi", 0)) == 1:

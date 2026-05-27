@@ -102,7 +102,11 @@ func spawn_display_coin(data: Dictionary) -> void:
 func despawn_display_coin(coin_id: int) -> void:
 	var node_name: String = "Coin%d" % coin_id
 	if has_node(node_name):
-		get_node(node_name).queue_free()
+		var coin: Node = get_node(node_name)
+		if coin.has_method("_collect"):
+			coin._collect()
+		else:
+			coin.queue_free()
 
 
 # set_variant() disabled until WorldEnvironment node and .tres assets are created.

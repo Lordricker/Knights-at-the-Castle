@@ -15,6 +15,8 @@ var active_players: Array = []
 var current_level_variant: String = "day"  # "day", "night", "dusk"
 
 signal state_changed(new_state: GameState)
+## Emitted on the host when the joiner disconnects mid-run (host continues solo).
+signal joiner_left()
 
 # ── Multiplayer session state ───────────────────────────────────────────────────
 
@@ -155,6 +157,10 @@ func _on_connected() -> void:
 
 func _on_connection_failed(reason: String) -> void:
 	push_warning("GameManager: connection failed — %s" % reason)
+	# If the host timed out waiting for a NEW joiner during an active run (re-hosting
+	# after the previous joiner left), just stay in the run — don't clear session state.
+	if is_host and current_state == GameState.PLAYING:
+		return  # WebRTC is already IDLE; session stays alive in Firebase.
 	session_id = ""
 	is_host = false
 	peer_characters = {}
@@ -163,9 +169,16 @@ func _on_connection_failed(reason: String) -> void:
 func _on_disconnected() -> void:
 	if session_id == "":
 		return  # leave_session() already cleaned up; nothing left to do.
-	# Partner disconnected unexpectedly — host cleans up the Firebase session.
 	if is_host:
-		FirebaseClient.delete_session(session_id, func(_c, _d): pass)
+		# Joiner disconnected — host continues the run solo.
+		# Reset session to "waiting" so a new joiner can find it in the lobby,
+		# then re-enter hosting so we can actually accept them.
+		FirebaseClient.update_session(session_id, {"status": "waiting"}, func(_c, _d): pass)
+		peer_characters.erase(2)
+		joiner_left.emit()
+		WebRTCManager.host_session(session_id)
+		return
+	# Joiner: host disconnected unexpectedly — go back to menu.
 	session_id = ""
 	is_host = false
 	peer_characters = {}

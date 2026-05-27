@@ -291,7 +291,7 @@ func take_damage(amount: float, flow_success: bool = false, weapon_type: WeaponT
 		hit_particles.restart()
 	_play_weapon_hit_sound(weapon_type, flow_success)
 	if GameManager.session_id != "" and GameManager.is_host:
-		WebRTCManager.send_reliable({"t": "hit_fx", "p": str(get_path()), "wt": int(weapon_type), "fs": 1 if flow_success else 0})
+		WebRTCManager.send_reliable({"t": "hit_fx", "p": str(get_path()), "wt": int(weapon_type), "fs": 1 if flow_success else 0, "dmg": amount, "dx": global_position.x, "dy": global_position.y})
 	if health == 0.0:
 		die(flow_success)
 

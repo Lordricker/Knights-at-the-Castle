@@ -13,11 +13,22 @@
 [ext_resource type="AudioStream" uid="uid://cexot5v8qnyuo" path="res://assets/Sounds/fleshslice.mp3" id="7_trh1e"]
 [ext_resource type="AudioStream" uid="uid://cvoebarmgjnk7" path="res://assets/Sounds/explodefireball.mp3" id="8_psyqn"]
 
+[sub_resource type="Curve" id="Curve_u5iqw"]
+_limits = [0.0, 1.0, 0.0, 10.0]
+_data = [Vector2(0, 0.9121027), 0.0, 0.0, 0, 0, Vector2(4.4310575, 0.041920304), -0.14583042, 0.0, 0, 0, Vector2(6.372155, 0), 0.0, 0.0, 0, 0]
+point_count = 3
+
 [sub_resource type="Curve" id="Curve_6qwqa"]
+resource_name = "1"
 _limits = [0.0, 0.1, 0.0, 10.0]
-_data = [Vector2(0.005, 0.084), 0.0, -0.007177999, 0, 0, Vector2(2.6773763, 0), -0.012393036, 0.0, 0, 0]
-point_count = 2
+_data = [Vector2(0, 0.06674555), 0.0, -0.007177999, 0, 0, Vector2(2.4497993, 0.006535955), 0.0012767077, 0.0012767077, 0, 0, Vector2(6.05087, 0), 0.0, 0.0, 0, 0]
+point_count = 3
 metadata/_snap_count = 100
+
+[sub_resource type="Curve" id="Curve_5naqg"]
+_limits = [0.0, 1.0, 0.0, 10.0]
+_data = [Vector2(1.7402945, 0.6586658), 0.0, -0.5831581, 0, 0, Vector2(3.4939759, 0.08000904), -0.027916333, 0.0, 0, 0]
+point_count = 2
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_sx1db"]
 atlas = ExtResource("2_jjg8s")
@@ -420,8 +431,7 @@ slash_knockback_force = 200.0
 slash_flow_fill_duration = 0.9
 slash_flow_miss_multiplier = 0.8
 slash_flow_window_random_range = 0.0
-slash_flow_window_size_curve = SubResource("Curve_6qwqa")
-slash_flow_window_curve_max_time = 60.0
+slash_flow_window_size_curve = SubResource("Curve_u5iqw")
 slash_swing_sound = ExtResource("2_u5iqw")
 slash_swing_sound_frames = Array[int]([4, 8])
 thrust_damage = 50.0
@@ -432,7 +442,6 @@ thrust_flow_miss_multiplier = 0.8
 thrust_flow_window_center = 0.45
 thrust_flow_window_random_range = 0.0
 thrust_flow_window_size_curve = SubResource("Curve_6qwqa")
-thrust_flow_window_curve_max_time = 60.0
 thrust_swing_sound = ExtResource("3_5naqg")
 thrust_swing_sound_frames = Array[int]([5])
 spin_damage = 60.0
@@ -440,8 +449,7 @@ spin_flow_fill_duration = 1.5
 spin_flow_miss_multiplier = 0.8
 spin_flow_window_center = 0.4
 spin_flow_window_random_range = 0.0
-spin_flow_window_size_curve = SubResource("Curve_6qwqa")
-spin_flow_window_curve_max_time = 60.0
+spin_flow_window_size_curve = SubResource("Curve_5naqg")
 spin_swing_sound = ExtResource("2_u5iqw")
 spin_swing_sound_frames = Array[int]([5])
 display_name = "Arthur \"Steel, honor, and a sword too large for hesitation.\""

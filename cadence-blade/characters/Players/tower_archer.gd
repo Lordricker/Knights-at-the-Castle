@@ -216,6 +216,10 @@ func take_damage(amount: float, flow_success: bool = false, weapon_type: WeaponT
 	DamageNumber.spawn_at(get_tree().current_scene, global_position, amount)
 	_flash_white()
 	_play_weapon_hit_sound(weapon_type, flow_success)
+	if OS.get_name() == "Web":
+		JavaScriptBridge.eval("try { navigator.vibrate([200]); } catch(e) { console.warn('vibrate:', e); }")
+	else:
+		Input.vibrate_handheld(200, 0.7)
 	if health == 0.0:
 		_die()
 

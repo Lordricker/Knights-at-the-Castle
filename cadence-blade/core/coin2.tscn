@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://bp8xsb0bkidtc" path="res://FX/coin.gd" id="1_uffm0"]
 [ext_resource type="Texture2D" uid="uid://wm2wi6wguq22" path="res://assets/sprites/Coin2.png" id="2_at70c"]
 [ext_resource type="Texture2D" uid="uid://d17uykc2xhfgb" path="res://assets/sprites/CoinShadow.png" id="2_ep7oc"]
+[ext_resource type="AudioStream" uid="uid://kfd3m74yb66r" path="res://assets/Sounds/CoinSound.mp3" id="2_rah2u"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_m8vbh"]
 radius = 8.0
@@ -110,6 +111,7 @@ animations = [{
 z_index = 2
 script = ExtResource("1_uffm0")
 coin_value = 2
+pickup_sound = ExtResource("2_rah2u")
 
 [node name="CoinShadow" type="Sprite2D" parent="." unique_id=1464864835]
 texture = ExtResource("2_ep7oc")

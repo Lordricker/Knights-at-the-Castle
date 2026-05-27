@@ -90,7 +90,7 @@ var _spin_flow_checks_completed: int = 0
 ## Overrides the fixed half-size above when assigned.
 @export var slash_flow_window_size_curve: Curve
 ## Run duration in seconds that maps to x=1 on the size curve.
-@export var slash_flow_window_curve_max_time: float = 300.0
+@export var slash_flow_window_curve_max_time: float = 60.0
 ## Sound played when a slash begins.
 @export var slash_swing_sound: AudioStream
 @export_range(-40.0, 6.0, 0.1) var slash_swing_sound_volume_db: float = 0.0
@@ -121,7 +121,7 @@ var _spin_flow_checks_completed: int = 0
 ## Optional Curve: Y = window half-size at normalized run time.
 @export var thrust_flow_window_size_curve: Curve
 ## Run duration in seconds that maps to x=1 on the size curve.
-@export var thrust_flow_window_curve_max_time: float = 300.0
+@export var thrust_flow_window_curve_max_time: float = 60.0
 ## Sound played when a thrust begins.
 @export var thrust_swing_sound: AudioStream
 @export_range(-40.0, 6.0, 0.1) var thrust_swing_sound_volume_db: float = 0.0
@@ -150,7 +150,7 @@ var _spin_flow_checks_completed: int = 0
 ## Optional Curve: Y = window half-size at normalized run time.
 @export var spin_flow_window_size_curve: Curve
 ## Run duration in seconds that maps to x=1 on the size curve.
-@export var spin_flow_window_curve_max_time: float = 300.0
+@export var spin_flow_window_curve_max_time: float = 60.0
 ## Sound played when a spin begins.
 @export var spin_swing_sound: AudioStream
 @export_range(-40.0, 6.0, 0.1) var spin_swing_sound_volume_db: float = 0.0
@@ -420,6 +420,20 @@ func _finish_attack(anim_name: String, resume_frame: int, next_state: AttackStat
 
 func _on_frame_changed() -> void:
 	var f: int = animated_sprite.frame
+	# Remote puppet fallback: when this character is the host's slot viewed on the
+	# joiner, attack_state is always NONE (input is never processed here).
+	# Infer the attack from animation name so swing sounds still play.
+	if attack_state == AttackState.NONE:
+		match animated_sprite.animation:
+			&"slash":
+				if f in slash_swing_sound_frames:
+					_play_sfx(_slash_swing_audio)
+			&"thrust":
+				if f in thrust_swing_sound_frames:
+					_play_sfx(_thrust_swing_audio)
+			&"spin":
+				if f in spin_swing_sound_frames:
+					_play_sfx(_spin_swing_audio)
 	match attack_state:
 		AttackState.SLASH_WINDUP:
 			_set_hitbox(slash_hitbox, f in SLASH_HITBOX_FRAMES)
@@ -702,7 +716,14 @@ func _sample_window_half(curve: Curve, default_half: float, curve_max_time: floa
 	if curve == null:
 		return default_half
 	var t := clampf(_get_run_elapsed() / maxf(curve_max_time, 1.0), 0.0, 1.0)
-	return curve.sample_baked(t)
+	var half := curve.sample_baked(t)
+	# Clamp to [0, default_half]: prevents negative values (curve extrapolating
+	# past the last key with a downward tangent) and positive bounce-back
+	# (upward tangent causing the window to re-grow past its start size).
+	# Snap sub-resolution residuals to exactly zero so the window fully closes
+	# when the curve reaches its minimum.
+	half = clampf(half, 0.0, default_half)
+	return 0.0 if half < 0.005 else half
 
 
 ## Apply the facing variable to the sprite and all hitbox positions.
