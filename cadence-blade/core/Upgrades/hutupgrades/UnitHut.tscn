@@ -1,0 +1,415 @@
+[gd_scene format=3 uid="uid://duer5mxdgnjk"]
+
+[ext_resource type="Texture2D" uid="uid://dnuduanrwk22x" path="res://level/UnitHut.png" id="1_42k4p"]
+[ext_resource type="Script" uid="uid://cenxh376qrhwb" path="res://core/Upgrades/hutupgrades/unit_hut.gd" id="1_iig6c"]
+[ext_resource type="PackedScene" uid="uid://djrqi01il7ob7" path="res://core/Upgrades/hutupgrades/HutUnits/warriorLvl1.tscn" id="2_2aix8"]
+[ext_resource type="Texture2D" uid="uid://b76oosggr5jws" path="res://core/Upgrades/hutupgrades/blank scroll.png" id="2_m4jm1"]
+[ext_resource type="PackedScene" uid="uid://6nobcp4rwmxl" path="res://core/Upgrades/hutupgrades/HutUnits/warriorLvl2.tscn" id="3_cdmhi"]
+[ext_resource type="Texture2D" uid="uid://8hoctdoaqdfx" path="res://core/Upgrades/hutupgrades/Warrirorlvl1.png" id="3_tlcbl"]
+[ext_resource type="FontFile" uid="uid://eayy706a4ihb" path="res://assets/fonts/JMH Typewriter.ttf" id="4_e3tam"]
+[ext_resource type="PackedScene" uid="uid://desp2w1kxes4y" path="res://core/Upgrades/hutupgrades/HutUnits/archerLvl1.tscn" id="4_wda4y"]
+[ext_resource type="Texture2D" uid="uid://cv8frrwqsfcwn" path="res://core/Upgrades/hutupgrades/Archerlvl2.png" id="5_4271m"]
+[ext_resource type="PackedScene" uid="uid://boch4ddi0yveu" path="res://core/Upgrades/hutupgrades/HutUnits/archerLvl2.tscn" id="5_wocg8"]
+[ext_resource type="Texture2D" uid="uid://cwrgey4ucxgqj" path="res://core/Upgrades/hutupgrades/Archerlvl1.png" id="6_asjxp"]
+[ext_resource type="PackedScene" uid="uid://bthfa85t20kje" path="res://core/Upgrades/hutupgrades/ArcherUpgrades.tscn" id="7_db0b1"]
+[ext_resource type="PackedScene" uid="uid://7fynlpueelxj" path="res://core/Upgrades/hutupgrades/warrior_upgrades.tscn" id="7_e3tam"]
+[ext_resource type="Texture2D" uid="uid://deme3sh8umrcn" path="res://assets/sprites/UI/sword icon.png" id="9_4271m"]
+[ext_resource type="PackedScene" uid="uid://bew7a5hwbuxur" path="res://core/Upgrades/hutupgrades/priest_upgrades.tscn" id="9_db0b1"]
+[ext_resource type="Texture2D" uid="uid://c08uq4kijhpt1" path="res://assets/sprites/UI/bow icon.png" id="11_iig6c"]
+[ext_resource type="Texture2D" uid="uid://ddb6hp0jyknvd" path="res://assets/sprites/UI/book icon.png" id="12_h7vbu"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_aqwxy"]
+atlas = ExtResource("1_42k4p")
+region = Rect2(0, 0, 400, 400)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_3bc2t"]
+atlas = ExtResource("1_42k4p")
+region = Rect2(400, 0, 400, 400)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_fhlyw"]
+atlas = ExtResource("1_42k4p")
+region = Rect2(0, 400, 400, 400)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_evf5b"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_aqwxy")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_3bc2t")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_fhlyw")
+}],
+"loop": false,
+"name": &"default",
+"speed": 1.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_asjxp"]
+size = Vector2(149, 90)
+
+[node name="unitHut" type="Node2D" unique_id=1349244791]
+script = ExtResource("1_iig6c")
+build_cost = 1
+warrior_scenes = Array[PackedScene]([ExtResource("2_2aix8"), ExtResource("3_cdmhi")])
+archer_scenes = Array[PackedScene]([ExtResource("4_wda4y"), ExtResource("5_wocg8")])
+priest_scenes = Array[PackedScene]([null, null])
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=158415002]
+sprite_frames = SubResource("SpriteFrames_evf5b")
+
+[node name="buttons" type="Node" parent="." unique_id=1728018169]
+
+[node name="startButtons" type="Control" parent="buttons" unique_id=466271034]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+offset_left = -178.0
+offset_top = -4.0
+offset_right = -138.0
+offset_bottom = 57.1
+
+[node name="button1" type="Button" parent="buttons/startButtons" unique_id=690230771]
+layout_mode = 0
+offset_right = 50.0
+offset_bottom = 57.0
+
+[node name="scroll" type="TextureRect" parent="buttons/startButtons/button1" unique_id=185986128]
+layout_mode = 0
+offset_left = -48.0
+offset_top = -42.000004
+offset_right = 1185.3333
+offset_bottom = 1116.3333
+scale = Vector2(0.12, 0.12)
+texture = ExtResource("2_m4jm1")
+
+[node name="warrior" type="TextureRect" parent="buttons/startButtons/button1" unique_id=690977924]
+layout_mode = 0
+offset_left = 5.0
+offset_top = 5.035
+offset_right = 47.0
+offset_bottom = 45.81335
+scale = Vector2(0.97, 0.97)
+texture = ExtResource("3_tlcbl")
+
+[node name="cost" type="Label" parent="buttons/startButtons/button1" unique_id=1408522100]
+layout_mode = 0
+offset_left = -8.0
+offset_top = 39.0
+offset_right = 27.0
+offset_bottom = 56.0
+theme_override_colors/font_color = Color(0.22944507, 0.63002956, 0, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_fonts/font = ExtResource("4_e3tam")
+theme_override_font_sizes/font_size = 13
+text = "20"
+horizontal_alignment = 2
+
+[node name="button2" type="Button" parent="buttons/startButtons" unique_id=942483286]
+layout_mode = 0
+offset_left = 110.0
+offset_right = 160.0
+offset_bottom = 57.0
+
+[node name="scroll" type="TextureRect" parent="buttons/startButtons/button2" unique_id=1634023146]
+layout_mode = 0
+offset_left = -48.0
+offset_top = -42.000004
+offset_right = 1185.3333
+offset_bottom = 1116.3333
+scale = Vector2(0.12, 0.12)
+texture = ExtResource("2_m4jm1")
+
+[node name="archer" type="TextureRect" parent="buttons/startButtons/button2" unique_id=1635836031]
+layout_mode = 0
+offset_left = 5.0
+offset_top = -1.0
+offset_right = 49.0
+offset_bottom = 46.0
+scale = Vector2(0.97, 0.97)
+texture = ExtResource("5_4271m")
+
+[node name="cost" type="Label" parent="buttons/startButtons/button2" unique_id=999323499]
+layout_mode = 0
+offset_left = -8.0
+offset_top = 39.0
+offset_right = 27.0
+offset_bottom = 56.0
+theme_override_colors/font_color = Color(0.22944507, 0.63002956, 0, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_fonts/font = ExtResource("4_e3tam")
+theme_override_font_sizes/font_size = 13
+text = "17"
+horizontal_alignment = 2
+
+[node name="button3" type="Button" parent="buttons/startButtons" unique_id=188504774]
+layout_mode = 0
+offset_left = 220.0
+offset_right = 270.0
+offset_bottom = 57.0
+
+[node name="scroll" type="TextureRect" parent="buttons/startButtons/button3" unique_id=680545456]
+layout_mode = 0
+offset_left = -48.0
+offset_top = -42.000004
+offset_right = 1185.3333
+offset_bottom = 1116.3333
+scale = Vector2(0.12, 0.12)
+texture = ExtResource("2_m4jm1")
+
+[node name="monk" type="TextureRect" parent="buttons/startButtons/button3" unique_id=790520015]
+layout_mode = 0
+offset_left = 5.380005
+offset_top = -5.964995
+offset_right = 49.380005
+offset_bottom = 47.122627
+scale = Vector2(0.97, 0.97)
+texture = ExtResource("6_asjxp")
+
+[node name="cost" type="Label" parent="buttons/startButtons/button3" unique_id=904550876]
+layout_mode = 0
+offset_left = -8.0
+offset_top = 39.0
+offset_right = 27.0
+offset_bottom = 56.0
+theme_override_colors/font_color = Color(0.22944507, 0.63002956, 0, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_fonts/font = ExtResource("4_e3tam")
+theme_override_font_sizes/font_size = 13
+text = "17"
+horizontal_alignment = 2
+
+[node name="lvlUpButtons" type="Control" parent="buttons" unique_id=285666331]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+offset_left = -178.0
+offset_top = -1.0
+offset_right = -138.0
+offset_bottom = 39.0
+
+[node name="unit3" type="Control" parent="buttons/lvlUpButtons" unique_id=626345534]
+anchors_preset = 0
+offset_left = 220.0
+offset_right = 260.0
+offset_bottom = 40.0
+
+[node name="WarriorUpgrades" parent="buttons/lvlUpButtons/unit3" unique_id=1610119576 instance=ExtResource("7_e3tam")]
+layout_mode = 1
+offset_right = -40.0
+offset_bottom = -40.0
+
+[node name="ArcherUpgrades" parent="buttons/lvlUpButtons/unit3" unique_id=2046879258 instance=ExtResource("7_db0b1")]
+layout_mode = 1
+offset_right = -6.1035156e-05
+offset_bottom = 0.0
+
+[node name="PriestUpgrades" parent="buttons/lvlUpButtons/unit3" unique_id=1104995657 instance=ExtResource("9_db0b1")]
+layout_mode = 1
+offset_right = -40.0
+offset_bottom = -40.0
+
+[node name="unit2" type="Control" parent="buttons/lvlUpButtons" unique_id=974600392]
+anchors_preset = 0
+offset_left = 110.0
+offset_right = 150.0
+offset_bottom = 40.0
+
+[node name="WarriorUpgrades" parent="buttons/lvlUpButtons/unit2" unique_id=137482737 instance=ExtResource("7_e3tam")]
+layout_mode = 1
+offset_right = -40.0
+offset_bottom = -40.0
+
+[node name="ArcherUpgrades" parent="buttons/lvlUpButtons/unit2" unique_id=1860981513 instance=ExtResource("7_db0b1")]
+layout_mode = 1
+offset_right = -6.1035156e-05
+offset_bottom = 0.0
+
+[node name="PriestUpgrades" parent="buttons/lvlUpButtons/unit2" unique_id=280175509 instance=ExtResource("9_db0b1")]
+layout_mode = 1
+offset_right = -40.0
+offset_bottom = -40.0
+
+[node name="unit1" type="Control" parent="buttons/lvlUpButtons" unique_id=1158967749]
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="WarriorUpgrades" parent="buttons/lvlUpButtons/unit1" unique_id=2143491706 instance=ExtResource("7_e3tam")]
+layout_mode = 1
+offset_right = -40.0
+offset_bottom = -40.0
+
+[node name="ArcherUpgrades" parent="buttons/lvlUpButtons/unit1" unique_id=548028980 instance=ExtResource("7_db0b1")]
+layout_mode = 1
+offset_right = -6.1035156e-05
+offset_bottom = 0.0
+
+[node name="PriestUpgrades" parent="buttons/lvlUpButtons/unit1" unique_id=128969048 instance=ExtResource("9_db0b1")]
+layout_mode = 1
+offset_right = -40.0
+offset_bottom = -40.0
+
+[node name="icons" type="Control" parent="." unique_id=811777180]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+
+[node name="unit1" type="Control" parent="icons" unique_id=1330906276]
+anchors_preset = 0
+offset_left = -191.0
+offset_top = -117.0
+offset_right = -191.0
+offset_bottom = -117.0
+
+[node name="swordIcon" type="TextureRect" parent="icons/unit1" unique_id=741549159]
+layout_mode = 0
+offset_right = 500.0
+offset_bottom = 500.0
+scale = Vector2(0.4, 0.4)
+texture = ExtResource("9_4271m")
+
+[node name="bowIcon" type="TextureRect" parent="icons/unit1" unique_id=2096762299]
+layout_mode = 0
+offset_right = 500.0
+offset_bottom = 500.0
+scale = Vector2(0.4, 0.4)
+texture = ExtResource("11_iig6c")
+
+[node name="bookIcon" type="TextureRect" parent="icons/unit1" unique_id=194869587]
+layout_mode = 0
+offset_right = 500.0
+offset_bottom = 500.0
+scale = Vector2(0.4, 0.4)
+texture = ExtResource("12_h7vbu")
+
+[node name="unit2" type="Control" parent="icons" unique_id=130507396]
+anchors_preset = 0
+offset_left = -139.615
+offset_top = -117.0
+offset_right = -139.615
+offset_bottom = -117.0
+
+[node name="swordIcon" type="TextureRect" parent="icons/unit2" unique_id=1920118946]
+layout_mode = 0
+offset_right = 500.0
+offset_bottom = 500.0
+scale = Vector2(0.4, 0.4)
+texture = ExtResource("9_4271m")
+
+[node name="bowIcon" type="TextureRect" parent="icons/unit2" unique_id=711370224]
+layout_mode = 0
+offset_right = 500.0
+offset_bottom = 500.0
+scale = Vector2(0.4, 0.4)
+texture = ExtResource("11_iig6c")
+
+[node name="bookIcon" type="TextureRect" parent="icons/unit2" unique_id=1456946769]
+layout_mode = 0
+offset_right = 500.0
+offset_bottom = 500.0
+scale = Vector2(0.4, 0.4)
+texture = ExtResource("12_h7vbu")
+
+[node name="unit3" type="Control" parent="icons" unique_id=1068810866]
+anchors_preset = 0
+offset_left = -89.485
+offset_top = -117.0
+offset_right = -89.485
+offset_bottom = -117.0
+
+[node name="swordIcon" type="TextureRect" parent="icons/unit3" unique_id=1993144949]
+layout_mode = 0
+offset_right = 500.0
+offset_bottom = 500.0
+scale = Vector2(0.4, 0.4)
+texture = ExtResource("9_4271m")
+
+[node name="bowIcon" type="TextureRect" parent="icons/unit3" unique_id=512526242]
+layout_mode = 0
+offset_right = 500.0
+offset_bottom = 500.0
+scale = Vector2(0.4, 0.4)
+texture = ExtResource("11_iig6c")
+
+[node name="bookIcon" type="TextureRect" parent="icons/unit3" unique_id=439279402]
+layout_mode = 0
+offset_right = 500.0
+offset_bottom = 500.0
+scale = Vector2(0.4, 0.4)
+texture = ExtResource("12_h7vbu")
+
+[node name="waypoint" type="Node2D" parent="." unique_id=1059869808]
+
+[node name="point1" type="Marker2D" parent="waypoint" unique_id=1038160447]
+position = Vector2(-70, 188)
+
+[node name="point2" type="Marker2D" parent="waypoint" unique_id=1818900826]
+position = Vector2(-7, 186)
+
+[node name="point3" type="Marker2D" parent="waypoint" unique_id=51542479]
+position = Vector2(-33, 239)
+
+[node name="Area2D" type="Area2D" parent="." unique_id=1644188128]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D" unique_id=1086733234]
+position = Vector2(-43.5, 129)
+shape = SubResource("RectangleShape2D_asjxp")
+
+[node name="spawnPoint" type="Marker2D" parent="." unique_id=1273066124]
+
+[node name="initialBuild" type="Button" parent="." unique_id=1741756947]
+offset_left = -120.0
+offset_top = 146.0
+offset_right = -112.0
+offset_bottom = 154.0
+flat = true
+
+[node name="scroll" type="TextureRect" parent="initialBuild" unique_id=146081852]
+layout_mode = 0
+offset_left = -161.0
+offset_top = -266.0
+offset_right = 339.0
+offset_bottom = 234.0
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("2_m4jm1")
+
+[node name="cost" type="Label" parent="initialBuild/scroll" unique_id=1639509467]
+layout_mode = 0
+offset_left = 208.0
+offset_top = 290.0
+offset_right = 260.0
+offset_bottom = 354.0
+theme_override_colors/font_color = Color(0.22944507, 0.63002956, 0, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_fonts/font = ExtResource("4_e3tam")
+theme_override_font_sizes/font_size = 50
+text = "20"
+horizontal_alignment = 2
+
+[node name="words" type="Label" parent="initialBuild/scroll" unique_id=928568285]
+layout_mode = 0
+offset_left = 184.0
+offset_top = 158.0
+offset_right = 329.0
+offset_bottom = 289.0
+scale = Vector2(0.885, 0.885)
+theme_override_colors/font_color = Color(0.096098505, 0.3071492, 0, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_fonts/font = ExtResource("4_e3tam")
+theme_override_font_sizes/font_size = 50
+text = "Build
+Cost"
+horizontal_alignment = 1

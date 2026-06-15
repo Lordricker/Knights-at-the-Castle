@@ -45,6 +45,12 @@ extends Node
 @export_group("Enemy Projectile Scenes")
 ## Drag Fireball.tscn here so the joiner can display visual-only fireballs.
 @export var enemy_fireball_scene: PackedScene
+
+@export_group("Enemy Towers")
+## The towers that are active at the very start of the round (typically 2).
+## Drag EnemyTower nodes from the level scene here.
+## Each tower's next_towers export handles the chain from that point on.
+@export var initial_towers: Array[Node] = []
 @export_group("")
 
 # ── Respawn ───────────────────────────────────────────────────────────────────
@@ -114,6 +120,11 @@ func _ready() -> void:
 		castle = castle_node
 	else:
 		push_warning("RunManager: could not find a Castle node with a 'died' signal — game-over will never trigger.")
+
+	# Activate the starting enemy towers.
+	for tower in initial_towers:
+		if tower != null and tower.has_method(&"activate"):
+			tower.call(&"activate")
 
 	# Wire WebRTC packet handler for multiplayer runs.
 	if GameManager.session_id != "":
@@ -545,6 +556,18 @@ func _on_packet_received(data: Dictionary) -> void:
 			# Host rejected joiner's buy request (insufficient coins).
 			if not GameManager.is_host and castle_inside != null and castle_inside.has_method("on_upgrade_denied"):
 				castle_inside.call("on_upgrade_denied", data)
+		"tnt_buy":
+			# Joiner wants to buy TNT — host validates, deducts, and spawns.
+			if GameManager.is_host and castle_inside != null and castle_inside.has_method("on_tnt_buy"):
+				castle_inside.call("on_tnt_buy", data)
+		"tnt_applied":
+			# Host spawned TNT — joiner syncs coins and spawns their visual copy.
+			if not GameManager.is_host and castle_inside != null and castle_inside.has_method("on_tnt_applied"):
+				castle_inside.call("on_tnt_applied", data)
+		"tnt_denied":
+			# Host rejected joiner's TNT purchase (insufficient coins).
+			if not GameManager.is_host and castle_inside != null and castle_inside.has_method("on_tnt_denied"):
+				castle_inside.call("on_tnt_denied", data)
 		"monk_zone":
 			# Joiner entered or exited the monk healing zone — host tracks this and
 			# applies the same healing rate to the joiner's puppet each frame so the

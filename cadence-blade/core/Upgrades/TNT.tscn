@@ -1,0 +1,51 @@
+[gd_scene format=3 uid="uid://bem4738naromn"]
+
+[ext_resource type="Script" uid="uid://ckht01n3ml6k6" path="res://core/Upgrades/tnt.gd" id="1_ic6di"]
+[ext_resource type="Texture2D" uid="uid://v6qgtvuhk1kx" path="res://assets/sprites/UI/TNT.png" id="1_lngkt"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ic6di"]
+size = Vector2(60, 166)
+
+[node name="Node2D" type="Node2D" unique_id=1097467198]
+z_index = 2
+position = Vector2(1, 30)
+scale = Vector2(0.25, 0.2)
+script = ExtResource("1_ic6di")
+
+[node name="TextureRect" type="TextureRect" parent="." unique_id=1132702813]
+offset_left = 241.46301
+offset_top = -171.69086
+offset_right = 741.463
+offset_bottom = 328.30914
+rotation = 2.0071287
+texture = ExtResource("1_lngkt")
+metadata/_edit_use_anchors_ = true
+
+[node name="CPUParticles2D" type="CPUParticles2D" parent="." unique_id=218873112]
+position = Vector2(-19.536987, -125.69086)
+lifetime = 0.17
+lifetime_randomness = 0.5
+direction = Vector2(0, -1)
+initial_velocity_min = 734.85
+initial_velocity_max = 734.85
+scale_amount_min = 0.1
+scale_amount_max = 4.0
+color = Color(0.8263273, 0.3782692, 0, 1)
+
+[node name="CPUParticles2D2" type="CPUParticles2D" parent="." unique_id=913450313]
+position = Vector2(-19.536987, -125.69086)
+lifetime = 0.17
+lifetime_randomness = 0.5
+direction = Vector2(0, -1)
+initial_velocity_min = 1000.0
+initial_velocity_max = 1000.0
+scale_amount_min = 0.1
+scale_amount_max = 4.0
+color = Color(0.91008216, 0.6263943, 0.5065265, 1)
+
+[node name="Area2D" type="Area2D" parent="." unique_id=877786825]
+position = Vector2(-15.536987, 0.30914307)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D" unique_id=108354228]
+position = Vector2(2, -6)
+shape = SubResource("RectangleShape2D_ic6di")

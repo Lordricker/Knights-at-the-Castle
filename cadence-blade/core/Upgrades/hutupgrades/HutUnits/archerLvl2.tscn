@@ -1,0 +1,250 @@
+[gd_scene format=3 uid="uid://boch4ddi0yveu"]
+
+[ext_resource type="Script" uid="uid://cblarch3rsc0p" path="res://characters/enemies/range/black_archer.gd" id="1_cnsmb"]
+[ext_resource type="PackedScene" uid="uid://d7m3taty6w01" path="res://FX/arrow.tscn" id="2_42h86"]
+[ext_resource type="AudioStream" uid="uid://b6cujcbdhn6sg" path="res://assets/Sounds/thwing SFX.mp3" id="3_ue85d"]
+[ext_resource type="AudioStream" uid="uid://da0xq7mf7em2m" path="res://assets/Sounds/step.mp3" id="4_cpoem"]
+[ext_resource type="AudioStream" uid="uid://cexot5v8qnyuo" path="res://assets/Sounds/fleshslice.mp3" id="5_s14qy"]
+[ext_resource type="AudioStream" uid="uid://dub7f0kquia1l" path="res://assets/Sounds/arrowflesh.mp3" id="6_dyrqc"]
+[ext_resource type="Texture2D" uid="uid://c6r08raqta1lg" path="res://core/Upgrades/hutupgrades/HutUnits/TowerArcherLvl2.png" id="7_iixon"]
+[ext_resource type="PackedScene" uid="uid://bkyw3pybjuqjs" path="res://ui/hud/HPBar.tscn" id="8_bh0g0"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_t1y0h"]
+size = Vector2(20, 30)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_fgqdh"]
+atlas = ExtResource("7_iixon")
+region = Rect2(0, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_1tcvw"]
+atlas = ExtResource("7_iixon")
+region = Rect2(100, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_6d2x2"]
+atlas = ExtResource("7_iixon")
+region = Rect2(200, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_24am2"]
+atlas = ExtResource("7_iixon")
+region = Rect2(300, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_fnfly"]
+atlas = ExtResource("7_iixon")
+region = Rect2(400, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_v2p0r"]
+atlas = ExtResource("7_iixon")
+region = Rect2(500, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_j30h2"]
+atlas = ExtResource("7_iixon")
+region = Rect2(0, 100, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_i50j2"]
+atlas = ExtResource("7_iixon")
+region = Rect2(100, 100, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_2s1jw"]
+atlas = ExtResource("7_iixon")
+region = Rect2(200, 100, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_y17fs"]
+atlas = ExtResource("7_iixon")
+region = Rect2(300, 100, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_hek41"]
+atlas = ExtResource("7_iixon")
+region = Rect2(0, 200, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_dgunw"]
+atlas = ExtResource("7_iixon")
+region = Rect2(100, 200, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_cfubq"]
+atlas = ExtResource("7_iixon")
+region = Rect2(200, 200, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_tgcqc"]
+atlas = ExtResource("7_iixon")
+region = Rect2(300, 200, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_o2uki"]
+atlas = ExtResource("7_iixon")
+region = Rect2(400, 200, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_gsxdh"]
+atlas = ExtResource("7_iixon")
+region = Rect2(500, 200, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_rbmno"]
+atlas = ExtResource("7_iixon")
+region = Rect2(0, 300, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_nqyic"]
+atlas = ExtResource("7_iixon")
+region = Rect2(100, 300, 100, 100)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_w7k1a"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_fgqdh")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_1tcvw")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_6d2x2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_24am2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_fnfly")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_v2p0r")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_j30h2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_i50j2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_2s1jw")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_y17fs")
+}],
+"loop": true,
+"name": &"running",
+"speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_hek41")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_dgunw")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_cfubq")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_tgcqc")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_o2uki")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_gsxdh")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_rbmno")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_nqyic")
+}],
+"loop": false,
+"name": &"shoot",
+"speed": 6.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_c4v63"]
+size = Vector2(24.532898, 267.2583)
+
+[sub_resource type="Curve" id="Curve_5thrq"]
+_data = [Vector2(0, 1), 0.0, -0.46075952, 0, 1, Vector2(1, 0.5392405), -0.46075952, 0.0, 1, 0]
+point_count = 2
+
+[sub_resource type="Gradient" id="Gradient_pejhy"]
+colors = PackedColorArray(1, 0.35000002, 0, 1, 0.7092767, 0.15213937, 0.18955913, 1)
+
+[node name="BlackArcher" type="Node2D" unique_id=44163915]
+
+[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=1186330693 node_paths=PackedStringArray("facing_pivot", "health_bar", "detection_zone", "hit_particles")]
+y_sort_enabled = true
+position = Vector2(0, -11)
+collision_layer = 2
+script = ExtResource("1_cnsmb")
+arrow_scene = ExtResource("2_42h86")
+arrow_damage = 20.0
+arrow_speed = 550.0
+arrow_lifetime = 1.5
+arrow_angle = 12.0
+shoot_sound = ExtResource("3_ue85d")
+shoot_sound_frames = Array[int]([5])
+max_health = 60.0
+facing_pivot = NodePath("Pivot")
+health_bar = NodePath("Pivot/HPBar")
+detection_zone = NodePath("Pivot/DetectionZone")
+hit_particles = NodePath("hitparticles")
+knockback_friction = 400.0
+walk_sound = ExtResource("4_cpoem")
+hit_sound_sword = ExtResource("5_s14qy")
+hit_sound_arrow = ExtResource("6_dyrqc")
+hit_sound_sword_flow = ExtResource("5_s14qy")
+hit_sound_arrow_flow = ExtResource("6_dyrqc")
+oscillate = true
+oscillate_speed = 0.2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D" unique_id=1645611180]
+visible = false
+position = Vector2(0, 4)
+shape = SubResource("RectangleShape2D_t1y0h")
+
+[node name="Pivot" type="Node2D" parent="CharacterBody2D" unique_id=1319081332]
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="CharacterBody2D/Pivot" unique_id=1924966790]
+sprite_frames = SubResource("SpriteFrames_w7k1a")
+animation = &"shoot"
+frame = 7
+frame_progress = 1.0
+
+[node name="DetectionZone" type="Area2D" parent="CharacterBody2D/Pivot" unique_id=1890485749]
+position = Vector2(7, 0)
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D/Pivot/DetectionZone" unique_id=688663001]
+position = Vector2(179.44667, -117.00061)
+rotation = -0.30892327
+scale = Vector2(0.9999999, 0.9999999)
+shape = SubResource("RectangleShape2D_c4v63")
+debug_color = Color(0.6837786, 0.5034512, 0, 0.41960785)
+
+[node name="HPBar" parent="CharacterBody2D/Pivot" unique_id=1780535160 instance=ExtResource("8_bh0g0")]
+position = Vector2(-12, 24)
+rotation = 3.1415927
+scale = Vector2(0.99999964, -1)
+
+[node name="hitparticles" type="CPUParticles2D" parent="CharacterBody2D" unique_id=1485996832]
+z_index = 2
+position = Vector2(0, 11)
+emitting = false
+amount = 10
+lifetime = 0.25
+one_shot = true
+explosiveness = 1.0
+fract_delta = false
+emission_shape = 1
+emission_sphere_radius = 6.02
+direction = Vector2(0, -1)
+spread = 78.51
+gravity = Vector2(0, 300)
+initial_velocity_min = 70.0
+initial_velocity_max = 150.0
+angular_velocity_min = -393.45
+angular_velocity_max = 322.19
+radial_accel_min = 23.45
+radial_accel_max = 23.45
+scale_amount_min = 4.0
+scale_amount_max = 4.0
+scale_amount_curve = SubResource("Curve_5thrq")
+color = Color(0.83291507, 0.7502015, 1.1551381e-06, 1)
+color_ramp = SubResource("Gradient_pejhy")

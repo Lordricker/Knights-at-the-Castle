@@ -36,6 +36,7 @@
 [ext_resource type="PackedScene" uid="uid://1brrmdyvuppp" path="res://characters/enemies/melee/blackKnight.tscn" id="23_154h8"]
 [ext_resource type="Texture2D" uid="uid://cc743ee51ef1m" path="res://core/Upgrades/5secFreeze.png" id="23_ll8mu"]
 [ext_resource type="PackedScene" uid="uid://bbjula4tp34fv" path="res://FX/Fireball.tscn" id="23_trs4y"]
+[ext_resource type="PackedScene" uid="uid://duer5mxdgnjk" path="res://core/Upgrades/hutupgrades/UnitHut.tscn" id="25_karr3"]
 [ext_resource type="PackedScene" uid="uid://csdfv0d4v5teo" path="res://level/sheepidle.tscn" id="30_cblfy"]
 [ext_resource type="PackedScene" uid="uid://cukpgklhpndg0" path="res://level/sheepeat.tscn" id="31_nkn60"]
 [ext_resource type="Texture2D" uid="uid://ev4niddbcvxm" path="res://assets/sprites/towerscout.png" id="31_p3vt1"]
@@ -47,9 +48,13 @@
 [ext_resource type="PackedScene" uid="uid://540q1u1nmwpv" path="res://level/tree_1.tscn" id="34_w77vi"]
 [ext_resource type="PackedScene" uid="uid://bhxy1x077s154" path="res://level/tree_2.tscn" id="35_2lfbx"]
 [ext_resource type="PackedScene" uid="uid://c5hc2fvndx545" path="res://characters/Players/TowerArcher.tscn" id="37_0kldc"]
+[ext_resource type="PackedScene" uid="uid://bem4738naromn" path="res://core/Upgrades/TNT.tscn" id="37_4ddxt"]
+[ext_resource type="Texture2D" uid="uid://b76oosggr5jws" path="res://core/Upgrades/hutupgrades/blank scroll.png" id="41_732d0"]
+[ext_resource type="Texture2D" uid="uid://v6qgtvuhk1kx" path="res://assets/sprites/UI/TNT.png" id="42_4ddxt"]
 [ext_resource type="Texture2D" uid="uid://dp1q75royvjm2" path="res://assets/sprites/EnemyTower.png" id="50_trs4y"]
 [ext_resource type="PackedScene" uid="uid://e105y00k30fn" path="res://characters/enemies/elites/greenDragon.tscn" id="51_karr3"]
 [ext_resource type="PackedScene" uid="uid://df7kwq8ydgev6" path="res://characters/enemies/melee/blackSpearman.tscn" id="52_df7kw"]
+[ext_resource type="Script" uid="uid://dxh4u1yubr32f" path="res://level/enemy_tower.gd" id="54_1h1xf"]
 
 [sub_resource type="Curve2D" id="Curve2D_0eib5"]
 _data = {
@@ -573,6 +578,9 @@ animations = [{
 "speed": 1.0
 }]
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_62wvd"]
+size = Vector2(80, 69)
+
 [node name="Level1" type="Node2D" unique_id=1633003567]
 z_as_relative = false
 y_sort_enabled = true
@@ -649,7 +657,7 @@ spawn_rate_curve = SubResource("Curve_732d0")
 max_total_curve = SubResource("Curve_4ddxt")
 curve_time_scale_minutes = 10.0
 
-[node name="RunManager" type="Node2D" parent="." unique_id=1021112478 node_paths=PackedStringArray("castle", "spawner", "game_over_screen", "spawn_points")]
+[node name="RunManager" type="Node2D" parent="." unique_id=1021112478 node_paths=PackedStringArray("castle", "spawner", "game_over_screen", "initial_towers", "spawn_points")]
 script = ExtResource("11_hah43")
 castle = NodePath("../Castle/Castlescript/Castle")
 spawner = NodePath("../EnemySpawner")
@@ -658,6 +666,7 @@ player_scenes = Array[PackedScene]([ExtResource("14_8ow3n")])
 red_knight_scene = ExtResource("14_8ow3n")
 green_archer_scene = ExtResource("13_gwq2p")
 enemy_fireball_scene = ExtResource("23_trs4y")
+initial_towers = [NodePath("../enemy spawners/EnemyTower"), NodePath("../enemy spawners/EnemyTower2")]
 respawn_delay_curve = SubResource("Curve_hah43")
 spawn_points = [NodePath("KnightSpawn"), NodePath("ArcherSpawn"), NodePath("RogueSpawn")]
 
@@ -679,7 +688,7 @@ vertical_offset = 30.0
 
 [node name="Castle" type="Node2D" parent="." unique_id=654288399]
 
-[node name="Castlescript" type="Node2D" parent="Castle" unique_id=680612278 node_paths=PackedStringArray("monk_zone", "monk_sprite", "blacksmith_zone", "blacksmith_sprite", "upgrade_ui", "option1_icon", "option2_icon", "option1_button", "option2_button", "run_manager", "tower_archer_right", "tower_archer_left", "right_exclamation", "left_exclamation")]
+[node name="Castlescript" type="Node2D" parent="Castle" unique_id=680612278 node_paths=PackedStringArray("monk_zone", "monk_sprite", "blacksmith_zone", "blacksmith_sprite", "upgrade_ui", "option1_icon", "option2_icon", "option1_button", "option2_button", "option1_cost_label", "option2_cost_label", "tnt_button", "tnt_cost_label", "run_manager", "tower_archer_right", "tower_archer_left", "right_exclamation", "left_exclamation")]
 script = ExtResource("15_154h8")
 heal_per_second = 75.0
 monk_zone = NodePath("Monk/Area2D")
@@ -692,6 +701,12 @@ option1_icon = NodePath("../Shop/upgrade1")
 option2_icon = NodePath("../Shop/upgrade2")
 option1_button = NodePath("../Shop/upgrade1/Button1")
 option2_button = NodePath("../Shop/upgrade2/Button2")
+option1_cost_label = NodePath("../Shop/upgrade1/cost")
+option2_cost_label = NodePath("../Shop/upgrade2/cost")
+tnt_scene = ExtResource("37_4ddxt")
+tnt_button = NodePath("../Shop/TNT/Button3")
+tnt_cost_label = NodePath("../Shop/TNT/cost")
+tnt_costs = Array[int]([2, 20, 25, 30, 35])
 run_manager = NodePath("../../RunManager")
 tower_archer_right = NodePath("../RTowerArcher")
 tower_archer_left = NodePath("../LTowerArcher")
@@ -757,6 +772,18 @@ offset_top = 33.0
 offset_right = 88.0
 offset_bottom = 83.0
 
+[node name="cost" type="Label" parent="Castle/Shop/upgrade1" unique_id=835519343]
+layout_mode = 0
+offset_left = 36.225
+offset_top = 61.55
+offset_right = 68.22496
+offset_bottom = 78.55005
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 10
+text = "52"
+horizontal_alignment = 2
+
 [node name="upgrade2" type="TextureRect" parent="Castle/Shop" unique_id=364114191]
 layout_mode = 0
 offset_left = 77.0
@@ -773,6 +800,57 @@ offset_left = 45.0
 offset_top = 33.0
 offset_right = 88.0
 offset_bottom = 83.0
+
+[node name="cost" type="Label" parent="Castle/Shop/upgrade2" unique_id=1392473135]
+layout_mode = 0
+offset_left = 36.225
+offset_top = 61.55
+offset_right = 68.22496
+offset_bottom = 78.55005
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 10
+text = "52"
+horizontal_alignment = 2
+
+[node name="TNT" type="TextureRect" parent="Castle/Shop" unique_id=952173106]
+layout_mode = 0
+offset_left = 54.075
+offset_top = -269.85
+offset_right = 187.075
+offset_bottom = -161.85
+texture = ExtResource("41_732d0")
+expand_mode = 1
+
+[node name="Button3" type="Button" parent="Castle/Shop/TNT" unique_id=1263864172]
+z_index = -1
+layout_mode = 0
+offset_left = 45.0
+offset_top = 33.0
+offset_right = 88.0
+offset_bottom = 83.0
+
+[node name="cost" type="Label" parent="Castle/Shop/TNT" unique_id=1498233101]
+layout_mode = 0
+offset_left = 36.225
+offset_top = 61.55
+offset_right = 68.22496
+offset_bottom = 78.55005
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 10
+text = "52"
+horizontal_alignment = 2
+
+[node name="TextureRect" type="TextureRect" parent="Castle/Shop/TNT" unique_id=1752454282]
+layout_mode = 0
+offset_left = 11.000002
+offset_top = 28.850006
+offset_right = 511.0
+offset_bottom = 528.85
+rotation = -0.19896753
+scale = Vector2(0.2, 0.2)
+texture = ExtResource("42_4ddxt")
 
 [node name="scout" type="AnimatedSprite2D" parent="Castle" unique_id=654565470]
 z_index = -1
@@ -860,50 +938,132 @@ position = Vector2(-713, 359)
 
 [node name="enemy spawners" type="Node" parent="." unique_id=1495107793]
 
-[node name="EnemyTower" type="Sprite2D" parent="enemy spawners" unique_id=1915580237]
+[node name="unitHut" parent="enemy spawners" unique_id=1349244791 instance=ExtResource("25_karr3")]
+z_index = -1
+position = Vector2(-964, -2)
+
+[node name="EnemyTower" type="Sprite2D" parent="enemy spawners" unique_id=1915580237 node_paths=PackedStringArray("unit_hut", "next_towers", "tower_sprite", "interaction_area")]
 z_index = -1
 position = Vector2(-1006, 72)
 texture = ExtResource("50_trs4y")
+script = ExtResource("54_1h1xf")
+unit_hut = NodePath("../unitHut")
+next_towers = [NodePath("../EnemyTower3"), NodePath("../EnemyTower5")]
+tower_sprite = NodePath(".")
+interaction_area = NodePath("Area2D")
 
 [node name="spawnpoint" type="Marker2D" parent="enemy spawners/EnemyTower" unique_id=1382078980]
 position = Vector2(-3, 83)
 
-[node name="EnemyTower2" type="Sprite2D" parent="enemy spawners" unique_id=1830992759]
+[node name="Area2D" type="Area2D" parent="enemy spawners/EnemyTower" unique_id=466675758]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="enemy spawners/EnemyTower/Area2D" unique_id=1843651473]
+position = Vector2(0, 99.5)
+shape = SubResource("RectangleShape2D_62wvd")
+
+[node name="unitHut2" parent="enemy spawners" unique_id=983588684 instance=ExtResource("25_karr3")]
+z_index = -1
+position = Vector2(928, -31)
+
+[node name="EnemyTower2" type="Sprite2D" parent="enemy spawners" unique_id=1830992759 node_paths=PackedStringArray("unit_hut", "tower_sprite", "interaction_area")]
 z_index = -1
 position = Vector2(978, 65)
 texture = ExtResource("50_trs4y")
+script = ExtResource("54_1h1xf")
+unit_hut = NodePath("../unitHut2")
+tower_sprite = NodePath(".")
+interaction_area = NodePath("Area2D")
 
 [node name="spawnpoint2" type="Marker2D" parent="enemy spawners/EnemyTower2" unique_id=1356340082]
 position = Vector2(-3, 86)
 
-[node name="EnemyTower3" type="Sprite2D" parent="enemy spawners" unique_id=1265758602]
+[node name="Area2D" type="Area2D" parent="enemy spawners/EnemyTower2" unique_id=796738989]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="enemy spawners/EnemyTower2/Area2D" unique_id=70589379]
+position = Vector2(0, 99.5)
+shape = SubResource("RectangleShape2D_62wvd")
+
+[node name="unitHut3" parent="enemy spawners" unique_id=967362542 instance=ExtResource("25_karr3")]
+z_index = -1
+position = Vector2(-1861, -616)
+
+[node name="EnemyTower3" type="Sprite2D" parent="enemy spawners" unique_id=1265758602 node_paths=PackedStringArray("unit_hut", "tower_sprite", "interaction_area")]
 z_index = -1
 position = Vector2(-1743, -403)
 texture = ExtResource("50_trs4y")
+script = ExtResource("54_1h1xf")
+unit_hut = NodePath("../unitHut3")
+tower_sprite = NodePath(".")
+interaction_area = NodePath("Area2D")
 
 [node name="spawnpoint3" type="Marker2D" parent="enemy spawners/EnemyTower3" unique_id=2040363851]
 
-[node name="EnemyTower4" type="Sprite2D" parent="enemy spawners" unique_id=1058655618]
+[node name="Area2D" type="Area2D" parent="enemy spawners/EnemyTower3" unique_id=270484849]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="enemy spawners/EnemyTower3/Area2D" unique_id=1211912852]
+position = Vector2(0, 99.5)
+shape = SubResource("RectangleShape2D_62wvd")
+
+[node name="unitHut4" parent="enemy spawners" unique_id=1680393630 instance=ExtResource("25_karr3")]
+z_index = -1
+position = Vector2(1566, -540)
+
+[node name="EnemyTower4" type="Sprite2D" parent="enemy spawners" unique_id=1058655618 node_paths=PackedStringArray("unit_hut", "tower_sprite", "interaction_area")]
 z_index = -1
 position = Vector2(1471, -310)
 texture = ExtResource("50_trs4y")
+script = ExtResource("54_1h1xf")
+unit_hut = NodePath("../unitHut4")
+tower_sprite = NodePath(".")
+interaction_area = NodePath("Area2D")
 
 [node name="spawnpoint4" type="Marker2D" parent="enemy spawners/EnemyTower4" unique_id=17482005]
 
-[node name="EnemyTower5" type="Sprite2D" parent="enemy spawners" unique_id=1252088140]
+[node name="Area2D" type="Area2D" parent="enemy spawners/EnemyTower4" unique_id=760706543]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="enemy spawners/EnemyTower4/Area2D" unique_id=949256421]
+position = Vector2(0, 99.5)
+shape = SubResource("RectangleShape2D_62wvd")
+
+[node name="unitHut5" parent="enemy spawners" unique_id=1421607944 instance=ExtResource("25_karr3")]
+z_index = -1
+position = Vector2(-1955, 486)
+
+[node name="EnemyTower5" type="Sprite2D" parent="enemy spawners" unique_id=1252088140 node_paths=PackedStringArray("unit_hut", "tower_sprite", "interaction_area")]
 z_index = -1
 position = Vector2(-1921, 557)
 texture = ExtResource("50_trs4y")
+script = ExtResource("54_1h1xf")
+unit_hut = NodePath("../unitHut5")
+tower_sprite = NodePath(".")
+interaction_area = NodePath("Area2D")
 
 [node name="spawnpoint5" type="Marker2D" parent="enemy spawners/EnemyTower5" unique_id=2127068376]
 
-[node name="EnemyTower6" type="Sprite2D" parent="enemy spawners" unique_id=1205774653]
+[node name="Area2D" type="Area2D" parent="enemy spawners/EnemyTower5" unique_id=660214760]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="enemy spawners/EnemyTower5/Area2D" unique_id=2135926983]
+position = Vector2(0, 99.5)
+shape = SubResource("RectangleShape2D_62wvd")
+
+[node name="unitHut6" parent="enemy spawners" unique_id=568600500 instance=ExtResource("25_karr3")]
+z_index = -1
+position = Vector2(1887, 602)
+
+[node name="EnemyTower6" type="Sprite2D" parent="enemy spawners" unique_id=1205774653 node_paths=PackedStringArray("unit_hut", "tower_sprite", "interaction_area")]
 z_index = -1
 position = Vector2(1823, 729)
 texture = ExtResource("50_trs4y")
+script = ExtResource("54_1h1xf")
+unit_hut = NodePath("../unitHut6")
+tower_sprite = NodePath(".")
+interaction_area = NodePath("Area2D2")
 
 [node name="spawnpoint6" type="Marker2D" parent="enemy spawners/EnemyTower6" unique_id=1953626020]
 position = Vector2(0, 78)
 
-[node name="spawnpoint7" type="Marker2D" parent="enemy spawners" unique_id=1638213504]
-position = Vector2(-131, -1456)
+[node name="Area2D2" type="Area2D" parent="enemy spawners/EnemyTower6" unique_id=312631359]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="enemy spawners/EnemyTower6/Area2D2" unique_id=186737373]
+position = Vector2(0, 99.5)
+shape = SubResource("RectangleShape2D_62wvd")

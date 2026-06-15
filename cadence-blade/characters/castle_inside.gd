@@ -92,6 +92,19 @@ extends Node2D
 ## Connect their pressed signal here — wire them in the Inspector.
 @export var option1_button: Button
 @export var option2_button: Button
+## Labels displaying the coin cost of each offered upgrade. Assign in Inspector.
+@export var option1_cost_label: Label
+@export var option2_cost_label: Label
+
+@export_group("TNT")
+## PackedScene for the TNT item. Spawned at the player's position on purchase.
+@export var tnt_scene: PackedScene
+## Button always visible in the blacksmith zone — never rotated out like the lottery slots.
+@export var tnt_button: Button
+## Label showing the current escalating TNT cost.
+@export var tnt_cost_label: Label
+## Escalating coin costs per purchase. Last value is reused once exhausted.
+@export var tnt_costs: Array[int] = [15, 20, 25, 30, 35]
 
 # ── HUD / scene reference exports ─────────────────────────────────────────────
 
@@ -141,6 +154,7 @@ var _refresh_timer: float = 0.0
 ## Reference count for active enemy-freeze effects. Enemies stay frozen until
 ## every outstanding timer has expired.
 var _freeze_count: int = 0
+var _tnt_purchase_count: int = 0
 
 # ── Lifecycle ─────────────────────────────────────────────────────────────────
 
@@ -165,12 +179,17 @@ func _ready() -> void:
 		option1_button.pressed.connect(func() -> void: _request_purchase(0))
 	if option2_button != null:
 		option2_button.pressed.connect(func() -> void: _request_purchase(1))
-	# Icons sit on top of the buttons. Set them to ignore mouse so clicks
-	# pass through to the buttons underneath instead of being swallowed.
-	if option1_icon != null:
-		option1_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	if option2_icon != null:
-		option2_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Make each upgrade button fill its parent scroll TextureRect, then ensure
+	# nothing in that parent swallows clicks before the button can receive them.
+	_setup_shop_button(option1_button, option1_icon)
+	_setup_shop_button(option2_button, option2_icon)
+	# TNT: the parent TextureRect isn't exposed as an icon export, so resolve it
+	# from the button itself.
+	if tnt_button != null:
+		_setup_shop_button(tnt_button, tnt_button.get_parent() as Control)
+	if tnt_button != null:
+		tnt_button.pressed.connect(_on_tnt_button_pressed)
+	_update_tnt_cost_label()
 
 
 func _process(delta: float) -> void:
@@ -450,9 +469,25 @@ func _is_tower_archer_active(archer: Node) -> bool:
 
 # ── UI helpers ────────────────────────────────────────────────────────────────
 
+## Makes `btn` fill its `parent` Control and sets every non-button sibling
+## Control in `parent` to MOUSE_FILTER_IGNORE so they don't swallow clicks.
+func _setup_shop_button(btn: Button, parent: Control) -> void:
+	if btn == null:
+		return
+	# Pass-through the parent itself (it's a decorative TextureRect/Control).
+	if parent != null:
+		parent.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		# Any sibling Controls (icon images, labels) must not intercept clicks.
+		for child: Node in parent.get_children():
+			if child is Control and child != btn:
+				(child as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+
 func _show_upgrade_ui(show: bool) -> void:
 	if upgrade_ui != null:
 		upgrade_ui.visible = show
+	if tnt_button != null:
+		tnt_button.visible = show
 
 
 ## Briefly tints the purchased icon green, then fades back to white and hides it.
@@ -478,13 +513,19 @@ func _flash_deny_icon(slot: int) -> void:
 func _update_ui_slot(slot: int) -> void:
 	var upgrade: UpgradeConfig = _offered[slot] as UpgradeConfig
 	var icon_ref: TextureRect = option1_icon if slot == 0 else option2_icon
+	var cost_label: Label = option1_cost_label if slot == 0 else option2_cost_label
 	if icon_ref == null:
 		return
 	if upgrade == null:
 		icon_ref.hide()
+		if cost_label != null:
+			cost_label.hide()
 		return
 	icon_ref.texture = upgrade.icon
 	icon_ref.show()
+	if cost_label != null:
+		cost_label.text = str(upgrade.cost)
+		cost_label.show()
 
 # ── Cleanup ───────────────────────────────────────────────────────────────────
 
@@ -627,6 +668,109 @@ func on_upgrade_denied(data: Dictionary) -> void:
 	if coins_display != null and coins_display.has_method(&"flash_insufficient"):
 		coins_display.flash_insufficient()
 	_flash_deny_icon(slot)
+
+# ── TNT ───────────────────────────────────────────────────────────────────────
+
+func _on_tnt_button_pressed() -> void:
+	_request_tnt_purchase()
+
+
+func _request_tnt_purchase() -> void:
+	if GameManager.session_id != "" and not GameManager.is_host:
+		WebRTCManager.send_reliable({"t": "tnt_buy"})
+	else:
+		_try_tnt_purchase(_player)
+
+
+func _try_tnt_purchase(buyer: CharacterBase) -> void:
+	if buyer == null:
+		return
+	var cost: int = _tnt_current_cost()
+	if buyer.coins < cost:
+		if coins_display != null and coins_display.has_method(&"flash_insufficient"):
+			coins_display.flash_insufficient()
+		return
+	# Deduct coins from all local players (shared pool).
+	for node in get_tree().get_nodes_in_group(&"players"):
+		if node is CharacterBase:
+			(node as CharacterBase).add_coins(-cost)
+			break
+	_tnt_purchase_count += 1
+	_update_tnt_cost_label()
+	_spawn_tnt(buyer)
+	if GameManager.session_id != "" and GameManager.is_host:
+		WebRTCManager.send_reliable({
+			"t":          "tnt_applied",
+			"cost":       cost,
+			"buyer_slot": int(buyer.get("player_slot")) if "player_slot" in buyer else 1,
+		})
+
+
+func _tnt_current_cost() -> int:
+	if tnt_costs.is_empty():
+		return 15
+	return tnt_costs[mini(_tnt_purchase_count, tnt_costs.size() - 1)]
+
+
+func _update_tnt_cost_label() -> void:
+	if tnt_cost_label != null:
+		tnt_cost_label.text = str(_tnt_current_cost())
+
+
+func _spawn_tnt(buyer: CharacterBase) -> void:
+	if tnt_scene == null:
+		push_warning("CastleInside: tnt_scene not assigned — TNT cannot be spawned.")
+		return
+	var tnt := tnt_scene.instantiate() as Node2D
+	if tnt == null:
+		return
+	tnt.global_position = buyer.global_position
+	if "owner_player" in tnt:
+		tnt.set("owner_player", buyer)
+	get_tree().current_scene.add_child(tnt)
+
+
+## Called by RunManager when a "tnt_buy" packet arrives (host only).
+func on_tnt_buy(_data: Dictionary) -> void:
+	if not GameManager.is_host:
+		return
+	if _player == null:
+		for node in get_tree().get_nodes_in_group(&"players"):
+			if node is CharacterBase and _is_local_player(node as CharacterBase):
+				_player = node as CharacterBase
+				break
+		if _player == null:
+			return
+	_try_tnt_purchase(_player)
+
+
+## Called by RunManager when a "tnt_applied" packet arrives (joiner only).
+func on_tnt_applied(data: Dictionary) -> void:
+	if GameManager.is_host:
+		return
+	var cost: int = int(data.get("cost", 0))
+	for node in get_tree().get_nodes_in_group(&"players"):
+		if node is CharacterBase:
+			(node as CharacterBase).add_coins(-cost)
+			break
+	_tnt_purchase_count += 1
+	_update_tnt_cost_label()
+	# Spawn TNT following the joiner's local player.
+	var local_player: CharacterBase = null
+	for node in get_tree().get_nodes_in_group(&"players"):
+		if node is CharacterBase and _is_local_player(node as CharacterBase):
+			local_player = node as CharacterBase
+			break
+	if local_player != null:
+		_spawn_tnt(local_player)
+
+
+## Called by RunManager when a "tnt_denied" packet arrives (joiner only).
+func on_tnt_denied(_data: Dictionary) -> void:
+	if GameManager.is_host:
+		return
+	if coins_display != null and coins_display.has_method(&"flash_insufficient"):
+		coins_display.flash_insufficient()
 
 # ── Freeze logic ──────────────────────────────────────────────────────────────
 
