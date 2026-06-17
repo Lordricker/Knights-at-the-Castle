@@ -117,6 +117,12 @@ func _ready() -> void:
 	$buttons/startButtons/button2.pressed.connect(func() -> void: _request_purchase(UnitType.ARCHER))
 	$buttons/startButtons/button3.pressed.connect(func() -> void: _request_purchase(UnitType.PRIEST))
 
+	# Fix button hit areas and unblock clicks through decorative scroll/icon children.
+	_fix_button_children(_initial_build)
+	_fix_button_children($buttons/startButtons/button1)
+	_fix_button_children($buttons/startButtons/button2)
+	_fix_button_children($buttons/startButtons/button3)
+
 	# Wire Area2D signals.
 	_area.body_entered.connect(_on_area_body_entered)
 	_area.body_exited.connect(_on_area_body_exited)
@@ -137,6 +143,17 @@ func unlock() -> void:
 	_state            = State.UNLOCKED
 	_area.monitoring  = true
 	_area.monitorable = true
+	# Bodies already inside won't fire body_entered retroactively,
+	# so check immediately after enabling monitoring.
+	_check_overlapping_bodies.call_deferred()
+
+
+func _check_overlapping_bodies() -> void:
+	for body in _area.get_overlapping_bodies():
+		if body.has_method(&"add_coins"):
+			_player = body
+			_update_shop_ui()
+			break
 
 # ── Area2D ────────────────────────────────────────────────────────────────────
 
@@ -204,6 +221,8 @@ func _try_initial_build(buyer: Node) -> void:
 	_state                 = State.BUILT
 	_initial_build.visible = false
 	_play_build_animation()
+	# Show the shop immediately — don't wait for the animation to finish.
+	_update_shop_ui()
 
 	# Broadcast to joiner.
 	if GameManager.session_id != "" and GameManager.is_host:
@@ -219,7 +238,6 @@ func _play_build_animation() -> void:
 func _on_build_anim_finished() -> void:
 	_sprite.stop()
 	_sprite.frame = 2  # hold permanently on frame 2
-	_update_shop_ui()
 
 # ── Unit slot purchases ───────────────────────────────────────────────────────
 
@@ -326,6 +344,36 @@ func _show_correct_upgrade_trees() -> void:
 func _flash_deny() -> void:
 	if _coins_display != null:
 		_coins_display.flash_insufficient()
+	# Flash the button red to signal the player cannot afford it.
+	var btn: Button = _initial_build if _state == State.UNLOCKED else null
+	if btn == null and _state == State.BUILT:
+		# Find which start button was pressed by checking which is visible — just flash all three.
+		for b in [_start_buttons.get_node_or_null("button1"),
+				  _start_buttons.get_node_or_null("button2"),
+				  _start_buttons.get_node_or_null("button3")]:
+			if b is Button:
+				_flash_button_red(b)
+		return
+	if btn != null:
+		_flash_button_red(btn)
+
+
+func _flash_button_red(btn: Button) -> void:
+	# Tint the scroll TextureRect child directly — the button background is transparent.
+	var scroll: Node = btn.get_node_or_null("scroll")
+	var target: CanvasItem = (scroll as CanvasItem) if scroll is CanvasItem else btn
+	target.modulate = Color.RED
+	var tw := create_tween()
+	tw.tween_property(target, "modulate", Color.WHITE, 0.4)
+
+
+## Recursively sets all Control descendants of `ctrl` to MOUSE_FILTER_IGNORE
+## so decorative children (scroll textures, icon images, labels) don't eat clicks.
+func _fix_button_children(ctrl: Control) -> void:
+	for child in ctrl.get_children():
+		if child is Control:
+			(child as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_fix_button_children(child as Control)
 
 
 func _find_coins_display() -> void:

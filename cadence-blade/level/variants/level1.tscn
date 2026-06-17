@@ -579,7 +579,7 @@ animations = [{
 }]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_62wvd"]
-size = Vector2(80, 69)
+size = Vector2(80, 124.5)
 
 [node name="Level1" type="Node2D" unique_id=1633003567]
 z_as_relative = false
@@ -683,7 +683,6 @@ position = Vector2(30, -110)
 limit_left = -1000
 limit_right = 1000
 script = ExtResource("15_lvlcam")
-single_player_zoom = 3.0
 vertical_offset = 30.0
 
 [node name="Castle" type="Node2D" parent="." unique_id=654288399]
@@ -706,7 +705,7 @@ option2_cost_label = NodePath("../Shop/upgrade2/cost")
 tnt_scene = ExtResource("37_4ddxt")
 tnt_button = NodePath("../Shop/TNT/Button3")
 tnt_cost_label = NodePath("../Shop/TNT/cost")
-tnt_costs = Array[int]([2, 20, 25, 30, 35])
+tnt_costs = Array[int]([0, 20, 25, 30, 35])
 run_manager = NodePath("../../RunManager")
 tower_archer_right = NodePath("../RTowerArcher")
 tower_archer_left = NodePath("../LTowerArcher")
@@ -941,6 +940,7 @@ position = Vector2(-713, 359)
 [node name="unitHut" parent="enemy spawners" unique_id=1349244791 instance=ExtResource("25_karr3")]
 z_index = -1
 position = Vector2(-964, -2)
+build_cost = 20
 
 [node name="EnemyTower" type="Sprite2D" parent="enemy spawners" unique_id=1915580237 node_paths=PackedStringArray("unit_hut", "next_towers", "tower_sprite", "interaction_area")]
 z_index = -1
@@ -958,12 +958,13 @@ position = Vector2(-3, 83)
 [node name="Area2D" type="Area2D" parent="enemy spawners/EnemyTower" unique_id=466675758]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="enemy spawners/EnemyTower/Area2D" unique_id=1843651473]
-position = Vector2(0, 99.5)
+position = Vector2(0, 91)
 shape = SubResource("RectangleShape2D_62wvd")
 
 [node name="unitHut2" parent="enemy spawners" unique_id=983588684 instance=ExtResource("25_karr3")]
 z_index = -1
 position = Vector2(928, -31)
+build_cost = 0
 
 [node name="EnemyTower2" type="Sprite2D" parent="enemy spawners" unique_id=1830992759 node_paths=PackedStringArray("unit_hut", "tower_sprite", "interaction_area")]
 z_index = -1
@@ -980,7 +981,7 @@ position = Vector2(-3, 86)
 [node name="Area2D" type="Area2D" parent="enemy spawners/EnemyTower2" unique_id=796738989]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="enemy spawners/EnemyTower2/Area2D" unique_id=70589379]
-position = Vector2(0, 99.5)
+position = Vector2(0, 56.75)
 shape = SubResource("RectangleShape2D_62wvd")
 
 [node name="unitHut3" parent="enemy spawners" unique_id=967362542 instance=ExtResource("25_karr3")]

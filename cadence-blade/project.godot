@@ -29,6 +29,10 @@ window/size/viewport_height=1080
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
+[input_devices]
+
+pointing/emulate_mouse_from_touch=true
+
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/HolePuncher-master/addons/Holepunch/plugin.cfg", "res://addons/virtual_joystick/plugin.cfg")

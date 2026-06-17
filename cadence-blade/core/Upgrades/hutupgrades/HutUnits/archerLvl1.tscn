@@ -1,11 +1,5 @@
 [gd_scene format=3 uid="uid://desp2w1kxes4y"]
 
-[ext_resource type="Script" uid="uid://cblarch3rsc0p" path="res://characters/enemies/range/black_archer.gd" id="1_bn88c"]
-[ext_resource type="PackedScene" uid="uid://d7m3taty6w01" path="res://FX/arrow.tscn" id="2_5v86a"]
-[ext_resource type="AudioStream" uid="uid://b6cujcbdhn6sg" path="res://assets/Sounds/thwing SFX.mp3" id="3_1bm6p"]
-[ext_resource type="AudioStream" uid="uid://da0xq7mf7em2m" path="res://assets/Sounds/step.mp3" id="4_efjh2"]
-[ext_resource type="AudioStream" uid="uid://cexot5v8qnyuo" path="res://assets/Sounds/fleshslice.mp3" id="5_uk8mi"]
-[ext_resource type="AudioStream" uid="uid://dub7f0kquia1l" path="res://assets/Sounds/arrowflesh.mp3" id="6_7vqts"]
 [ext_resource type="Texture2D" uid="uid://bi6lue2d4k3fh" path="res://core/Upgrades/hutupgrades/HutUnits/TowerArcherLvl1.png" id="7_51grw"]
 [ext_resource type="PackedScene" uid="uid://bkyw3pybjuqjs" path="res://ui/hud/HPBar.tscn" id="8_brnkp"]
 
@@ -168,31 +162,10 @@ colors = PackedColorArray(1, 0.35000002, 0, 1, 0.7092767, 0.15213937, 0.18955913
 
 [node name="BlackArcher" type="Node2D" unique_id=44163915]
 
-[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=1186330693 node_paths=PackedStringArray("facing_pivot", "health_bar", "detection_zone", "hit_particles")]
+[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=1186330693]
 y_sort_enabled = true
 position = Vector2(0, -11)
 collision_layer = 2
-script = ExtResource("1_bn88c")
-arrow_scene = ExtResource("2_5v86a")
-arrow_damage = 20.0
-arrow_speed = 550.0
-arrow_lifetime = 1.5
-arrow_angle = 12.0
-shoot_sound = ExtResource("3_1bm6p")
-shoot_sound_frames = Array[int]([5])
-max_health = 60.0
-facing_pivot = NodePath("Pivot")
-health_bar = NodePath("Pivot/HPBar")
-detection_zone = NodePath("Pivot/DetectionZone")
-hit_particles = NodePath("hitparticles")
-knockback_friction = 400.0
-walk_sound = ExtResource("4_efjh2")
-hit_sound_sword = ExtResource("5_uk8mi")
-hit_sound_arrow = ExtResource("6_7vqts")
-hit_sound_sword_flow = ExtResource("5_uk8mi")
-hit_sound_arrow_flow = ExtResource("6_7vqts")
-oscillate = true
-oscillate_speed = 0.2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D" unique_id=1645611180]
 visible = false
