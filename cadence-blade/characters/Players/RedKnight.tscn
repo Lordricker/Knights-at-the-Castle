@@ -30,7 +30,7 @@ _limits = [0.0, 1.0, 0.0, 10.0]
 _data = [Vector2(1.7402945, 0.6586658), 0.0, -0.5831581, 0, 0, Vector2(3.4939759, 0.08000904), -0.027916333, 0.0, 0, 0]
 point_count = 2
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_sx1db"]
+[sub_resource type="AtlasTexture" id="AtlasTexture_u5iqw"]
 atlas = ExtResource("2_jjg8s")
 region = Rect2(128, 500, 128, 100)
 
@@ -226,7 +226,7 @@ region = Rect2(512, 200, 128, 100)
 animations = [{
 "frames": [{
 "duration": 1.0,
-"texture": SubResource("AtlasTexture_sx1db")
+"texture": SubResource("AtlasTexture_u5iqw")
 }],
 "loop": true,
 "name": &"heal",
@@ -471,8 +471,9 @@ hit_sound_fireball = ExtResource("8_psyqn")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="CharacterBody2D/Pivot" unique_id=1262161212]
 sprite_frames = SubResource("SpriteFrames_rvc6b")
-animation = &"spin"
-frame = 5
+animation = &"thrust"
+frame = 13
+frame_progress = 1.0
 
 [node name="SlashHitbox" type="Area2D" parent="CharacterBody2D/Pivot" unique_id=1571313381]
 position = Vector2(21.85, 0)
@@ -480,6 +481,7 @@ collision_layer = 16
 collision_mask = 2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D/Pivot/SlashHitbox" unique_id=1499561021]
+visible = false
 position = Vector2(-2.9709606, 6)
 shape = SubResource("RectangleShape2D_6xwxy")
 
@@ -489,6 +491,7 @@ collision_layer = 16
 collision_mask = 2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D/Pivot/ThrustHitbox" unique_id=1091420014]
+visible = false
 position = Vector2(0, 10)
 shape = SubResource("RectangleShape2D_jjg8s")
 debug_color = Color(0.32291138, 0.6252835, 3.85046e-07, 0.41960785)
@@ -519,6 +522,7 @@ shape = SubResource("RectangleShape2D_ol44a")
 debug_color = Color(0.32291138, 0.6252835, 3.85046e-07, 0.41960785)
 
 [node name="bodyBox" type="CollisionShape2D" parent="CharacterBody2D" unique_id=1370339960]
+visible = false
 position = Vector2(0, 14)
 shape = SubResource("RectangleShape2D_vh32c")
 
