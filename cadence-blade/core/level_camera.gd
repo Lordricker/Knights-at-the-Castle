@@ -19,9 +19,19 @@ extends Camera2D
 @export var min_zoom: float = 0.5
 ## Extra world-space pixels of padding added around the player bounding box.
 @export var zoom_margin: float = 200.0
+@export_group("Framing")
+## Shifts the camera target upward by this many world-space pixels, placing the player lower on screen.
+@export var vertical_offset: float = 0.0
+@export_group("Smoothing")
+## Position smoothing used on the joiner so host corrections do not become camera jitter.
+@export var joiner_position_smooth_speed: float = 10.0
+## Zoom smoothing used on the joiner to avoid abrupt framing changes during corrections.
+@export var joiner_zoom_smooth_speed: float = 8.0
+
+var _camera_initialized: bool = false
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	var players: Array[Node] = []
 	for node in get_tree().get_nodes_in_group("players"):
 		if not is_instance_valid(node):
@@ -42,19 +52,31 @@ func _process(_delta: float) -> void:
 	if players.is_empty():
 		return
 
-	# Snap directly to target and round to whole pixels to prevent sub-pixel blur.
-	global_position = _calc_center(players).round()
-
-	# --- Zoom ---
+	var target_center: Vector2 = _calc_center(players)
 	var target_zoom_val: float = _calc_zoom(players)
-	zoom = Vector2(target_zoom_val, target_zoom_val)
+	var target_zoom := Vector2(target_zoom_val, target_zoom_val)
+	var smooth_joiner_camera: bool = GameManager.session_id != "" and not GameManager.is_host
+
+	if not _camera_initialized:
+		global_position = target_center
+		zoom = target_zoom
+		_camera_initialized = true
+	elif smooth_joiner_camera:
+		global_position = global_position.lerp(target_center, minf(joiner_position_smooth_speed * delta, 1.0))
+		zoom = zoom.lerp(target_zoom, minf(joiner_zoom_smooth_speed * delta, 1.0))
+	else:
+		global_position = target_center
+		zoom = target_zoom
+
+	# Round after smoothing to keep the pixel-art camera crisp.
+	global_position = global_position.round()
 
 
 func _calc_center(players: Array[Node]) -> Vector2:
 	var sum := Vector2.ZERO
 	for p in players:
 		sum += (p as Node2D).global_position
-	return sum / float(players.size())
+	return sum / float(players.size()) - Vector2(0.0, vertical_offset)
 
 
 func _calc_zoom(players: Array[Node]) -> float:

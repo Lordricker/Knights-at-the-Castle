@@ -2,17 +2,35 @@
 
 [ext_resource type="Script" uid="uid://nj86mepfwaa3" path="res://characters/Players/red_knight.gd" id="1_6xwxy"]
 [ext_resource type="Texture2D" uid="uid://bklkubft4hlt0" path="res://assets/sprites/RedKnightSpritesSheet.png" id="2_jjg8s"]
+[ext_resource type="AudioStream" uid="uid://bn3xfmbxbv51" path="res://assets/Sounds/airsword.mp3" id="2_u5iqw"]
+[ext_resource type="AudioStream" uid="uid://cpdexibo2y6oi" path="res://assets/Sounds/Shing SFX.mp3" id="3_5naqg"]
 [ext_resource type="PackedScene" uid="uid://b604hgjwaaiuj" path="res://FX/slashEffect.tscn" id="3_ufveg"]
 [ext_resource type="PackedScene" uid="uid://bkyw3pybjuqjs" path="res://ui/hud/HPBar.tscn" id="4_3og0q"]
+[ext_resource type="AudioStream" uid="uid://da0xq7mf7em2m" path="res://assets/Sounds/step.mp3" id="4_41ypl"]
 [ext_resource type="PackedScene" uid="uid://dh7thuuxwk7x1" path="res://ui/hud/FlowBar.tscn" id="5_d0uti"]
+[ext_resource type="AudioStream" uid="uid://bfuayugjr2c0q" path="res://assets/Sounds/Tink SFX.mp3" id="5_iqdrs"]
+[ext_resource type="AudioStream" uid="uid://nh1fexqobd3j" path="res://assets/Sounds/headbash.mp3" id="6_cae3f"]
+[ext_resource type="AudioStream" uid="uid://cexot5v8qnyuo" path="res://assets/Sounds/fleshslice.mp3" id="7_trh1e"]
+[ext_resource type="AudioStream" uid="uid://cvoebarmgjnk7" path="res://assets/Sounds/explodefireball.mp3" id="8_psyqn"]
+
+[sub_resource type="Curve" id="Curve_u5iqw"]
+_limits = [0.0, 1.0, 0.0, 10.0]
+_data = [Vector2(0, 0.9121027), 0.0, 0.0, 0, 0, Vector2(4.4310575, 0.041920304), -0.14583042, 0.0, 0, 0, Vector2(6.372155, 0), 0.0, 0.0, 0, 0]
+point_count = 3
 
 [sub_resource type="Curve" id="Curve_6qwqa"]
+resource_name = "1"
 _limits = [0.0, 0.1, 0.0, 10.0]
-_data = [Vector2(0, 0.092752606), 0.0, -0.007177999, 0, 0, Vector2(4.924812, 0.016655043), -0.012393036, 0.0, 0, 0]
-point_count = 2
+_data = [Vector2(0, 0.06674555), 0.0, -0.007177999, 0, 0, Vector2(2.4497993, 0.006535955), 0.0012767077, 0.0012767077, 0, 0, Vector2(6.05087, 0), 0.0, 0.0, 0, 0]
+point_count = 3
 metadata/_snap_count = 100
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_sx1db"]
+[sub_resource type="Curve" id="Curve_5naqg"]
+_limits = [0.0, 1.0, 0.0, 10.0]
+_data = [Vector2(1.7402945, 0.6586658), 0.0, -0.5831581, 0, 0, Vector2(3.4939759, 0.08000904), -0.027916333, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_u5iqw"]
 atlas = ExtResource("2_jjg8s")
 region = Rect2(128, 500, 128, 100)
 
@@ -208,7 +226,7 @@ region = Rect2(512, 200, 128, 100)
 animations = [{
 "frames": [{
 "duration": 1.0,
-"texture": SubResource("AtlasTexture_sx1db")
+"texture": SubResource("AtlasTexture_u5iqw")
 }],
 "loop": true,
 "name": &"heal",
@@ -393,43 +411,69 @@ size = Vector2(49, 10)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_vh32c"]
 size = Vector2(20, 28)
 
+[sub_resource type="Curve" id="Curve_ejw64"]
+_data = [Vector2(0, 1), 0.0, -0.46075952, 0, 1, Vector2(1, 0.5392405), -0.46075952, 0.0, 1, 0]
+point_count = 2
+
+[sub_resource type="Gradient" id="Gradient_wwfss"]
+colors = PackedColorArray(1, 0.35000002, 0, 1, 0.7092767, 0.15213937, 0.18955913, 1)
+
 [node name="RedKnight" type="Node2D" unique_id=306271988]
 z_index = 1
 z_as_relative = false
 y_sort_enabled = true
 
-[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=1552212822 node_paths=PackedStringArray("body_box", "facing_pivot", "health_bar", "flow_bar") groups=["Kill"]]
+[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=1552212822 node_paths=PackedStringArray("body_box", "facing_pivot", "health_bar", "flow_bar", "hit_particles") groups=["Kill"]]
 y_sort_enabled = true
 script = ExtResource("1_6xwxy")
 slash_damage = 30.0
 slash_knockback_force = 200.0
-slash_flow_fill_duration = 1.2
+slash_flow_fill_duration = 0.9
 slash_flow_miss_multiplier = 0.8
-slash_flow_window_size_curve = SubResource("Curve_6qwqa")
+slash_flow_window_random_range = 0.0
+slash_flow_window_size_curve = SubResource("Curve_u5iqw")
+slash_swing_sound = ExtResource("2_u5iqw")
+slash_swing_sound_frames = Array[int]([4, 8])
 thrust_damage = 50.0
 thrust_knockback_force = 200.0
 thrust_lunge_speed = 400.0
 thrust_flow_fill_duration = 1.3
 thrust_flow_miss_multiplier = 0.8
 thrust_flow_window_center = 0.45
+thrust_flow_window_random_range = 0.0
 thrust_flow_window_size_curve = SubResource("Curve_6qwqa")
+thrust_swing_sound = ExtResource("3_5naqg")
+thrust_swing_sound_frames = Array[int]([5])
 spin_damage = 60.0
 spin_flow_fill_duration = 1.5
 spin_flow_miss_multiplier = 0.8
 spin_flow_window_center = 0.4
 spin_flow_window_random_range = 0.0
-spin_flow_window_size_curve = SubResource("Curve_6qwqa")
+spin_flow_window_size_curve = SubResource("Curve_5naqg")
+spin_swing_sound = ExtResource("2_u5iqw")
+spin_swing_sound_frames = Array[int]([5])
+display_name = "Arthur \"Steel, honor, and a sword too large for hesitation.\""
 body_box = NodePath("bodyBox")
 max_health = 200.0
 facing_pivot = NodePath("Pivot")
 health_bar = NodePath("Pivot/HPBar")
 flow_bar = NodePath("Pivot/FlowBar")
+hit_particles = NodePath("hitparticles")
+walk_sound = ExtResource("4_41ypl")
+walk_sound_footstep_frames = Array[int]([1, 4])
+hit_sound_sword = ExtResource("5_iqdrs")
+hit_sound_arrow = ExtResource("5_iqdrs")
+hit_sound_hammer = ExtResource("6_cae3f")
+hit_sound_claw = ExtResource("7_trh1e")
+hit_sound_fireball = ExtResource("8_psyqn")
 
 [node name="Pivot" type="Node2D" parent="CharacterBody2D" unique_id=65507104]
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="CharacterBody2D/Pivot" unique_id=1262161212]
 sprite_frames = SubResource("SpriteFrames_rvc6b")
-animation = &"heal"
+animation = &"thrust"
+frame = 13
+frame_progress = 1.0
 
 [node name="SlashHitbox" type="Area2D" parent="CharacterBody2D/Pivot" unique_id=1571313381]
 position = Vector2(21.85, 0)
@@ -437,6 +481,7 @@ collision_layer = 16
 collision_mask = 2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D/Pivot/SlashHitbox" unique_id=1499561021]
+visible = false
 position = Vector2(-2.9709606, 6)
 shape = SubResource("RectangleShape2D_6xwxy")
 
@@ -446,6 +491,7 @@ collision_layer = 16
 collision_mask = 2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D/Pivot/ThrustHitbox" unique_id=1091420014]
+visible = false
 position = Vector2(0, 10)
 shape = SubResource("RectangleShape2D_jjg8s")
 debug_color = Color(0.32291138, 0.6252835, 3.85046e-07, 0.41960785)
@@ -476,5 +522,31 @@ shape = SubResource("RectangleShape2D_ol44a")
 debug_color = Color(0.32291138, 0.6252835, 3.85046e-07, 0.41960785)
 
 [node name="bodyBox" type="CollisionShape2D" parent="CharacterBody2D" unique_id=1370339960]
+visible = false
 position = Vector2(0, 14)
 shape = SubResource("RectangleShape2D_vh32c")
+
+[node name="hitparticles" type="CPUParticles2D" parent="CharacterBody2D" unique_id=1879082495]
+position = Vector2(0, 11)
+emitting = false
+amount = 10
+lifetime = 0.25
+one_shot = true
+explosiveness = 1.0
+fract_delta = false
+emission_shape = 1
+emission_sphere_radius = 6.02
+direction = Vector2(0, -1)
+spread = 78.51
+gravity = Vector2(0, 300)
+initial_velocity_min = 70.0
+initial_velocity_max = 150.0
+angular_velocity_min = -393.45
+angular_velocity_max = 322.19
+radial_accel_min = 23.45
+radial_accel_max = 23.45
+scale_amount_min = 4.0
+scale_amount_max = 4.0
+scale_amount_curve = SubResource("Curve_ejw64")
+color = Color(0.83291507, 0.7502015, 1.1551381e-06, 1)
+color_ramp = SubResource("Gradient_wwfss")

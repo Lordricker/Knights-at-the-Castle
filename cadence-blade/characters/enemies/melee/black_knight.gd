@@ -20,6 +20,13 @@ extends EnemyBase
 @export var slash_hitbox_frames: Array[int] = [2, 6]
 ## How hard the black knight's slash knocks the player back.
 @export var knockback_force: float = 300.0
+## Sound played when a slash begins.
+@export var slash_swing_sound: AudioStream
+@export_range(-40.0, 6.0, 0.1) var slash_swing_sound_volume_db: float = 0.0
+## Animation frame indices that trigger the slash swing sound.
+@export var slash_swing_sound_frames: Array[int] = []
+## Weapon type reported to the target when this slash connects.
+@export var slash_weapon_type: WeaponType.WeaponType = WeaponType.WeaponType.SWORD
 
 
 # ── Internal state ─────────────────────────────────────────────────────────────
@@ -32,6 +39,8 @@ var _slash_hitbox_right_pos: Vector2 = Vector2.ZERO
 var _detection_zone_right_pos: Vector2 = Vector2.ZERO
 
 @onready var slash_hitbox: Area2D = find_child("SlashHitbox") as Area2D
+
+var _slash_swing_audio: AudioStreamPlayer2D = null
 
 
 func _ready() -> void:
@@ -47,6 +56,7 @@ func _ready() -> void:
 		slash_hitbox.body_entered.connect(_on_hit_body)
 		slash_hitbox.area_entered.connect(_on_hit_area)
 	animated_sprite.play("running")
+	_slash_swing_audio = _make_sfx_player(slash_swing_sound, slash_swing_sound_volume_db)
 
 
 # ── AI ─────────────────────────────────────────────────────────────────────────
@@ -123,6 +133,8 @@ func die(flow_success: bool = false) -> void:
 func _on_frame_changed() -> void:
 	if slash_state == SlashState.ATTACKING:
 		_set_hitbox(slash_hitbox, animated_sprite.frame in slash_hitbox_frames)
+		if animated_sprite.frame in slash_swing_sound_frames:
+			_play_sfx(_slash_swing_audio)
 
 
 func _on_animation_finished() -> void:
@@ -148,7 +160,7 @@ func _on_hit_body(body: Node2D) -> void:
 	if not body.is_in_group(&"Kill"):
 		return
 	if body.has_method("take_damage"):
-		body.take_damage(attack_damage)
+		body.take_damage(attack_damage, false, slash_weapon_type)
 	# Only apply knockback to characters, not static objects like the castle.
 	if body.is_in_group(&"KillCharacter") and body.has_method("apply_knockback"):
 		body.apply_knockback(global_position, knockback_force)
@@ -161,7 +173,7 @@ func _on_hit_area(area: Area2D) -> void:
 		return
 	var owner_node := area.get_parent()
 	if owner_node != null and owner_node.has_method("take_damage"):
-		owner_node.take_damage(attack_damage)
+		owner_node.take_damage(attack_damage, false, slash_weapon_type)
 
 
 func _capture_right_facing_transforms() -> void:

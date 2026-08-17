@@ -5,18 +5,39 @@
 [ext_resource type="Texture2D" uid="uid://dcnd0q3lk55mi" path="res://assets/sprites/CoinPNG.png" id="3_kwc50"]
 [ext_resource type="Texture2D" uid="uid://dvnkegprvdxot" path="res://assets/sprites/UI/RestartButton.png" id="4_kwc50"]
 [ext_resource type="Texture2D" uid="uid://cukrmkf3jrgb8" path="res://assets/sprites/UI/QuitButton.png" id="5_o2lis"]
+[ext_resource type="Texture2D" uid="uid://l3lo806r4s2q" path="res://assets/sprites/UI/Cog.png" id="5_olkg6"]
 [ext_resource type="FontFile" uid="uid://di588hyvkxc6w" path="res://assets/fonts/LATINWD.TTF" id="6_kwc50"]
+[ext_resource type="Texture2D" uid="uid://dcpm4pu8pp4k0" path="res://assets/sprites/UI/jButton.png" id="7_p3vm3"]
+[ext_resource type="Script" uid="uid://bidv0hafp4icx" path="res://ui/menus/hidenontouchscreen.gd" id="8_5uuaq"]
+[ext_resource type="Texture2D" uid="uid://grdosi1mtfpf" path="res://assets/sprites/UI/kButton.png" id="9_5mn0o"]
+[ext_resource type="Texture2D" uid="uid://diam66u6tlex8" path="res://assets/sprites/UI/jButtonpressed.png" id="10_6gxmt"]
+[ext_resource type="Texture2D" uid="uid://bsg4yjiyid0si" path="res://assets/sprites/UI/lButton.png" id="10_cxhb7"]
+[ext_resource type="Texture2D" uid="uid://18dwykgyg5fi" path="res://assets/sprites/UI/kButtonpressed.png" id="12_olkg6"]
+[ext_resource type="PackedScene" uid="uid://dmr0fcamx7t56" path="res://addons/virtual_joystick/virtual_joystick_scene.tscn" id="13_gv4gi"]
+[ext_resource type="Texture2D" uid="uid://c64gob7ecs2ve" path="res://assets/sprites/UI/lButtonpressed.png" id="14_hk13k"]
+[ext_resource type="Texture2D" uid="uid://b3qx6fqovdkk3" path="res://assets/sprites/UI/shiftButtonpng.png" id="15_uyo40"]
+[ext_resource type="Texture2D" uid="uid://cg85gm1scmvng" path="res://assets/sprites/UI/shiftButtonpressed.png" id="16_m6r7j"]
+[ext_resource type="PackedScene" uid="uid://yano1wyv4epm" path="res://ui/hud/CastleHPBar.tscn" id="17_castlehp"]
+[ext_resource type="Script" uid="uid://dub62vx7qvtek" path="res://ui/hud/night_overlay.gd" id="18_nightovl"]
 
-[node name="HUD" type="CanvasLayer" unique_id=263715054 node_paths=PackedStringArray("hud_timer_label", "hud_coins_label", "hud_best_time_label", "game_over_control", "game_over_label", "game_over_time_label", "restart_button", "quit_button")]
+[node name="HUD" type="CanvasLayer" unique_id=263715054 node_paths=PackedStringArray("hud_timer_label", "hud_coins_label", "hud_best_time_label", "session_id_label", "castle_hp_bar", "game_over_control", "game_over_label", "game_over_time_label", "restart_button", "quit_button", "in_game_quit_button", "settings_control", "settings_button", "music_slider", "sfx_slider", "close_settings_button")]
 script = ExtResource("1_imuuq")
 hud_timer_label = NodePath("Control/Time")
 hud_coins_label = NodePath("Control/Coins")
 hud_best_time_label = NodePath("Control/Highscore")
+session_id_label = NodePath("Control/SessionID")
+castle_hp_bar = NodePath("Control/CastleHPBar/VerticalHealthBar")
 game_over_control = NodePath("Control/gameoverscreen")
 game_over_label = NodePath("Control/gameoverscreen/FallenText")
 game_over_time_label = NodePath("Control/gameoverscreen/FinalTime")
 restart_button = NodePath("Control/gameoverscreen/Restart")
 quit_button = NodePath("Control/gameoverscreen/Quit")
+in_game_quit_button = NodePath("Control/Quits")
+settings_control = NodePath("Control/Settingscanvas")
+settings_button = NodePath("Control/Settings")
+music_slider = NodePath("Control/Settingscanvas/musicslider")
+sfx_slider = NodePath("Control/Settingscanvas/sfxslider")
+close_settings_button = NodePath("Control/Settingscanvas/hidesettings")
 
 [node name="Control" type="Control" parent="." unique_id=459797019]
 layout_mode = 3
@@ -25,6 +46,20 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
+
+[node name="NightOverlay" type="ColorRect" parent="Control" unique_id=-573026738]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0)
+script = ExtResource("18_nightovl")
+darken = 0.043
+night_tint = Color(0.30348846, 0.3781225, 0.70721495, 1)
 
 [node name="Highscore" type="Label" parent="Control" unique_id=999500356]
 layout_mode = 1
@@ -40,6 +75,19 @@ theme_override_fonts/font = ExtResource("6_kwc50")
 theme_override_font_sizes/font_size = 30
 text = "1:40"
 
+[node name="SessionID" type="Label" parent="Control" unique_id=1407635361]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -561.0
+offset_bottom = 50.0
+grow_horizontal = 0
+theme_override_fonts/font = ExtResource("6_kwc50")
+theme_override_font_sizes/font_size = 30
+text = "Session"
+horizontal_alignment = 2
+
 [node name="Time" type="Label" parent="Control" unique_id=145519178]
 layout_mode = 1
 anchors_preset = -1
@@ -53,19 +101,53 @@ text = "1:40"
 [node name="Coins" type="Label" parent="Control" unique_id=292088084]
 layout_mode = 1
 anchors_preset = -1
-offset_left = 201.94
-offset_right = 301.94006
+offset_left = 215.445
+offset_right = 315.44568
 offset_bottom = 74.0
 theme_override_fonts/font = ExtResource("1_4d6w6")
 theme_override_font_sizes/font_size = 64
 text = "Coins"
+
+[node name="Quits" type="Button" parent="Control" unique_id=2009870805]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -628.0
+offset_top = -19.0
+offset_right = -120.0
+offset_bottom = 189.0
+grow_horizontal = 0
+scale = Vector2(0.5, 0.5)
+layout_direction = 2
+icon = ExtResource("5_o2lis")
+flat = true
+
+[node name="Settings" type="Button" parent="Control" unique_id=1408419615]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -394.0
+offset_top = 1.0
+offset_right = -316.0
+offset_bottom = 79.0
+grow_horizontal = 0
+layout_direction = 2
+icon = ExtResource("5_olkg6")
+flat = true
 
 [node name="Sprite2D" type="Sprite2D" parent="Control" unique_id=796565681]
 position = Vector2(164.13, 36.435)
 scale = Vector2(2.5, 2.5)
 texture = ExtResource("3_kwc50")
 
+[node name="CastleHPBar" parent="Control" unique_id=2044778259 instance=ExtResource("17_castlehp")]
+position = Vector2(1856, 787)
+scale = Vector2(1.5, 5.065)
+
 [node name="gameoverscreen" type="Control" parent="Control" unique_id=39879618]
+visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -83,7 +165,6 @@ grow_vertical = 2
 color = Color(0, 0, 0, 0.34509805)
 
 [node name="Restart" type="Button" parent="Control/gameoverscreen" unique_id=796321251]
-layout_direction = 2
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -96,11 +177,11 @@ offset_right = 254.0
 offset_bottom = 104.0
 grow_horizontal = 2
 grow_vertical = 2
+layout_direction = 2
 icon = ExtResource("4_kwc50")
 flat = true
 
 [node name="Quit" type="Button" parent="Control/gameoverscreen" unique_id=1782722255]
-layout_direction = 2
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -113,6 +194,7 @@ offset_right = 254.0
 offset_bottom = 238.0
 grow_horizontal = 2
 grow_vertical = 2
+layout_direction = 2
 icon = ExtResource("5_o2lis")
 flat = true
 
@@ -149,3 +231,129 @@ grow_vertical = 2
 theme_override_fonts/font = ExtResource("6_kwc50")
 theme_override_font_sizes/font_size = 50
 text = "The Castle Has Fallen"
+
+[node name="Virtual joystick left" parent="Control" unique_id=255085118 instance=ExtResource("13_gv4gi")]
+layout_mode = 1
+offset_left = 52.0
+offset_top = -379.0
+offset_right = 352.0
+offset_bottom = -79.0
+clampzone_size = 76.0
+joystick_mode = 1
+visibility_mode = 1
+action_left = "move_left"
+action_right = "move_right"
+action_up = "move_up"
+action_down = "move_down"
+
+[node name="Control" type="Control" parent="Control" unique_id=1875255656]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -40.0
+offset_top = -40.0
+grow_horizontal = 0
+grow_vertical = 0
+script = ExtResource("8_5uuaq")
+
+[node name="Jbutton" type="TouchScreenButton" parent="Control/Control" unique_id=1195568340]
+position = Vector2(-600, -157)
+scale = Vector2(0.5, 0.5)
+texture_normal = ExtResource("7_p3vm3")
+texture_pressed = ExtResource("10_6gxmt")
+action = "action1"
+
+[node name="Kbutton" type="TouchScreenButton" parent="Control/Control" unique_id=708063580]
+position = Vector2(-400, -157)
+scale = Vector2(0.5, 0.5)
+texture_normal = ExtResource("9_5mn0o")
+texture_pressed = ExtResource("12_olkg6")
+action = "action2"
+
+[node name="Lbutton" type="TouchScreenButton" parent="Control/Control" unique_id=1561218012]
+position = Vector2(-200, -157)
+scale = Vector2(0.5, 0.5)
+texture_normal = ExtResource("10_cxhb7")
+texture_pressed = ExtResource("14_hk13k")
+action = "action3"
+
+[node name="shiftbutton" type="TouchScreenButton" parent="Control/Control" unique_id=1878120617]
+position = Vector2(-414, -991.00006)
+scale = Vector2(1.25, 1.25)
+texture_normal = ExtResource("15_uyo40")
+texture_pressed = ExtResource("16_m6r7j")
+action = "face_lock"
+
+[node name="Settingscanvas" type="Control" parent="Control" unique_id=1328191663]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="hidesettings" type="Button" parent="Control/Settingscanvas" unique_id=719356879]
+layout_mode = 0
+offset_left = -976.0
+offset_top = -559.0
+offset_right = 1004.0
+offset_bottom = 610.0
+action_mode = 0
+
+[node name="sfxslider" type="HSlider" parent="Control/Settingscanvas" unique_id=695337006]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -324.5
+offset_top = -223.0
+offset_right = 5.25
+offset_bottom = -159.5
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(2, 2)
+
+[node name="Label" type="Label" parent="Control/Settingscanvas/sfxslider" unique_id=738246572]
+layout_mode = 0
+offset_left = -78.75
+offset_top = 3.125
+offset_right = -10.75
+offset_bottom = 58.125
+theme_override_font_sizes/font_size = 40
+text = "SFX"
+
+[node name="musicslider" type="HSlider" parent="Control/Settingscanvas" unique_id=794130313]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -324.5
+offset_top = -111.0
+offset_right = 5.25
+offset_bottom = -51.5
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(2, 2)
+
+[node name="Label" type="Label" parent="Control/Settingscanvas/musicslider" unique_id=1588398427]
+layout_mode = 0
+offset_left = -101.25
+offset_top = 6.5
+offset_right = -1.25
+offset_bottom = 58.125
+theme_override_font_sizes/font_size = 30
+text = "MUSIC"

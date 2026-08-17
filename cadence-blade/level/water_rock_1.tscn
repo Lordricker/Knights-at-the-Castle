@@ -1,0 +1,128 @@
+[gd_scene format=3 uid="uid://bxb278tj0rbg3"]
+
+[ext_resource type="Texture2D" uid="uid://cfq04ygpf8v50" path="res://level/backgroundSprites/Water Rocks_01.png" id="1_1fjee"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_2gpsp"]
+atlas = ExtResource("1_1fjee")
+region = Rect2(0, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ecys4"]
+atlas = ExtResource("1_1fjee")
+region = Rect2(64, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_5cwh3"]
+atlas = ExtResource("1_1fjee")
+region = Rect2(128, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_w5byj"]
+atlas = ExtResource("1_1fjee")
+region = Rect2(192, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_5msky"]
+atlas = ExtResource("1_1fjee")
+region = Rect2(256, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_52rdy"]
+atlas = ExtResource("1_1fjee")
+region = Rect2(320, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_us01a"]
+atlas = ExtResource("1_1fjee")
+region = Rect2(384, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ms171"]
+atlas = ExtResource("1_1fjee")
+region = Rect2(448, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_pgkte"]
+atlas = ExtResource("1_1fjee")
+region = Rect2(512, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_o520a"]
+atlas = ExtResource("1_1fjee")
+region = Rect2(576, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_n14d1"]
+atlas = ExtResource("1_1fjee")
+region = Rect2(640, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_cgvb0"]
+atlas = ExtResource("1_1fjee")
+region = Rect2(704, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_80ker"]
+atlas = ExtResource("1_1fjee")
+region = Rect2(768, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_hkm5y"]
+atlas = ExtResource("1_1fjee")
+region = Rect2(832, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_i7421"]
+atlas = ExtResource("1_1fjee")
+region = Rect2(896, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_x6l4u"]
+atlas = ExtResource("1_1fjee")
+region = Rect2(960, 0, 64, 64)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_u8n6w"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_2gpsp")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ecys4")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_5cwh3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_w5byj")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_5msky")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_52rdy")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_us01a")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ms171")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_pgkte")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_o520a")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_n14d1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_cgvb0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_80ker")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_hkm5y")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_i7421")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_x6l4u")
+}],
+"loop": true,
+"name": &"default",
+"speed": 6.0
+}]
+
+[node name="waterRock1" type="AnimatedSprite2D" unique_id=397917978]
+sprite_frames = SubResource("SpriteFrames_u8n6w")
+autoplay = "default"
+frame_progress = 0.08531123

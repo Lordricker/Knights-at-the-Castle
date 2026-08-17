@@ -88,6 +88,23 @@ extends Node2D
 ## The upgrade's icon texture carries all the player-facing info.
 @export var option1_icon: TextureRect
 @export var option2_icon: TextureRect
+## Optional clickable buttons layered behind/over each upgrade icon.
+## Connect their pressed signal here — wire them in the Inspector.
+@export var option1_button: Button
+@export var option2_button: Button
+## Labels displaying the coin cost of each offered upgrade. Assign in Inspector.
+@export var option1_cost_label: Label
+@export var option2_cost_label: Label
+
+@export_group("TNT")
+## PackedScene for the TNT item. Spawned at the player's position on purchase.
+@export var tnt_scene: PackedScene
+## Button always visible in the blacksmith zone — never rotated out like the lottery slots.
+@export var tnt_button: Button
+## Label showing the current escalating TNT cost.
+@export var tnt_cost_label: Label
+## Escalating coin costs per purchase. Last value is reused once exhausted.
+@export var tnt_costs: Array[int] = [15, 20, 25, 30, 35]
 
 # ── HUD / scene reference exports ─────────────────────────────────────────────
 
@@ -100,6 +117,28 @@ extends Node2D
 @export var run_manager: Node
 ## The Castle node in the level scene. Required for HealCastle and UpgradeCastle upgrades.
 @export var castle: Castle
+
+@export_group("Tower Archers")
+## The right-side TowerArcher node in the level. Drag from the scene tree.
+@export var tower_archer_right: Node
+## The left-side TowerArcher node in the level. Drag from the scene tree.
+@export var tower_archer_left: Node
+
+@export_group("Enemy Indicators")
+## Exclamation point Sprite2D above the right scout (positive global X side).
+@export var right_exclamation: Sprite2D
+## Exclamation point Sprite2D above the left scout (negative global X side).
+@export var left_exclamation: Sprite2D
+## Tint for 1 enemy on that side.
+@export var enemy_color_1: Color = Color(1.0, 0.8, 0.8)
+## Tint for 2 enemies on that side.
+@export var enemy_color_2: Color = Color(1.0, 0.5, 0.5)
+## Tint for 3 enemies on that side.
+@export var enemy_color_3: Color = Color(0.9, 0.2, 0.2)
+## Tint for 4 enemies on that side.
+@export var enemy_color_4: Color = Color(0.7, 0.05, 0.05)
+## Tint for 5+ enemies on that side.
+@export var enemy_color_5: Color = Color(0.4, 0.0, 0.0)
 
 # ── Runtime state ─────────────────────────────────────────────────────────────
 
@@ -115,6 +154,7 @@ var _refresh_timer: float = 0.0
 ## Reference count for active enemy-freeze effects. Enemies stay frozen until
 ## every outstanding timer has expired.
 var _freeze_count: int = 0
+var _tnt_purchase_count: int = 0
 
 # ── Lifecycle ─────────────────────────────────────────────────────────────────
 
@@ -135,12 +175,27 @@ func _ready() -> void:
 		blacksmith_zone.body_exited.connect(_on_blacksmith_zone_body_exited)
 	if upgrade_ui != null:
 		upgrade_ui.hide()
+	if option1_button != null:
+		option1_button.pressed.connect(func() -> void: _request_purchase(0))
+	if option2_button != null:
+		option2_button.pressed.connect(func() -> void: _request_purchase(1))
+	# Make each upgrade button fill its parent scroll TextureRect, then ensure
+	# nothing in that parent swallows clicks before the button can receive them.
+	_setup_shop_button(option1_button, option1_icon)
+	_setup_shop_button(option2_button, option2_icon)
+	# TNT: the parent TextureRect isn't exposed as an icon export, so resolve it
+	# from the button itself.
+	if tnt_button != null:
+		_setup_shop_button(tnt_button, tnt_button.get_parent() as Control)
+	if tnt_button != null:
+		tnt_button.pressed.connect(_on_tnt_button_pressed)
+	_update_tnt_cost_label()
 
 
 func _process(delta: float) -> void:
 	_heal_player(delta)
 	_handle_blacksmith_refresh(delta)
-	_handle_upgrade_input()
+	_update_enemy_indicators()
 
 # ── Player detection ──────────────────────────────────────────────────────────
 
@@ -156,21 +211,32 @@ func _on_monk_zone_body_entered(body: Node2D) -> void:
 	var player := _get_character(body)
 	if player == null:
 		return
+	# In multiplayer, only respond to the locally-owned character — not the peer's puppet.
+	if not _is_local_player(player):
+		return
 	_player = player
 	_player_in_monk_zone = true
 	player.healing_locked = true
 	if monk_sprite != null:
 		monk_sprite.play(&"Heal")
+	# Notify the host so it applies the same healing to the joiner's puppet.
+	# Without this the host's state snapshot overwrites the joiner's locally healed HP.
+	if GameManager.session_id != "" and not GameManager.is_host:
+		WebRTCManager.send_reliable({"t": "monk_zone", "in": 1})
 
 
 func _on_monk_zone_body_exited(body: Node2D) -> void:
 	var player := _get_character(body)
 	if player == null:
 		return
+	if not _is_local_player(player):
+		return
 	_player_in_monk_zone = false
 	player.healing_locked = false
 	if monk_sprite != null:
 		monk_sprite.play(&"Idle")
+	if GameManager.session_id != "" and not GameManager.is_host:
+		WebRTCManager.send_reliable({"t": "monk_zone", "in": 0})
 	_clear_player_if_unused()
 
 
@@ -188,20 +254,36 @@ func _on_blacksmith_zone_body_entered(body: Node2D) -> void:
 	var player := _get_character(body)
 	if player == null:
 		return
+	# In multiplayer, only respond to the locally-owned character — not the peer's puppet.
+	if not _is_local_player(player):
+		return
 	_player = player
 	_player_in_blacksmith_zone = true
 	player.attacks_locked = true
 	# Only roll fresh offers if there are none active (first visit or all slots purchased).
 	# Re-entering the zone mid-timer keeps the existing offers and the running timer.
+	# In multiplayer, only the host generates offers; the joiner waits for an
+	# "upgrade_offers" packet. If offers are already set (from a previous packet),
+	# the joiner just shows them immediately.
 	if _offered[0] == null and _offered[1] == null:
-		_roll_upgrades()
-		_refresh_timer = refresh_interval
+		if GameManager.session_id == "" or GameManager.is_host:
+			_roll_upgrades()
+			_refresh_timer = refresh_interval
+		else:
+			# Joiner has no cached offers — ask the host for the current ones.
+			WebRTCManager.send_reliable({"t": "request_upgrade_offers"})
+	elif GameManager.session_id != "" and not GameManager.is_host:
+		# Joiner re-entered the shop with stale cached offers. Always re-sync
+		# with the host so the slot indices stay consistent for purchases.
+		WebRTCManager.send_reliable({"t": "request_upgrade_offers"})
 	_show_upgrade_ui(true)
 
 
 func _on_blacksmith_zone_body_exited(body: Node2D) -> void:
 	var player := _get_character(body)
 	if player == null:
+		return
+	if not _is_local_player(player):
 		return
 	_player_in_blacksmith_zone = false
 	player.attacks_locked = false
@@ -217,45 +299,79 @@ func _handle_blacksmith_refresh(delta: float) -> void:
 	_refresh_timer -= delta
 	if _refresh_timer <= 0.0:
 		_refresh_timer = refresh_interval
+		# Only the host (or solo player) generates new offers.
+		if GameManager.session_id != "" and not GameManager.is_host:
+			return
 		if _player_in_blacksmith_zone:
 			# Player is present -- re-roll and display immediately.
 			_roll_upgrades()
+		elif GameManager.session_id != "" and GameManager.is_host:
+			# Multiplayer host away from shop: re-roll and broadcast so the joiner
+			# always has valid offers to purchase. Never clear _offered on the host
+			# while a session is active — on_upgrade_buy depends on it being non-null.
+			_roll_upgrades()
 		else:
-			# Player is away -- clear stale offers so next visit re-rolls fresh.
+			# Solo: player is away -- clear stale offers so next visit re-rolls fresh.
 			_offered[0] = null
 			_offered[1] = null
 
 
-func _handle_upgrade_input() -> void:
-	if not _player_in_blacksmith_zone or _player == null:
-		return
-	# J = slash action → buy slot 0.  K = thrust action → buy slot 1.
-	if Input.is_action_just_pressed(&"slash"):
-		_try_purchase(0)
-	elif Input.is_action_just_pressed(&"thrust"):
-		_try_purchase(1)
+## Initiates a purchase. In multiplayer the joiner sends a request to the host
+## (who validates and applies). The host and solo player execute immediately.
+func _request_purchase(slot: int) -> void:
+	if GameManager.session_id != "" and not GameManager.is_host:
+		# Joiner: ask the host to validate and apply.
+		WebRTCManager.send_reliable({"t": "upgrade_buy", "slot": slot})
+	else:
+		_try_purchase(slot, _player)
 
 
-func _try_purchase(slot: int) -> void:
+## Executes a validated purchase for `buyer`. In multiplayer (host path) this
+## also broadcasts the result so the joiner can sync their state.
+func _try_purchase(slot: int, buyer: CharacterBase) -> void:
 	var upgrade: UpgradeConfig = _offered[slot] as UpgradeConfig
 	if upgrade == null:
 		return
-	if _player.coins < upgrade.cost:
+	if buyer.coins < upgrade.cost:
 		if coins_display != null and coins_display.has_method(&"flash_insufficient"):
 			coins_display.flash_insufficient()
 		_flash_deny_icon(slot)
 		return
-	_player.add_coins(-upgrade.cost)
-	_apply_upgrade(upgrade)
+	buyer.add_coins(-upgrade.cost)
+	_apply_upgrade_to_buyer(upgrade, buyer)
 	_flash_purchase_icon(slot)
+	_roll_upgrades()
+	_refresh_timer = refresh_interval
+	# In multiplayer, host broadcasts what happened so the joiner can sync.
+	if GameManager.session_id != "" and GameManager.is_host:
+		var buyer_slot: int = int(buyer.get("player_slot")) if "player_slot" in buyer else 1
+		WebRTCManager.send_reliable({
+			"t":          "upgrade_applied",
+			"buyer_slot": buyer_slot,
+			"stat_type":  upgrade.stat_type,
+			"stat_amount": upgrade.stat_amount,
+			"cost":       upgrade.cost,
+		})
 
 
-func _apply_upgrade(upgrade: UpgradeConfig) -> void:
+## Applies the upgrade effect to `buyer` (personal stats) or to the game world
+## (castle / enemies). Separated so both host-local and network-received purchases
+## use the same logic.
+func _apply_upgrade_to_buyer(upgrade: UpgradeConfig, buyer: CharacterBase) -> void:
 	match upgrade.stat_type:
 		UpgradeConfig.StatType.ATTACK:
-			_player.attack_bonus += upgrade.stat_amount
+			buyer.attack_bonus += upgrade.stat_amount
 		UpgradeConfig.StatType.SPEED:
-			_player.speed_bonus += upgrade.stat_amount
+			buyer.speed_bonus += upgrade.stat_amount
+		UpgradeConfig.StatType.UPGRADE_HP:
+			buyer.max_health += upgrade.stat_amount
+			buyer.health_changed.emit(buyer.health, buyer.max_health)
+		UpgradeConfig.StatType.RESET_FLOW:
+			var elapsed: float = 0.0
+			if run_manager != null and "time_elapsed" in run_manager:
+				elapsed = float(run_manager.time_elapsed)
+			buyer.flow_time_offset = elapsed
+		# ── Global (world) effects — host-authoritative only ──────────────────
 		UpgradeConfig.StatType.HEAL_CASTLE:
 			if castle != null:
 				castle.health = minf(castle.health + upgrade.stat_amount, castle.max_health)
@@ -264,18 +380,12 @@ func _apply_upgrade(upgrade: UpgradeConfig) -> void:
 			if castle != null:
 				castle.max_health += upgrade.stat_amount
 				castle.health_changed.emit(castle.health, castle.max_health)
-		UpgradeConfig.StatType.UPGRADE_HP:
-			if _player != null:
-				_player.max_health += upgrade.stat_amount
-				_player.health_changed.emit(_player.health, _player.max_health)
-		UpgradeConfig.StatType.RESET_FLOW:
-			if _player != null:
-				var elapsed: float = 0.0
-				if run_manager != null and "time_elapsed" in run_manager:
-					elapsed = float(run_manager.time_elapsed)
-				_player.flow_time_offset = elapsed
 		UpgradeConfig.StatType.FREEZE_ENEMIES:
 			_freeze_enemies(upgrade.stat_amount)
+		UpgradeConfig.StatType.TOWER_ARCHER_RIGHT:
+			_activate_tower_archer(tower_archer_right)
+		UpgradeConfig.StatType.TOWER_ARCHER_LEFT:
+			_activate_tower_archer(tower_archer_left)
 
 # ── Lottery rolling ───────────────────────────────────────────────────────────
 
@@ -285,6 +395,20 @@ func _roll_upgrades() -> void:
 	_offered[1] = _draw_one(t, [_offered[0]])
 	_update_ui_slot(0)
 	_update_ui_slot(1)
+	# In multiplayer, host broadcasts the new offers so the joiner shows the same options.
+	if GameManager.session_id != "" and GameManager.is_host:
+		WebRTCManager.send_reliable({
+			"t":  "upgrade_offers",
+			"s0": _upgrade_index(_offered[0]),
+			"s1": _upgrade_index(_offered[1]),
+		})
+
+
+## Returns the index of `upgrade` in the upgrades array, or -1 if null / not found.
+func _upgrade_index(upgrade: UpgradeConfig) -> int:
+	if upgrade == null:
+		return -1
+	return upgrades.find(upgrade)
 
 
 func _normalized_time() -> float:
@@ -302,11 +426,19 @@ func _sample_lottery_tickets(curve: Curve, t: float, default_value: int = 1) -> 
 
 
 ## Draw one upgrade from the lottery pool, excluding any in the `exclude` array.
+## Tower archer upgrades whose archer is already active are also excluded.
 ## Returns null if the pool is empty.
 func _draw_one(t: float, exclude: Array) -> UpgradeConfig:
 	var pool: Array[UpgradeConfig] = []
 	for upgrade: UpgradeConfig in upgrades:
 		if upgrade == null or upgrade in exclude:
+			continue
+		# Skip tower archer upgrades when the archer is already active.
+		if upgrade.stat_type == UpgradeConfig.StatType.TOWER_ARCHER_RIGHT \
+				and _is_tower_archer_active(tower_archer_right):
+			continue
+		if upgrade.stat_type == UpgradeConfig.StatType.TOWER_ARCHER_LEFT \
+				and _is_tower_archer_active(tower_archer_left):
 			continue
 		var tickets: int = 1
 		if upgrade.pool_tickets_curve != null:
@@ -317,11 +449,34 @@ func _draw_one(t: float, exclude: Array) -> UpgradeConfig:
 		return null
 	return pool[randi() % pool.size()]
 
+
+## Returns true when a tower archer wrapper node is currently active (not disabled).
+func _is_tower_archer_active(archer: Node) -> bool:
+	if archer == null:
+		return false
+	return archer.process_mode != Node.PROCESS_MODE_DISABLED
+
 # ── UI helpers ────────────────────────────────────────────────────────────────
+
+## Makes `btn` fill its `parent` Control and sets every non-button sibling
+## Control in `parent` to MOUSE_FILTER_IGNORE so they don't swallow clicks.
+func _setup_shop_button(btn: Button, parent: Control) -> void:
+	if btn == null:
+		return
+	# Pass-through the parent itself (it's a decorative TextureRect/Control).
+	if parent != null:
+		parent.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		# Any sibling Controls (icon images, labels) must not intercept clicks.
+		for child: Node in parent.get_children():
+			if child is Control and child != btn:
+				(child as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
+
 
 func _show_upgrade_ui(show: bool) -> void:
 	if upgrade_ui != null:
 		upgrade_ui.visible = show
+	if tnt_button != null:
+		tnt_button.visible = show
 
 
 ## Briefly tints the purchased icon green, then fades back to white and hides it.
@@ -344,22 +499,282 @@ func _flash_deny_icon(slot: int) -> void:
 	tween.tween_property(icon_ref, "modulate", Color.WHITE, 0.35)
 
 
+## Briefly tints the TNT icon red to signal the player cannot afford it.
+## Mirrors _flash_deny_icon — the TNT button's parent TextureRect is its icon.
+func _flash_deny_tnt() -> void:
+	if tnt_button == null:
+		return
+	var icon_ref := tnt_button.get_parent() as CanvasItem
+	if icon_ref == null:
+		return
+	icon_ref.modulate = Color.RED
+	var tween := create_tween()
+	tween.tween_property(icon_ref, "modulate", Color.WHITE, 0.35)
+
+
 func _update_ui_slot(slot: int) -> void:
 	var upgrade: UpgradeConfig = _offered[slot] as UpgradeConfig
 	var icon_ref: TextureRect = option1_icon if slot == 0 else option2_icon
+	var cost_label: Label = option1_cost_label if slot == 0 else option2_cost_label
 	if icon_ref == null:
 		return
 	if upgrade == null:
 		icon_ref.hide()
+		if cost_label != null:
+			cost_label.hide()
 		return
 	icon_ref.texture = upgrade.icon
 	icon_ref.show()
+	if cost_label != null:
+		cost_label.text = str(upgrade.cost)
+		cost_label.show()
 
 # ── Cleanup ───────────────────────────────────────────────────────────────────
 
 func _clear_player_if_unused() -> void:
 	if not _player_in_monk_zone and not _player_in_blacksmith_zone:
 		_player = null
+
+
+# ── Multiplayer helpers ───────────────────────────────────────────────────────
+
+## Returns true when `player` is the locally-owned character for this peer.
+## In solo play every character is local. In online play, the host owns slot 1
+## and the joiner owns slot 2; puppets (the peer's character) are rejected.
+func _is_local_player(player: CharacterBase) -> bool:
+	if GameManager.session_id == "":
+		return true
+	var local_slot: int = 1 if GameManager.is_host else 2
+	var slot: int = int(player.get("player_slot")) if "player_slot" in player else 1
+	return slot == local_slot
+
+
+## Called by RunManager when an "upgrade_offers" packet arrives (joiner only).
+## Stores the host-rolled offers and refreshes the UI so the joiner sees the same options.
+func on_upgrade_offers(data: Dictionary) -> void:
+	var i0: int = int(data.get("s0", -1))
+	var i1: int = int(data.get("s1", -1))
+	_offered[0] = upgrades[i0] if i0 >= 0 and i0 < upgrades.size() else null
+	_offered[1] = upgrades[i1] if i1 >= 0 and i1 < upgrades.size() else null
+	_refresh_timer = refresh_interval
+	_update_ui_slot(0)
+	_update_ui_slot(1)
+
+
+## Called by RunManager when an "upgrade_buy" packet arrives (host only).
+## The host validates the purchase against its local coin count and applies it.
+func on_upgrade_buy(data: Dictionary) -> void:
+	if not GameManager.is_host:
+		return
+	var slot: int = int(data.get("slot", -1))
+	if slot < 0 or slot > 1:
+		return
+	# Use the host's own player as the coin authority (pools are always in sync).
+	# For personal upgrades the buyer_slot in the result tells the joiner to apply
+	# the stat to their own character.
+	if _player == null:
+		# Host player not tracked (not in zone) — find locally owned character.
+		for node in get_tree().get_nodes_in_group(&"players"):
+			if node is CharacterBase and _is_local_player(node as CharacterBase):
+				_player = node as CharacterBase
+				break
+		if _player == null:
+			return
+	var upgrade: UpgradeConfig = _offered[slot] as UpgradeConfig
+	if upgrade == null:
+		return
+	if _player.coins < upgrade.cost:
+		# Broadcast a denial so joiner can flash UI.
+		WebRTCManager.send_reliable({"t": "upgrade_denied", "slot": slot})
+		return
+	# Deduct coins from all local players (shared pool on host side).
+	for node in get_tree().get_nodes_in_group(&"players"):
+		if node is CharacterBase:
+			(node as CharacterBase).add_coins(-upgrade.cost)
+	# For global upgrades apply the world effect on the host.
+	if not upgrade.is_personal():
+		_apply_upgrade_to_buyer(upgrade, _player)
+	# Broadcast result with buyer_slot == 2 so joiner applies personal stat to themselves.
+	WebRTCManager.send_reliable({
+		"t":          "upgrade_applied",
+		"buyer_slot": 2,
+		"stat_type":  upgrade.stat_type,
+		"stat_amount": upgrade.stat_amount,
+		"cost":       upgrade.cost,
+	})
+	_flash_purchase_icon(slot)
+	_roll_upgrades()
+	_refresh_timer = refresh_interval
+
+
+## Called by RunManager when an "upgrade_applied" packet arrives (joiner only).
+## Syncs coin deduction and applies personal stat upgrades to the correct character.
+func on_upgrade_applied(data: Dictionary) -> void:
+	if GameManager.is_host:
+		return
+	var buyer_slot: int = int(data.get("buyer_slot", 1))
+	var stat_type: int = int(data.get("stat_type", 0))
+	var stat_amount: float = float(data.get("stat_amount", 0.0))
+	var cost: int = int(data.get("cost", 0))
+	# Deduct coins locally (joiner's pool must stay in sync with host).
+	for node in get_tree().get_nodes_in_group(&"players"):
+		if node is CharacterBase:
+			(node as CharacterBase).add_coins(-cost)
+			break  # shared pool — deduct once
+	# Build a temporary UpgradeConfig to reuse _apply_upgrade_to_buyer.
+	var dummy := UpgradeConfig.new()
+	dummy.stat_type = stat_type as UpgradeConfig.StatType
+	dummy.stat_amount = stat_amount
+	# Personal upgrades: apply to the character matching buyer_slot.
+	# Global upgrades: host already applied them; joiner gets castle HP via state snapshot.
+	if dummy.is_personal():
+		var local_slot: int = 2  # joiner is always slot 2
+		for node in get_tree().get_nodes_in_group(&"players"):
+			if node is CharacterBase:
+				var slot: int = int(node.get("player_slot")) if "player_slot" in node else 1
+				if slot == buyer_slot and slot == local_slot:
+					_apply_upgrade_to_buyer(dummy, node as CharacterBase)
+					break
+	# Tower archer upgrades are world effects, but the joiner's scene also needs the
+	# archer activated — the host's _apply_upgrade_to_buyer only runs on the host side.
+	match dummy.stat_type:
+		UpgradeConfig.StatType.TOWER_ARCHER_RIGHT:
+			_activate_tower_archer(tower_archer_right)
+		UpgradeConfig.StatType.TOWER_ARCHER_LEFT:
+			_activate_tower_archer(tower_archer_left)
+	_flash_purchase_icon(0 if buyer_slot == 2 else 1)
+
+
+## Called by RunManager when the joiner requests current upgrade offers (host only).
+## Re-sends the existing offers, or rolls fresh ones if the host has none yet.
+func on_request_upgrade_offers() -> void:
+	if not GameManager.is_host:
+		return
+	if _offered[0] == null and _offered[1] == null:
+		# Host hasn't visited the blacksmith yet — roll now so the joiner sees something.
+		_roll_upgrades()
+		_refresh_timer = refresh_interval
+	else:
+		# Re-broadcast the existing offers.
+		WebRTCManager.send_reliable({
+			"t":  "upgrade_offers",
+			"s0": _upgrade_index(_offered[0]),
+			"s1": _upgrade_index(_offered[1]),
+		})
+
+## Called by RunManager when an "upgrade_denied" packet arrives (joiner only).
+func on_upgrade_denied(data: Dictionary) -> void:
+	if GameManager.is_host:
+		return
+	var slot: int = int(data.get("slot", 0))
+	if coins_display != null and coins_display.has_method(&"flash_insufficient"):
+		coins_display.flash_insufficient()
+	_flash_deny_icon(slot)
+
+# ── TNT ───────────────────────────────────────────────────────────────────────
+
+func _on_tnt_button_pressed() -> void:
+	_request_tnt_purchase()
+
+
+func _request_tnt_purchase() -> void:
+	if GameManager.session_id != "" and not GameManager.is_host:
+		WebRTCManager.send_reliable({"t": "tnt_buy"})
+	else:
+		_try_tnt_purchase(_player)
+
+
+func _try_tnt_purchase(buyer: CharacterBase) -> void:
+	if buyer == null:
+		return
+	var cost: int = _tnt_current_cost()
+	if buyer.coins < cost:
+		if coins_display != null and coins_display.has_method(&"flash_insufficient"):
+			coins_display.flash_insufficient()
+		_flash_deny_tnt()
+		return
+	# Deduct coins from all local players (shared pool).
+	for node in get_tree().get_nodes_in_group(&"players"):
+		if node is CharacterBase:
+			(node as CharacterBase).add_coins(-cost)
+			break
+	_tnt_purchase_count += 1
+	_update_tnt_cost_label()
+	_spawn_tnt(buyer)
+	if GameManager.session_id != "" and GameManager.is_host:
+		WebRTCManager.send_reliable({
+			"t":          "tnt_applied",
+			"cost":       cost,
+			"buyer_slot": int(buyer.get("player_slot")) if "player_slot" in buyer else 1,
+		})
+
+
+func _tnt_current_cost() -> int:
+	if tnt_costs.is_empty():
+		return 15
+	return tnt_costs[mini(_tnt_purchase_count, tnt_costs.size() - 1)]
+
+
+func _update_tnt_cost_label() -> void:
+	if tnt_cost_label != null:
+		tnt_cost_label.text = str(_tnt_current_cost())
+
+
+func _spawn_tnt(buyer: CharacterBase) -> void:
+	if tnt_scene == null:
+		push_warning("CastleInside: tnt_scene not assigned — TNT cannot be spawned.")
+		return
+	var tnt := tnt_scene.instantiate() as Node2D
+	if tnt == null:
+		return
+	tnt.global_position = buyer.global_position
+	if "owner_player" in tnt:
+		tnt.set("owner_player", buyer)
+	get_tree().current_scene.add_child(tnt)
+
+
+## Called by RunManager when a "tnt_buy" packet arrives (host only).
+func on_tnt_buy(_data: Dictionary) -> void:
+	if not GameManager.is_host:
+		return
+	if _player == null:
+		for node in get_tree().get_nodes_in_group(&"players"):
+			if node is CharacterBase and _is_local_player(node as CharacterBase):
+				_player = node as CharacterBase
+				break
+		if _player == null:
+			return
+	_try_tnt_purchase(_player)
+
+
+## Called by RunManager when a "tnt_applied" packet arrives (joiner only).
+func on_tnt_applied(data: Dictionary) -> void:
+	if GameManager.is_host:
+		return
+	var cost: int = int(data.get("cost", 0))
+	for node in get_tree().get_nodes_in_group(&"players"):
+		if node is CharacterBase:
+			(node as CharacterBase).add_coins(-cost)
+			break
+	_tnt_purchase_count += 1
+	_update_tnt_cost_label()
+	# Spawn TNT following the joiner's local player.
+	var local_player: CharacterBase = null
+	for node in get_tree().get_nodes_in_group(&"players"):
+		if node is CharacterBase and _is_local_player(node as CharacterBase):
+			local_player = node as CharacterBase
+			break
+	if local_player != null:
+		_spawn_tnt(local_player)
+
+
+## Called by RunManager when a "tnt_denied" packet arrives (joiner only).
+func on_tnt_denied(_data: Dictionary) -> void:
+	if GameManager.is_host:
+		return
+	if coins_display != null and coins_display.has_method(&"flash_insufficient"):
+		coins_display.flash_insufficient()
+	_flash_deny_tnt()
 
 # ── Freeze logic ──────────────────────────────────────────────────────────────
 
@@ -385,3 +800,58 @@ func _freeze_enemies(duration: float) -> void:
 			if spawner != null and is_instance_valid(spawner):
 				spawner.set_process(true)
 	)
+
+
+## Enables a tower archer node that was placed disabled in the level.
+## Resets health/state on the CharacterBody2D child, makes the wrapper visible,
+## and re-enables processing.
+func _activate_tower_archer(archer: Node) -> void:
+	if archer == null:
+		push_warning("CastleInside: tower archer node not assigned in Inspector.")
+		return
+	# Find the CharacterBody2D child that carries tower_archer.gd.
+	var body: Node = null
+	for child in archer.get_children():
+		if child is CharacterBody2D:
+			body = child
+			break
+	if body != null:
+		body.is_dead = false
+		body.health = body.max_health
+		body.shoot_state = 0  # ShootState.NONE
+		body.set_physics_process(true)
+		var spr: AnimatedSprite2D = body.find_child("AnimatedSprite2D") as AnimatedSprite2D
+		if spr != null:
+			spr.show()
+			spr.play(&"idle")
+		if body.health_bar != null:
+			body.health_bar.show()
+		body.health_changed.emit(body.health, body.max_health)
+	archer.show()
+	archer.process_mode = Node.PROCESS_MODE_INHERIT
+
+
+# ── Enemy indicators ─────────────────────────────────────────────────────────
+
+func _update_enemy_indicators() -> void:
+	var left_count: int = 0
+	var right_count: int = 0
+	for node in get_tree().get_nodes_in_group(&"entities"):
+		if node is EnemyBase and not (node as EnemyBase).is_dead:
+			if node.global_position.x < 0.0:
+				left_count += 1
+			else:
+				right_count += 1
+	_apply_indicator(left_exclamation, left_count)
+	_apply_indicator(right_exclamation, right_count)
+
+
+func _apply_indicator(sprite: Sprite2D, count: int) -> void:
+	if sprite == null:
+		return
+	if count == 0:
+		sprite.hide()
+		return
+	sprite.show()
+	var colors: Array[Color] = [enemy_color_1, enemy_color_2, enemy_color_3, enemy_color_4, enemy_color_5]
+	sprite.modulate = colors[mini(count, 5) - 1]

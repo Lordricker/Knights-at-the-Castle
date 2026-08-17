@@ -1,0 +1,34 @@
+[gd_scene format=3 uid="uid://yano1wyv4epm"]
+
+[ext_resource type="Script" uid="uid://bcxtahr83w2oh" path="res://ui/hud/vertical_health_bar.gd" id="1_8t36v"]
+[ext_resource type="Texture2D" uid="uid://wnyuwo5toc4s" path="res://assets/sprites/UI/HudCastleHP.png" id="2_ww4yl"]
+[ext_resource type="Texture2D" uid="uid://dllsrp3ofp4fu" path="res://assets/sprites/UI/HudCastleHPFill.png" id="3_8s38o"]
+[ext_resource type="Texture2D" uid="uid://duknk4n0uvhw6" path="res://assets/sprites/UI/HudCastleHPOverlay.png" id="4_7njhw"]
+
+[node name="HPBar" type="Node2D" unique_id=1780535160]
+visibility_layer = 2
+z_index = 6
+z_as_relative = false
+
+[node name="VerticalHealthBar" type="Node2D" parent="." unique_id=1034429636 node_paths=PackedStringArray("fill_window")]
+script = ExtResource("1_8t36v")
+fill_window = NodePath("../HpFill")
+background_color = Color(0.05882353, 0.05882353, 0.05882353, 0.10980392)
+fill_top_y = -50.0
+fill_bottom_y = 50.0
+metadata/_custom_type_script = "uid://bcxtahr83w2oh"
+
+[node name="HPcontainer" type="Sprite2D" parent="." unique_id=1990364766]
+z_index = 2
+position = Vector2(6, -39)
+texture = ExtResource("2_ww4yl")
+
+[node name="HpFill" type="Sprite2D" parent="." unique_id=935992899]
+z_index = 2
+position = Vector2(6, -39)
+texture = ExtResource("3_8s38o")
+
+[node name="HpOverlay" type="Sprite2D" parent="." unique_id=1687948701]
+z_index = 2
+position = Vector2(6, -39)
+texture = ExtResource("4_7njhw")

@@ -37,6 +37,13 @@ extends EnemyBase
 @export var slash_attack_frame: int = 3
 ## Knockback force applied to targets hit by slash.
 @export var slash_knockback_force: float = 300.0
+## Sound played when a slash begins.
+@export var slash_swing_sound: AudioStream
+@export_range(-40.0, 6.0, 0.1) var slash_swing_sound_volume_db: float = 0.0
+## Animation frame indices that trigger the slash swing sound.
+@export var slash_swing_sound_frames: Array[int] = []
+## Weapon type reported to the target when the slash connects.
+@export var slash_weapon_type: WeaponType.WeaponType = WeaponType.WeaponType.SWORD
 
 
 # ---- Slash2 ------------------------------------------------------------------
@@ -50,6 +57,17 @@ extends EnemyBase
 @export var slash2_attack_frame: int = 4
 ## Knockback force applied to targets hit by slash2.
 @export var slash2_knockback_force: float = 350.0
+## Parent CPUParticles2D node to emit during the slash2 animation.
+@export var slash2_particles: CPUParticles2D
+## Frame index (0-based) on which to emit slash2_particles.
+@export var slash2_particle_frame: int = 4
+## Sound played when slash2 begins.
+@export var slash2_swing_sound: AudioStream
+@export_range(-40.0, 6.0, 0.1) var slash2_swing_sound_volume_db: float = 0.0
+## Animation frame indices that trigger the slash2 swing sound.
+@export var slash2_swing_sound_frames: Array[int] = []
+## Weapon type reported to the target when slash2 connects.
+@export var slash2_weapon_type: WeaponType.WeaponType = WeaponType.WeaponType.SWORD
 
 
 # ---- Block -------------------------------------------------------------------
@@ -63,6 +81,8 @@ extends EnemyBase
 @export_range(0.0, 100.0, 1.0) var block_damage_reduction: float = 20.0
 ## Knockback force applied back to the attacker when a hit is blocked.
 @export var block_knockback_force: float = 300.0
+## When unchecked the enemy never uses the block action (e.g. spearman variants).
+@export var enable_block: bool = true
 
 @export_group("")
 
@@ -76,6 +96,9 @@ var _state: GKState = GKState.NONE
 var _slash_hitbox_right_pos: Vector2 = Vector2.ZERO
 var _slash2_hitbox_right_pos: Vector2 = Vector2.ZERO
 var _detection_zone_right_pos: Vector2 = Vector2.ZERO
+
+var _slash_swing_audio: AudioStreamPlayer2D = null
+var _slash2_swing_audio: AudioStreamPlayer2D = null
 
 
 func _ready() -> void:
@@ -99,6 +122,8 @@ func _ready() -> void:
 	if block_zone != null:
 		block_zone.area_entered.connect(_on_block_zone_area_entered)
 	animated_sprite.play("running")
+	_slash_swing_audio = _make_sfx_player(slash_swing_sound, slash_swing_sound_volume_db)
+	_slash2_swing_audio = _make_sfx_player(slash2_swing_sound, slash2_swing_sound_volume_db)
 
 
 # ---- AI ----------------------------------------------------------------------
@@ -143,10 +168,16 @@ func _is_attacking() -> bool:
 # ---- Actions -----------------------------------------------------------------
 
 func _begin_random_action() -> void:
-	match randi() % 3:
-		0: _begin_slash()
-		1: _begin_slash2()
-		2: _begin_block()
+	if enable_block:
+		match randi() % 3:
+			0: _begin_slash()
+			1: _begin_slash2()
+			2: _begin_block()
+	else:
+		if randi() % 2 == 0:
+			_begin_slash()
+		else:
+			_begin_slash2()
 
 
 func _begin_slash() -> void:
@@ -203,11 +234,13 @@ func die(flow_success: bool = false) -> void:
 
 ## Reduce incoming damage while blocking. Knockback to the attacker is handled
 ## from the AttackHitbox overlap when damage actually lands.
-func take_damage(amount: float, flow_success: bool = false) -> void:
+func take_damage(amount: float, flow_success: bool = false, weapon_type: WeaponType.WeaponType = WeaponType.WeaponType.SWORD) -> void:
+	var effective_flow_success := flow_success
 	if _state == GKState.BLOCKING:
+		effective_flow_success = false
 		_apply_block_contact_knockback()
 		amount = amount * (1.0 - clampf(block_damage_reduction, 0.0, 100.0) / 100.0)
-	super(amount, flow_success)
+	super(amount, effective_flow_success, weapon_type)
 
 
 # ---- Frame / animation signals -----------------------------------------------
@@ -216,8 +249,14 @@ func _on_frame_changed() -> void:
 	match _state:
 		GKState.SLASHING:
 			_set_hitbox(slash_hitbox, animated_sprite.frame == slash_attack_frame)
+			if animated_sprite.frame in slash_swing_sound_frames:
+				_play_sfx(_slash_swing_audio)
 		GKState.SLASHING2:
 			_set_hitbox(slash2_hitbox, animated_sprite.frame == slash2_attack_frame)
+			if slash2_particles != null and animated_sprite.frame == slash2_particle_frame:
+				slash2_particles.restart()
+			if animated_sprite.frame in slash2_swing_sound_frames:
+				_play_sfx(_slash2_swing_audio)
 
 
 func _on_animation_finished() -> void:
@@ -281,17 +320,20 @@ func _on_attack_hit_body(body: Node2D) -> void:
 		return
 	var dmg: float
 	var kb: float
+	var wtype: WeaponType.WeaponType
 	match _state:
 		GKState.SLASHING:
 			dmg = slash_damage
 			kb = slash_knockback_force
+			wtype = slash_weapon_type
 		GKState.SLASHING2:
 			dmg = slash2_damage
 			kb = slash2_knockback_force
+			wtype = slash2_weapon_type
 		_:
 			return
 	if body.has_method("take_damage"):
-		body.take_damage(dmg)
+		body.take_damage(dmg, false, wtype)
 	if body.is_in_group(&"KillCharacter") and body.has_method("apply_knockback"):
 		body.apply_knockback(global_position, kb)
 
@@ -301,16 +343,19 @@ func _on_attack_hit_area(area: Area2D) -> void:
 	if not area.is_in_group(&"Kill"):
 		return
 	var dmg: float
+	var wtype: WeaponType.WeaponType
 	match _state:
 		GKState.SLASHING:
 			dmg = slash_damage
+			wtype = slash_weapon_type
 		GKState.SLASHING2:
 			dmg = slash2_damage
+			wtype = slash2_weapon_type
 		_:
 			return
 	var owner_node := area.get_parent()
 	if owner_node != null and owner_node.has_method("take_damage"):
-		owner_node.take_damage(dmg)
+		owner_node.take_damage(dmg, false, wtype)
 
 
 # ---- Facing ------------------------------------------------------------------

@@ -1,0 +1,72 @@
+[gd_scene format=3 uid="uid://540q1u1nmwpv"]
+
+[ext_resource type="Texture2D" uid="uid://bxmmv7pnepg1j" path="res://level/backgroundSprites/Tree1.png" id="1_qba4o"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_bkq3g"]
+atlas = ExtResource("1_qba4o")
+region = Rect2(0, 0, 192, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_cngqo"]
+atlas = ExtResource("1_qba4o")
+region = Rect2(192, 0, 192, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_jn5ak"]
+atlas = ExtResource("1_qba4o")
+region = Rect2(384, 0, 192, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_uvf5d"]
+atlas = ExtResource("1_qba4o")
+region = Rect2(576, 0, 192, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_p4wda"]
+atlas = ExtResource("1_qba4o")
+region = Rect2(768, 0, 192, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_bmw7t"]
+atlas = ExtResource("1_qba4o")
+region = Rect2(960, 0, 192, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_lqevj"]
+atlas = ExtResource("1_qba4o")
+region = Rect2(1152, 0, 192, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_qqcwg"]
+atlas = ExtResource("1_qba4o")
+region = Rect2(1344, 0, 192, 256)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_u8n6w"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_bkq3g")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_cngqo")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_jn5ak")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_uvf5d")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_p4wda")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_bmw7t")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_lqevj")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_qqcwg")
+}],
+"loop": true,
+"name": &"default",
+"speed": 6.0
+}]
+
+[node name="tree1" type="AnimatedSprite2D" unique_id=397917978]
+sprite_frames = SubResource("SpriteFrames_u8n6w")
+autoplay = "default"
+frame_progress = 0.6517226

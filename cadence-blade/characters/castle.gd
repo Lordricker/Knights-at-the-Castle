@@ -30,6 +30,8 @@ extends StaticBody2D
 @export var max_health: float = 500.0
 ## Drag a Node2D with horizontal_health_bar.gd attached here.
 @export var health_bar: Node2D
+## HP restored per minute while the castle is alive. Set to 0 to disable regen.
+@export var regen_per_minute: float = 10.0
 
 # ── Fade ──────────────────────────────────────────────────────────────────────
 
@@ -56,6 +58,7 @@ extends StaticBody2D
 
 var health: float = 0.0
 var _health_bar_api: Node = null
+var _died_emitted: bool = false
 
 signal health_changed(new_health: float, max_hp: float)
 signal died()
@@ -76,6 +79,17 @@ func _process(delta: float) -> void:
 	var c := castle_sprite.modulate
 	c.a = move_toward(c.a, target_alpha, fade_speed * delta)
 	castle_sprite.modulate = c
+	_regen_health(delta)
+
+
+func _regen_health(delta: float) -> void:
+	# Regen is host-authoritative in multiplayer (castle HP is broadcast via state snapshot).
+	if GameManager.session_id != "" and not GameManager.is_host:
+		return
+	if regen_per_minute <= 0.0 or health <= 0.0 or health >= max_health:
+		return
+	health = minf(health + regen_per_minute / 60.0 * delta, max_health)
+	health_changed.emit(health, max_health)
 
 
 # ── Inside check ──────────────────────────────────────────────────────────────
@@ -92,16 +106,25 @@ func _player_is_inside() -> bool:
 
 # ── Damage ────────────────────────────────────────────────────────────────────
 
-func take_damage(amount: float) -> void:
+func take_damage(amount: float, flow_success: bool = false, weapon_type: WeaponType.WeaponType = WeaponType.WeaponType.SWORD) -> void:
+	# Castle health is host-authoritative. Joiner enemies have physics disabled so
+	# this should only fire on the host, but guard defensively.
+	if GameManager.session_id != "" and not GameManager.is_host:
+		return
 	if health <= 0.0:
 		return
 	health = maxf(0.0, health - amount)
 	health_changed.emit(health, max_health)
+	# Health is broadcast to joiner via the state snapshot (run_manager._broadcast_state).
 	if health == 0.0:
 		_on_died()
 
 
+
 func _on_died() -> void:
+	if _died_emitted:
+		return
+	_died_emitted = true
 	# Play the death animation if one has been assigned in the Inspector.
 	if death_animation_player != null:
 		death_animation_player.play(&"death")
