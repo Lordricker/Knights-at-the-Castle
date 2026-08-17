@@ -75,6 +75,7 @@ animations = [{
 }]
 
 [node name="DeathPoof" type="Node2D" unique_id=677526727]
+z_index = 2
 
 [node name="AnimatedSprite2D2" type="AnimatedSprite2D" parent="." unique_id=961852421]
 sprite_frames = SubResource("SpriteFrames_ic141")

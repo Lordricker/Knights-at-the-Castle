@@ -1,0 +1,100 @@
+[gd_scene format=3 uid="uid://cukpgklhpndg0"]
+
+[ext_resource type="Texture2D" uid="uid://cwy7ijqfwy368" path="res://level/backgroundSprites/Sheep_Grass.png" id="1_3d4ux"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_560ig"]
+atlas = ExtResource("1_3d4ux")
+region = Rect2(0, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_yr42j"]
+atlas = ExtResource("1_3d4ux")
+region = Rect2(128, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_o1xhe"]
+atlas = ExtResource("1_3d4ux")
+region = Rect2(256, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ou6fs"]
+atlas = ExtResource("1_3d4ux")
+region = Rect2(384, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_afy0r"]
+atlas = ExtResource("1_3d4ux")
+region = Rect2(512, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_asxit"]
+atlas = ExtResource("1_3d4ux")
+region = Rect2(640, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_1kg5e"]
+atlas = ExtResource("1_3d4ux")
+region = Rect2(768, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_82xh5"]
+atlas = ExtResource("1_3d4ux")
+region = Rect2(896, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_04vg2"]
+atlas = ExtResource("1_3d4ux")
+region = Rect2(1024, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_yioyg"]
+atlas = ExtResource("1_3d4ux")
+region = Rect2(1152, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_4c8r2"]
+atlas = ExtResource("1_3d4ux")
+region = Rect2(1280, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_iftxb"]
+atlas = ExtResource("1_3d4ux")
+region = Rect2(1408, 0, 128, 128)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_u8n6w"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_560ig")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_yr42j")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_o1xhe")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ou6fs")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_afy0r")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_asxit")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_1kg5e")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_82xh5")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_04vg2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_yioyg")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_4c8r2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_iftxb")
+}],
+"loop": true,
+"name": &"default",
+"speed": 6.0
+}]
+
+[node name="Sheepeat" type="AnimatedSprite2D" unique_id=397917978]
+sprite_frames = SubResource("SpriteFrames_u8n6w")
+autoplay = "default"
+frame_progress = 0.85878044

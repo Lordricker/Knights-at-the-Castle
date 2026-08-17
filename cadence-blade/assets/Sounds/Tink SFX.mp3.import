@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://bfuayugjr2c0q"
+path="res://.godot/imported/Tink SFX.mp3-330f7c7ecf389a3e5bfb1dd44d4c5036.mp3str"
+
+[deps]
+
+source_file="res://assets/Sounds/Tink SFX.mp3"
+dest_files=["res://.godot/imported/Tink SFX.mp3-330f7c7ecf389a3e5bfb1dd44d4c5036.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

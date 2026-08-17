@@ -1,0 +1,200 @@
+[gd_scene format=3 uid="uid://bthfa85t20kje"]
+
+[ext_resource type="Texture2D" uid="uid://b76oosggr5jws" path="res://core/Upgrades/hutupgrades/blank scroll.png" id="1_sljri"]
+[ext_resource type="Texture2D" uid="uid://cv8frrwqsfcwn" path="res://core/Upgrades/hutupgrades/Archerlvl2.png" id="2_lk3fo"]
+[ext_resource type="FontFile" uid="uid://eayy706a4ihb" path="res://assets/fonts/JMH Typewriter.ttf" id="3_sojlt"]
+[ext_resource type="Texture2D" uid="uid://cgutn7e0ug6fc" path="res://core/Upgrades/hutupgrades/chains.png" id="4_f56ol"]
+
+[node name="ArcherUpgrades" type="Control" unique_id=1610119576]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = -1869.0
+offset_bottom = -1015.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="buttonlvl5" type="Button" parent="." unique_id=2045781642]
+layout_mode = 0
+offset_left = 27.0
+offset_top = -127.56
+offset_right = 77.0
+offset_bottom = -70.56
+
+[node name="scroll" type="TextureRect" parent="buttonlvl5" unique_id=1802746873]
+layout_mode = 0
+offset_left = -48.0
+offset_top = -42.000004
+offset_right = 1185.3333
+offset_bottom = 1116.3333
+scale = Vector2(0.12, 0.12)
+texture = ExtResource("1_sljri")
+
+[node name="icon" type="TextureRect" parent="buttonlvl5" unique_id=1282612977]
+layout_mode = 0
+offset_left = 5.0
+offset_top = -1.0
+offset_right = 49.0
+offset_bottom = 46.0
+scale = Vector2(0.97, 0.97)
+texture = ExtResource("2_lk3fo")
+
+[node name="cost" type="Label" parent="buttonlvl5" unique_id=71842399]
+layout_mode = 0
+offset_left = -8.0
+offset_top = 39.0
+offset_right = 27.0
+offset_bottom = 56.0
+theme_override_colors/font_color = Color(0.22944507, 0.63002956, 0, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_fonts/font = ExtResource("3_sojlt")
+theme_override_font_sizes/font_size = 13
+text = "25"
+horizontal_alignment = 2
+
+[node name="chains" type="TextureRect" parent="buttonlvl5" unique_id=1148038176]
+layout_mode = 0
+offset_left = -39.0
+offset_top = -38.440006
+offset_right = 461.0
+offset_bottom = 461.56
+scale = Vector2(0.26, 0.26)
+texture = ExtResource("4_f56ol")
+
+[node name="buttonlvl4" type="Button" parent="." unique_id=1230524863]
+layout_mode = 0
+offset_left = -27.0
+offset_top = -127.56
+offset_right = 23.0
+offset_bottom = -70.56
+
+[node name="scroll" type="TextureRect" parent="buttonlvl4" unique_id=1019252610]
+layout_mode = 0
+offset_left = -48.0
+offset_top = -42.000004
+offset_right = 1185.3333
+offset_bottom = 1116.3333
+scale = Vector2(0.12, 0.12)
+texture = ExtResource("1_sljri")
+
+[node name="icon" type="TextureRect" parent="buttonlvl4" unique_id=509853215]
+layout_mode = 0
+offset_left = 5.0
+offset_top = -1.0
+offset_right = 49.0
+offset_bottom = 46.0
+scale = Vector2(0.97, 0.97)
+texture = ExtResource("2_lk3fo")
+
+[node name="cost" type="Label" parent="buttonlvl4" unique_id=639357955]
+layout_mode = 0
+offset_left = -8.0
+offset_top = 39.0
+offset_right = 27.0
+offset_bottom = 56.0
+theme_override_colors/font_color = Color(0.22944507, 0.63002956, 0, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_fonts/font = ExtResource("3_sojlt")
+theme_override_font_sizes/font_size = 13
+text = "25"
+horizontal_alignment = 2
+
+[node name="chains" type="TextureRect" parent="buttonlvl4" unique_id=1530676615]
+layout_mode = 0
+offset_left = -39.0
+offset_top = -38.440006
+offset_right = 461.0
+offset_bottom = 461.56
+scale = Vector2(0.26, 0.26)
+texture = ExtResource("4_f56ol")
+
+[node name="buttonlvl3" type="Button" parent="." unique_id=83377146]
+layout_mode = 0
+offset_top = -63.78
+offset_right = 50.0
+offset_bottom = -6.779999
+
+[node name="scroll" type="TextureRect" parent="buttonlvl3" unique_id=838400481]
+layout_mode = 0
+offset_left = -48.0
+offset_top = -42.000004
+offset_right = 1185.3333
+offset_bottom = 1116.3333
+scale = Vector2(0.12, 0.12)
+texture = ExtResource("1_sljri")
+
+[node name="icon" type="TextureRect" parent="buttonlvl3" unique_id=1184676180]
+layout_mode = 0
+offset_left = 5.0
+offset_top = -1.0
+offset_right = 49.0
+offset_bottom = 46.0
+scale = Vector2(0.97, 0.97)
+texture = ExtResource("2_lk3fo")
+
+[node name="cost" type="Label" parent="buttonlvl3" unique_id=1790352282]
+layout_mode = 0
+offset_left = -8.0
+offset_top = 39.0
+offset_right = 27.0
+offset_bottom = 56.0
+theme_override_colors/font_color = Color(0.22944507, 0.63002956, 0, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_fonts/font = ExtResource("3_sojlt")
+theme_override_font_sizes/font_size = 13
+text = "18"
+horizontal_alignment = 2
+
+[node name="chains" type="TextureRect" parent="buttonlvl3" unique_id=1779265153]
+layout_mode = 0
+offset_left = -39.0
+offset_top = -38.440006
+offset_right = 461.0
+offset_bottom = 461.56
+scale = Vector2(0.26, 0.26)
+texture = ExtResource("4_f56ol")
+
+[node name="lvl2Button" type="Button" parent="." unique_id=582565023]
+layout_mode = 0
+offset_right = 50.0
+offset_bottom = 57.0
+
+[node name="scroll" type="TextureRect" parent="lvl2Button" unique_id=317173727]
+layout_mode = 0
+offset_left = -48.0
+offset_top = -42.000004
+offset_right = 1185.3333
+offset_bottom = 1116.3333
+scale = Vector2(0.12, 0.12)
+texture = ExtResource("1_sljri")
+
+[node name="icon" type="TextureRect" parent="lvl2Button" unique_id=2079598085]
+layout_mode = 0
+offset_left = 5.0
+offset_top = -1.0
+offset_right = 49.0
+offset_bottom = 46.0
+scale = Vector2(0.97, 0.97)
+texture = ExtResource("2_lk3fo")
+
+[node name="cost" type="Label" parent="lvl2Button" unique_id=194175923]
+layout_mode = 0
+offset_left = -8.0
+offset_top = 39.0
+offset_right = 27.0
+offset_bottom = 56.0
+theme_override_colors/font_color = Color(0.22944507, 0.63002956, 0, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_fonts/font = ExtResource("3_sojlt")
+theme_override_font_sizes/font_size = 13
+text = "13"
+horizontal_alignment = 2

@@ -1,0 +1,72 @@
+[gd_scene format=3 uid="uid://bhxy1x077s154"]
+
+[ext_resource type="Texture2D" uid="uid://bckypxg31newj" path="res://level/backgroundSprites/Tree2.png" id="1_wc11y"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_i675j"]
+atlas = ExtResource("1_wc11y")
+region = Rect2(0, 0, 192, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_e0q35"]
+atlas = ExtResource("1_wc11y")
+region = Rect2(192, 0, 192, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_uhs01"]
+atlas = ExtResource("1_wc11y")
+region = Rect2(384, 0, 192, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_bafww"]
+atlas = ExtResource("1_wc11y")
+region = Rect2(576, 0, 192, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_sokwk"]
+atlas = ExtResource("1_wc11y")
+region = Rect2(768, 0, 192, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_27hd4"]
+atlas = ExtResource("1_wc11y")
+region = Rect2(960, 0, 192, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_2lwp7"]
+atlas = ExtResource("1_wc11y")
+region = Rect2(1152, 0, 192, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_i506e"]
+atlas = ExtResource("1_wc11y")
+region = Rect2(1344, 0, 192, 256)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_u8n6w"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_i675j")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_e0q35")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_uhs01")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_bafww")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_sokwk")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_27hd4")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_2lwp7")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_i506e")
+}],
+"loop": true,
+"name": &"default",
+"speed": 6.0
+}]
+
+[node name="tree2" type="AnimatedSprite2D" unique_id=397917978]
+sprite_frames = SubResource("SpriteFrames_u8n6w")
+autoplay = "default"
+frame_progress = 0.49210516

@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://w6j7ga0dugf1"
+path="res://.godot/imported/Lunar Fractals.mp3-0353b1445e916a6c28007986a3ddd8d6.mp3str"
+
+[deps]
+
+source_file="res://assets/audio/music/Lunar Fractals.mp3"
+dest_files=["res://.godot/imported/Lunar Fractals.mp3-0353b1445e916a6c28007986a3ddd8d6.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

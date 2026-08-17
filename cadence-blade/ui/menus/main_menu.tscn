@@ -1,0 +1,517 @@
+[gd_scene format=3 uid="uid://dgpoi6oalb82t"]
+
+[ext_resource type="Script" uid="uid://bo1tq4rdbi5r8" path="res://ui/menus/main_menu.gd" id="1_1kjlq"]
+[ext_resource type="Texture2D" uid="uid://b56ydo3qajwgp" path="res://assets/sprites/UI/title.png" id="2_vuv8w"]
+[ext_resource type="PackedScene" uid="uid://bqd7aeac31hoi" path="res://ui/menus/session_entry.tscn" id="3_5ssi0"]
+[ext_resource type="FontFile" uid="uid://3k4f02awf4kq" path="res://assets/fonts/FRSCRIPT.TTF" id="3_h223f"]
+[ext_resource type="FontFile" uid="uid://eayy706a4ihb" path="res://assets/fonts/JMH Typewriter.ttf" id="3_w22xg"]
+[ext_resource type="Texture2D" uid="uid://bxiea3eu0sstp" path="res://assets/sprites/UI/redRibbon.png" id="4_l3r6a"]
+[ext_resource type="Texture2D" uid="uid://qp1cx7diu7ko" path="res://assets/sprites/UI/yellowRibbon.png" id="5_1kjlq"]
+[ext_resource type="Texture2D" uid="uid://fghf0bg470be" path="res://assets/Textures/stonewallTexture.png" id="6_u0fm7"]
+[ext_resource type="Texture2D" uid="uid://d1lle3v0whs5l" path="res://assets/sprites/UI/blueRibbon.png" id="6_vuv8w"]
+[ext_resource type="Script" uid="uid://2rlap08kcs04" path="res://ui/menus/character_description_panel.gd" id="9_g305v"]
+[ext_resource type="PackedScene" uid="uid://dbk1qvdllygxo" path="res://characters/Players/RedKnight.tscn" id="10_10bvg"]
+[ext_resource type="PackedScene" uid="uid://cbhrtdam3e0k7" path="res://characters/Players/GreenArcher.tscn" id="11_buwx5"]
+[ext_resource type="PackedScene" uid="uid://diy8f1xpxbdsp" path="res://characters/Players/BlueRogue.tscn" id="15_rogue"]
+[ext_resource type="Texture2D" uid="uid://doujfkefol0m5" path="res://assets/sprites/UI/SessionMenuIcons/heart.png" id="12_buwx5"]
+[ext_resource type="Texture2D" uid="uid://cydfq1n1r4pmb" path="res://assets/sprites/UI/SessionMenuIcons/speed.png" id="13_o1ovh"]
+[ext_resource type="Texture2D" uid="uid://cgv28h1b8wge" path="res://assets/sprites/UI/SessionMenuIcons/weight.png" id="14_o1ovh"]
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_h223f"]
+load_path = "res://.godot/imported/yellowRibbon.png-09bcf83ea2813e222f33f6b54a4d0238.ctex"
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_u0fm7"]
+texture = SubResource("CompressedTexture2D_h223f")
+texture_margin_left = 10.0
+texture_margin_right = 10.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_vuv8w"]
+content_margin_left = 20.0
+content_margin_right = 20.0
+texture = ExtResource("5_1kjlq")
+expand_margin_left = 30.0
+expand_margin_top = 30.0
+expand_margin_right = 30.0
+expand_margin_bottom = 30.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_l3r6a"]
+texture = ExtResource("5_1kjlq")
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vuv8w"]
+bg_color = Color(0, 0, 0, 0.7058824)
+corner_radius_top_left = 40
+corner_radius_top_right = 40
+corner_radius_bottom_right = 40
+corner_radius_bottom_left = 40
+
+[node name="MainMenu" type="CanvasLayer" unique_id=1642001637 node_paths=PackedStringArray("main_screen", "session_screen", "play_button", "help_button", "back_button", "help_overlay", "help_close_button", "best_time_label", "permanent_entry", "sessions_container")]
+script = ExtResource("1_1kjlq")
+main_screen = NodePath("MainScreen")
+session_screen = NodePath("sessionscreen")
+play_button = NodePath("MainScreen/Play")
+help_button = NodePath("MainScreen/Help")
+back_button = NodePath("sessionscreen/Back")
+help_overlay = NodePath("HelpScreen")
+help_close_button = NodePath("HelpScreen/Close")
+best_time_label = NodePath("MainScreen/bestTime")
+permanent_entry = NodePath("sessionscreen/SessionEntry")
+sessions_container = NodePath("sessionscreen/ScrollContainer/sessionScoll")
+
+[node name="MainScreen" type="Control" parent="." unique_id=1975488594]
+layout_mode = 3
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Title" type="Sprite2D" parent="MainScreen" unique_id=280138339]
+position = Vector2(25, -268.62)
+scale = Vector2(2.97, 2.97)
+texture = ExtResource("2_vuv8w")
+
+[node name="Play" type="Button" parent="MainScreen" unique_id=105342913]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -204.0
+offset_top = -78.72
+offset_right = 204.0
+offset_bottom = 49.27983
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(2, 2)
+pivot_offset_ratio = Vector2(0.5, 0.5)
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_pressed_color = Color(0.15487596, 0.154876, 0.15487596, 1)
+theme_override_colors/font_hover_pressed_color = Color(0.16745102, 0.16745102, 0.16745102, 1)
+theme_override_fonts/font = ExtResource("3_w22xg")
+theme_override_font_sizes/font_size = 59
+theme_override_styles/normal = SubResource("StyleBoxTexture_u0fm7")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_vuv8w")
+theme_override_styles/hover = SubResource("StyleBoxTexture_l3r6a")
+text = "PLAY"
+icon = ExtResource("4_l3r6a")
+flat = true
+icon_alignment = 1
+expand_icon = true
+
+[node name="Help" type="Button" parent="MainScreen" unique_id=1531369288]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -204.0
+offset_top = 144.58
+offset_right = 204.0
+offset_bottom = 272.5801
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(1.35, 1.35)
+pivot_offset_ratio = Vector2(0.5, 0.5)
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_pressed_color = Color(0.15487596, 0.154876, 0.15487596, 1)
+theme_override_colors/font_hover_pressed_color = Color(0.16745102, 0.16745102, 0.16745102, 1)
+theme_override_fonts/font = ExtResource("3_w22xg")
+theme_override_font_sizes/font_size = 59
+theme_override_styles/normal = SubResource("StyleBoxTexture_u0fm7")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_vuv8w")
+theme_override_styles/hover = SubResource("StyleBoxTexture_l3r6a")
+theme_override_styles/hover_pressed = SubResource("StyleBoxTexture_vuv8w")
+text = "HELP"
+icon = ExtResource("5_1kjlq")
+flat = true
+icon_alignment = 1
+expand_icon = true
+
+[node name="bestTime" type="Label" parent="MainScreen" unique_id=1690513136]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -71.0
+offset_top = 394.0
+offset_right = 72.0
+offset_bottom = 463.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 50
+text = "10909"
+
+[node name="sessionscreen" type="Control" parent="." unique_id=1110293224]
+visible = false
+layout_mode = 3
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -987.0
+offset_top = -572.0
+offset_right = 970.0
+offset_bottom = 546.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TextureRect" type="TextureRect" parent="sessionscreen" unique_id=973320940]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -982.5
+offset_top = -575.5
+offset_right = -324.1667
+offset_bottom = -185.33334
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(3, 3)
+texture = ExtResource("6_u0fm7")
+expand_mode = 2
+stretch_mode = 1
+
+[node name="ScrollContainer" type="ScrollContainer" parent="sessionscreen" unique_id=4520773]
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -994.0
+offset_top = -347.0
+offset_right = -19.0
+offset_bottom = 554.0
+grow_horizontal = 0
+grow_vertical = 2
+
+[node name="sessionScoll" type="VBoxContainer" parent="sessionscreen/ScrollContainer" unique_id=1831784551]
+layout_mode = 2
+
+[node name="Back" type="Button" parent="sessionscreen" unique_id=1912979261]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -853.5
+offset_top = -524.0
+offset_right = -445.5
+offset_bottom = -396.0
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(1.35, 1.35)
+pivot_offset_ratio = Vector2(0.5, 0.5)
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_pressed_color = Color(0.15487596, 0.154876, 0.15487596, 1)
+theme_override_colors/font_hover_pressed_color = Color(0.16745102, 0.16745102, 0.16745102, 1)
+theme_override_fonts/font = ExtResource("3_h223f")
+theme_override_font_sizes/font_size = 83
+theme_override_styles/normal = SubResource("StyleBoxTexture_u0fm7")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_vuv8w")
+theme_override_styles/hover = SubResource("StyleBoxTexture_l3r6a")
+theme_override_styles/hover_pressed = SubResource("StyleBoxTexture_vuv8w")
+text = "Back"
+icon = ExtResource("6_vuv8w")
+flat = true
+icon_alignment = 1
+expand_icon = true
+
+[node name="SessionEntry" parent="sessionscreen" unique_id=491276647 node_paths=PackedStringArray("status_label", "description_panel") instance=ExtResource("3_5ssi0")]
+layout_mode = 0
+offset_left = 11.0
+offset_top = 301.0
+offset_right = 999.0
+offset_bottom = 1237.0
+status_label = NodePath("../DebugLabel")
+description_panel = NodePath("../Descriptionpanel")
+
+[node name="DebugLabel" type="Label" parent="sessionscreen" unique_id=1909427171]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -965.5
+offset_top = -139.0
+offset_right = 990.5
+offset_bottom = -50.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 60
+horizontal_alignment = 1
+vertical_alignment = 2
+
+[node name="Descriptionpanel" type="Panel" parent="sessionscreen" unique_id=1856917082 node_paths=PackedStringArray("character_name_label", "character_health_label", "character_speed_label", "weight_label", "action1_name_label", "action1_damage_label", "action1_knockback_label", "action2_name_label", "action2_damage_label", "action2_knockback_label", "action3_name_label", "action3_damage_label", "action3_knockback_label")]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 33.0
+offset_top = -435.0
+offset_right = 965.0
+offset_bottom = -20.0
+grow_vertical = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_vuv8w")
+script = ExtResource("9_g305v")
+character_scenes = Array[PackedScene]([ExtResource("10_10bvg"), ExtResource("11_buwx5"), ExtResource("15_rogue")])
+character_name_label = NodePath("tagline")
+character_health_label = NodePath("HP")
+character_speed_label = NodePath("Speed")
+weight_label = NodePath("Weight")
+action1_name_label = NodePath("GridContainer/Jdescription")
+action1_damage_label = NodePath("GridContainer/JDMG")
+action1_knockback_label = NodePath("GridContainer/JKnock")
+action2_name_label = NodePath("GridContainer/Kdescription")
+action2_damage_label = NodePath("GridContainer/KDMG")
+action2_knockback_label = NodePath("GridContainer/KKnock")
+action3_name_label = NodePath("GridContainer/Ldescription")
+action3_damage_label = NodePath("GridContainer/LDMG")
+action3_knockback_label = NodePath("GridContainer/LKnock")
+
+[node name="tagline" type="Label" parent="sessionscreen/Descriptionpanel" unique_id=1431433381]
+layout_mode = 1
+offset_left = 19.0
+offset_top = 16.0
+offset_right = 934.0
+offset_bottom = 111.0
+theme_override_font_sizes/font_size = 32
+text = "Robin: “If you see the arrow, you were never the target.”
+"
+autowrap_mode = 2
+
+[node name="HP" type="Label" parent="sessionscreen/Descriptionpanel" unique_id=1997908679]
+layout_mode = 0
+offset_left = 92.0
+offset_top = 145.935
+offset_right = 637.0
+offset_bottom = 191.93501
+theme_override_font_sizes/font_size = 33
+text = "HP"
+
+[node name="Heart" type="Sprite2D" parent="sessionscreen/Descriptionpanel/HP" unique_id=649101599]
+position = Vector2(-34, 21)
+scale = Vector2(0.705, 0.705)
+texture = ExtResource("12_buwx5")
+
+[node name="Speed" type="Label" parent="sessionscreen/Descriptionpanel" unique_id=524173782]
+layout_mode = 0
+offset_left = 338.0
+offset_top = 145.935
+offset_right = 681.0
+offset_bottom = 196.93459
+theme_override_font_sizes/font_size = 33
+text = "Speed"
+
+[node name="Speed2" type="Sprite2D" parent="sessionscreen/Descriptionpanel/Speed" unique_id=2039087436]
+position = Vector2(-43, 11)
+scale = Vector2(0.69, 0.69)
+texture = ExtResource("13_o1ovh")
+
+[node name="Weight" type="Label" parent="sessionscreen/Descriptionpanel" unique_id=2083954856]
+layout_mode = 0
+offset_left = 649.0
+offset_top = 145.935
+offset_right = 1006.0
+offset_bottom = 222.93462
+theme_override_font_sizes/font_size = 33
+text = "Weight"
+
+[node name="Weight" type="Sprite2D" parent="sessionscreen/Descriptionpanel/Weight" unique_id=402984698]
+position = Vector2(-44, 25)
+scale = Vector2(0.865, 0.865)
+texture = ExtResource("14_o1ovh")
+
+[node name="GridContainer" type="GridContainer" parent="sessionscreen/Descriptionpanel" unique_id=553852979]
+layout_mode = 0
+offset_left = 13.485
+offset_top = 222.0
+offset_right = 926.485
+offset_bottom = 508.0
+theme_override_constants/h_separation = -20
+theme_override_constants/v_separation = -35
+columns = 4
+
+[node name="blank" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=1508261659]
+layout_mode = 2
+
+[node name="Jdescription" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=1529634795]
+layout_mode = 2
+theme_override_font_sizes/font_size = 33
+text = "[ J ] Quickshot      
+ "
+
+[node name="Kdescription" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=906320096]
+layout_mode = 2
+theme_override_font_sizes/font_size = 33
+text = "[ K ] Piercing Draw      
+"
+
+[node name="Ldescription" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=2027485568]
+layout_mode = 2
+theme_override_font_sizes/font_size = 33
+text = "[ L ] Flying Boot
+"
+
+[node name="DMG" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=175260683]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "
+DMG
+"
+vertical_alignment = 2
+
+[node name="JDMG" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=2123309565]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "DMG
+"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="KDMG" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=1258449179]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "DMG
+"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="LDMG" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=1543778753]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "DMG
+"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Knockback" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=47589134]
+layout_mode = 2
+theme_override_font_sizes/font_size = 23
+text = "Knock
+-Back
+"
+vertical_alignment = 1
+
+[node name="JKnock" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=1818403863]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "DMG
+"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="KKnock" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=1450037087]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "DMG
+"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="LKnock" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=1445056639]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "DMG
+"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HelpScreen" type="Control" parent="." unique_id=1526978676]
+visible = false
+layout_mode = 3
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ColorRect" type="ColorRect" parent="HelpScreen" unique_id=1373344996]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -1004.5
+offset_top = -601.5
+offset_right = 1004.5
+offset_bottom = 601.5
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.08, 0.08, 0.08, 0.78039217)
+
+[node name="Close" type="Button" parent="HelpScreen" unique_id=2134710318]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -204.0
+offset_top = 364.0
+offset_right = 204.0
+offset_bottom = 492.0
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(1.35, 1.35)
+pivot_offset_ratio = Vector2(0.5, 0.5)
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_pressed_color = Color(0.15487596, 0.154876, 0.15487596, 1)
+theme_override_colors/font_hover_pressed_color = Color(0.16745102, 0.16745102, 0.16745102, 1)
+theme_override_fonts/font = ExtResource("3_h223f")
+theme_override_font_sizes/font_size = 83
+theme_override_styles/normal = SubResource("StyleBoxTexture_u0fm7")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_vuv8w")
+theme_override_styles/hover = SubResource("StyleBoxTexture_l3r6a")
+theme_override_styles/hover_pressed = SubResource("StyleBoxTexture_vuv8w")
+text = "Close"
+icon = ExtResource("6_vuv8w")
+flat = true
+icon_alignment = 1
+expand_icon = true
+
+[node name="Label" type="Label" parent="HelpScreen" unique_id=1619281180]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -938.0
+offset_top = -457.0
+offset_right = 938.0
+offset_bottom = 332.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 50
+text = "WSAD to move, J, K and L for attacks, hold shift to maintain your facing direction.
+
+Dont let the bad guys kill the castle 
+
+When you attack a flow bar will fill, if you press the attack button again when it is in the green you will execute the attack immediately and deal full damage, this is important for DPS. (The L attack is a double flow check)
+
+The blacksmith to the right when you start will sell upgrades, use J to purchase the left one and K to purchase the right one."
+horizontal_alignment = 1
+autowrap_mode = 2

@@ -22,6 +22,8 @@ enum StatType {
 	UPGRADE_HP,      ## Increases the player's max HP by stat_amount.
 	RESET_FLOW,      ## Resets the player's flow window size curves back to the start of the run.
 	FREEZE_ENEMIES,  ## Freezes all enemies and pauses spawning for stat_amount seconds.
+	TOWER_ARCHER_RIGHT,  ## Activates the right-side tower archer in the level.
+	TOWER_ARCHER_LEFT,   ## Activates the left-side tower archer in the level.
 }
 
 @export_group("Identity")
@@ -45,3 +47,11 @@ enum StatType {
 ## X = normalised run time, Y = ticket count (rounded to int, minimum 0).
 ## A flat Curve with Y = 5 means always 5 tickets throughout the run.
 @export var pool_tickets_curve: Curve
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+## Returns true if this upgrade applies only to the individual player who bought it
+## (ATTACK, SPEED, UPGRADE_HP, RESET_FLOW). False for shared world effects
+## (HEAL_CASTLE, UPGRADE_CASTLE, FREEZE_ENEMIES) which the host applies for everyone.
+func is_personal() -> bool:
+	return stat_type in [StatType.ATTACK, StatType.SPEED, StatType.UPGRADE_HP, StatType.RESET_FLOW]
