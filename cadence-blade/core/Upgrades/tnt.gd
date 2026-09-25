@@ -37,11 +37,21 @@ func _process(delta: float) -> void:
 	var target: Vector2 = owner_player.global_position + follow_offset
 	global_position = global_position.lerp(target, lerp_speed * delta)
 
-	# Check if our Area2D is overlapping any active enemy tower's interaction area.
+	# Check if our Area2D is overlapping any relevant enemy tower's interaction area.
+	# "Relevant" = active OR already destroyed (not "never activated"). The plain
+	# is_active check used to skip an already-destroyed tower — which breaks the
+	# joiner's cosmetic TNT copy: it lerps toward the buyer's position over real
+	# time, and the host's authoritative "tower_destroyed" packet (sent the instant
+	# the host's own TNT reaches the tower) routinely arrives before this copy
+	# finishes its travel, flipping is_active false first. Matching is_destroyed
+	# too means a tower the host just blew up (or a chained tower the joiner never
+	# locally activated) still gets matched, so this TNT explodes instead of
+	# hovering forever. A tower that was never activated on this peer still has
+	# both flags false and is correctly skipped.
 	for tower in get_tree().get_nodes_in_group(&"enemy_towers"):
 		if not tower.has_method(&"destroy"):
 			continue
-		if not tower.get("is_active"):
+		if not tower.get("is_active") and not tower.get("is_destroyed"):
 			continue
 		var t_area: Area2D = tower.get("interaction_area") as Area2D
 		if t_area == null:

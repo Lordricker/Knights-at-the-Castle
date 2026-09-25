@@ -188,6 +188,12 @@ func _fire_arrow() -> void:
 		shoot_dir = shoot_dir.rotated(deg_to_rad(arrow_angle * -facing))
 
 	arrow.collision_mask = 1  # enemy arrows target players only (layer 1)
+	# Arrow._ready() defaults collision_layer to 32 (the player-attack layer that
+	# lets a PLAYER'S arrow hit an enemy's head/body HurtBox). Left unset here,
+	# this enemy arrow would sit on that same layer and could trigger another
+	# enemy's own HurtBox (e.g. the dragon's head/body) — friendly fire. Layer 1
+	# matches the "enemy attack" layer every other enemy hitbox defaults to.
+	arrow.collision_layer = 1
 	arrow.configure(global_position, shoot_dir, arrow_speed, arrow_damage, 0.0)
 	arrow.lifetime = arrow_lifetime
 	var dmg := arrow_damage
@@ -233,6 +239,7 @@ func _fire_combo_arrow() -> void:
 	# Tint the arrow with its own combo_color_1 (set before add_child so _ready applies it).
 	arrow.set_combo_color(arrow.combo_color_1)
 	arrow.collision_mask = 1  # enemy arrows target players only (layer 1)
+	arrow.collision_layer = 1  # see _fire_arrow() — keep off the player-attack layer
 	arrow.configure(global_position, shoot_dir, combo_arrow_speed, combo_damage, 0.0)
 	arrow.lifetime = combo_arrow_lifetime
 	var dmg := combo_damage

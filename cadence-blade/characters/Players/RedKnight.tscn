@@ -30,6 +30,30 @@ _limits = [0.0, 1.0, 0.0, 10.0]
 _data = [Vector2(1.7402945, 0.6586658), 0.0, -0.5831581, 0, 0, Vector2(3.4939759, 0.08000904), -0.027916333, 0.0, 0, 0]
 point_count = 2
 
+[sub_resource type="AtlasTexture" id="AtlasTexture_5naqg"]
+atlas = ExtResource("2_jjg8s")
+region = Rect2(512, 600, 128, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_41ypl"]
+atlas = ExtResource("2_jjg8s")
+region = Rect2(640, 600, 128, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_iqdrs"]
+atlas = ExtResource("2_jjg8s")
+region = Rect2(768, 600, 128, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_cae3f"]
+atlas = ExtResource("2_jjg8s")
+region = Rect2(896, 600, 128, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_trh1e"]
+atlas = ExtResource("2_jjg8s")
+region = Rect2(0, 700, 128, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_psyqn"]
+atlas = ExtResource("2_jjg8s")
+region = Rect2(128, 700, 128, 100)
+
 [sub_resource type="AtlasTexture" id="AtlasTexture_u5iqw"]
 atlas = ExtResource("2_jjg8s")
 region = Rect2(128, 500, 128, 100)
@@ -225,10 +249,33 @@ region = Rect2(512, 200, 128, 100)
 [sub_resource type="SpriteFrames" id="SpriteFrames_rvc6b"]
 animations = [{
 "frames": [{
+"duration": 3.0,
+"texture": SubResource("AtlasTexture_5naqg")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_41ypl")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_iqdrs")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_cae3f")
+}, {
+"duration": 6.0,
+"texture": SubResource("AtlasTexture_trh1e")
+}, {
+"duration": 3.0,
+"texture": SubResource("AtlasTexture_psyqn")
+}],
+"loop": 0,
+"name": &"buff",
+"speed": 6.0
+}, {
+"frames": [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_u5iqw")
 }],
-"loop": true,
+"loop": 1,
 "name": &"heal",
 "speed": 5.0
 }, {
@@ -254,7 +301,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_p645o")
 }],
-"loop": true,
+"loop": 1,
 "name": &"idle",
 "speed": 6.0
 }, {
@@ -277,7 +324,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_e8ydy")
 }],
-"loop": true,
+"loop": 1,
 "name": &"running",
 "speed": 6.0
 }, {
@@ -318,7 +365,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_yu8gj")
 }],
-"loop": false,
+"loop": 0,
 "name": &"slash",
 "speed": 6.0
 }, {
@@ -347,7 +394,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_lkfki")
 }],
-"loop": false,
+"loop": 0,
 "name": &"spin",
 "speed": 6.0
 }, {
@@ -394,7 +441,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_trl20")
 }],
-"loop": false,
+"loop": 0,
 "name": &"thrust",
 "speed": 6.0
 }]
@@ -426,7 +473,7 @@ y_sort_enabled = true
 [node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=1552212822 node_paths=PackedStringArray("body_box", "facing_pivot", "health_bar", "flow_bar", "hit_particles") groups=["Kill"]]
 y_sort_enabled = true
 script = ExtResource("1_6xwxy")
-slash_damage = 30.0
+slash_damage = 25.0
 slash_knockback_force = 200.0
 slash_flow_fill_duration = 0.9
 slash_flow_miss_multiplier = 0.8
@@ -445,6 +492,7 @@ thrust_flow_window_size_curve = SubResource("Curve_6qwqa")
 thrust_swing_sound = ExtResource("3_5naqg")
 thrust_swing_sound_frames = Array[int]([5])
 spin_damage = 60.0
+spin_knockback_force = 700.0
 spin_flow_fill_duration = 1.5
 spin_flow_miss_multiplier = 0.8
 spin_flow_window_center = 0.4
@@ -452,6 +500,12 @@ spin_flow_window_random_range = 0.0
 spin_flow_window_size_curve = SubResource("Curve_5naqg")
 spin_swing_sound = ExtResource("2_u5iqw")
 spin_swing_sound_frames = Array[int]([5])
+prepare_damage_reduction = 0.5
+prepare_buff_duration = 10.0
+prepare_bar_background_color = Color(0.05882353, 0.05882353, 0.05882353, 0.16470589)
+prepare_bar_foreground_color = Color(1, 1, 0.2, 1)
+prepare_bar_height_above_origin = 35.0
+prepare_bar_height = 2.0
 display_name = "Arthur \"Steel, honor, and a sword too large for hesitation.\""
 body_box = NodePath("bodyBox")
 max_health = 200.0
@@ -471,8 +525,8 @@ hit_sound_fireball = ExtResource("8_psyqn")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="CharacterBody2D/Pivot" unique_id=1262161212]
 sprite_frames = SubResource("SpriteFrames_rvc6b")
-animation = &"thrust"
-frame = 13
+animation = &"buff"
+frame = 5
 frame_progress = 1.0
 
 [node name="SlashHitbox" type="Area2D" parent="CharacterBody2D/Pivot" unique_id=1571313381]

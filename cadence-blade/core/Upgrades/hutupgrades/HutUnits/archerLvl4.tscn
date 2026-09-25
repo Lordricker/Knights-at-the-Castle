@@ -156,8 +156,8 @@ animations = [{
 "speed": 6.0
 }]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_c4v63"]
-size = Vector2(24.532898, 267.2583)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_oyjtn"]
+size = Vector2(33.807693, 20)
 
 [sub_resource type="Curve" id="Curve_5thrq"]
 _data = [Vector2(0, 1), 0.0, -0.46075952, 0, 1, Vector2(1, 0.5392405), -0.46075952, 0.0, 1, 0]
@@ -198,6 +198,10 @@ visible = false
 position = Vector2(0, 4)
 shape = SubResource("RectangleShape2D_t1y0h")
 
+[node name="NavigationAgent2D" type="NavigationAgent2D" parent="CharacterBody2D"]
+path_desired_distance = 8.0
+target_desired_distance = 8.0
+
 [node name="Pivot" type="Node2D" parent="CharacterBody2D" unique_id=1319081332]
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="CharacterBody2D/Pivot" unique_id=1924966790]
@@ -213,10 +217,8 @@ collision_mask = 2
 monitorable = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D/Pivot/DetectionZone" unique_id=688663001]
-position = Vector2(179.44667, -117.00061)
-rotation = -0.30892327
-scale = Vector2(0.9999999, 0.9999999)
-shape = SubResource("RectangleShape2D_c4v63")
+scale = Vector2(16, 16)
+shape = SubResource("RectangleShape2D_oyjtn")
 debug_color = Color(0.6837786, 0.5034512, 0, 0.41960785)
 
 [node name="HPBar" parent="CharacterBody2D/Pivot" unique_id=1780535160 instance=ExtResource("8_3kqsr")]

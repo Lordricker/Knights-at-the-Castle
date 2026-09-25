@@ -14,6 +14,8 @@ extends CanvasLayer
 #     • game_over_label    — optional Label for "CASTLE DESTROYED" text
 #     • game_over_time_label — optional Label for "Survived 1:23" text
 #     • restart_button / quit_button — Buttons inside game_over_control
+#     • podium_first / podium_second / podium_third — PodiumPlace nodes; filled with each
+#       player's kills and character, best first. Spots with no player are hidden.
 
 # ── Exports ───────────────────────────────────────────────────────────────────
 
@@ -47,6 +49,47 @@ extends CanvasLayer
 @export var quit_button: Button
 ## Smaller quit button visible during play (not just on game-over screen).
 @export var in_game_quit_button: Button
+## Podium spots (PodiumPlace on the game-over screen). Filled by kill count, best first.
+@export var podium_first: PodiumPlace
+@export var podium_second: PodiumPlace
+@export var podium_third: PodiumPlace
+
+@export_group("Pause Menu")
+## Button that opens the pause menu. Automatically hidden in online sessions —
+## you can't freeze the tree without desyncing peers, so pause is solo-only.
+@export var pause_button: Button
+## Root Control for the pause overlay. Hidden by default. Set its process_mode to
+## "When Paused" in the Inspector so its buttons still respond while the tree is frozen.
+@export var pause_control: Control
+## Resume button inside pause_control.
+@export var pause_resume_button: Button
+## Restart button inside pause_control (reuses the game-over restart path).
+@export var pause_restart_button: Button
+## Quit-to-menu button inside pause_control.
+@export var pause_quit_button: Button
+## Opens the character-details panel from the pause menu.
+@export var pause_details_button: Button
+## The details panel itself (holds the per-character containers + a Close button).
+## Hidden until pause_details_button is pressed.
+@export var pause_details_panel: Control
+## Close button inside pause_details_panel — hides it, back to the pause menu.
+@export var pause_details_close_button: Button
+## Per-character detail containers inside pause_details_panel. Only the one
+## matching the player's chosen character (GameManager.my_character) is shown.
+@export var pause_knight_container: Control
+@export var pause_archer_container: Control
+@export var pause_rogue_container: Control
+
+@export_group("Tutorial")
+## Root Control shown/hidden while a tutorial explanation panel is up.
+## Its process_mode is "When Paused" so it stays interactive while the tree is frozen.
+@export var tutorial_pause_control: Control
+## Label inside tutorial_pause_control showing the current step's instructions.
+@export var tutorial_panel_label: Label
+## Full-rect invisible button behind/over the panel — "click anywhere to continue".
+@export var tutorial_advance_button: Button
+## Panel flashed over the stat pips to draw attention to them.
+@export var tutorial_stat_highlight: Control
 
 @export_group("Settings Screen")
 ## Root Control for the in-run settings overlay. Hidden by default.
@@ -70,6 +113,17 @@ var _prev_coins: int = 0
 var _prev_minute: int = -1
 var _coins_tween: Tween = null
 var _timer_tween: Tween = null
+var _stat_highlight_tween: Tween = null
+
+# Castle HP bar shake — mirrors level_camera.gd's trauma-based shake.
+const HP_BAR_SHAKE_MAX_OFFSET: float = 8.0
+const HP_BAR_SHAKE_DECAY: float = 3.0
+var _hp_bar_shake_trauma: float = 0.0
+var _hp_bar_base_position: Vector2 = Vector2.ZERO
+## The node actually shaken. castle_hp_bar (VerticalHealthBar) has no sprites
+## of its own — its fill draws into a sibling sprite (HpFill) — so we shake
+## its parent (the CastleHPBar root), which holds all the visible sprites.
+var _hp_bar_shake_node: Node2D = null
 
 # ── Lifecycle ─────────────────────────────────────────────────────────────────
 
@@ -80,6 +134,11 @@ func _ready() -> void:
 		game_over_control.hide()
 	if settings_control != null:
 		settings_control.hide()
+	# HUD keeps processing while the tree is paused so keyboard pause-toggle and
+	# the pause overlay's buttons still work. _process() early-outs when paused.
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	_setup_pause_menu()
+	_setup_tutorial_ui()
 	var _focus_empty := StyleBoxEmpty.new()
 	if restart_button != null:
 		restart_button.pressed.connect(_on_restart_pressed)
@@ -119,7 +178,11 @@ func _ready() -> void:
 	_refresh_best_time_label()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	# process_mode is ALWAYS (see _ready) so keyboard pause-toggle keeps working;
+	# skip all the per-frame HUD work while the run is frozen.
+	if get_tree().paused:
+		return
 	# Update the live timer label every frame.
 	if hud_timer_label != null and run_manager != null and "time_elapsed" in run_manager:
 		var total: int = int(run_manager.time_elapsed)
@@ -135,9 +198,27 @@ func _process(_delta: float) -> void:
 		_try_connect_castle_hp()
 	if run_manager == null:
 		_resolve_run_manager()
+	_update_hp_bar_shake(delta)
+
+
+func _update_hp_bar_shake(delta: float) -> void:
+	if _hp_bar_shake_node == null or _hp_bar_shake_trauma <= 0.0:
+		return
+	var falloff := _hp_bar_shake_trauma * _hp_bar_shake_trauma
+	var shake_offset := Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * HP_BAR_SHAKE_MAX_OFFSET * falloff
+	_hp_bar_shake_node.position = _hp_bar_base_position + shake_offset
+	_hp_bar_shake_trauma = maxf(0.0, _hp_bar_shake_trauma - HP_BAR_SHAKE_DECAY * delta)
+	if _hp_bar_shake_trauma <= 0.0:
+		_hp_bar_shake_node.position = _hp_bar_base_position
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	# Esc toggles the pause menu in solo runs (also unpauses).
+	if event.is_action_pressed(&"ui_cancel") and _can_pause() \
+			and not (game_over_control and game_over_control.visible):
+		_toggle_pause()
+		get_viewport().set_input_as_handled()
+		return
 	if not (game_over_control and game_over_control.visible):
 		return
 	if event.is_action_pressed(&"move_up"):
@@ -191,6 +272,11 @@ func _try_connect_castle_hp() -> void:
 	if castle_node == null or not castle_node.has_signal(&"health_changed"):
 		return
 	castle_node.health_changed.connect(_on_castle_health_changed)
+	if castle_node.has_signal(&"low_hp_pulse"):
+		castle_node.low_hp_pulse.connect(_on_castle_low_hp_pulse)
+	var parent := castle_hp_bar.get_parent()
+	_hp_bar_shake_node = parent if parent is Node2D else castle_hp_bar
+	_hp_bar_base_position = _hp_bar_shake_node.position
 	if "health" in castle_node and "max_health" in castle_node:
 		_on_castle_health_changed(castle_node.health, castle_node.max_health)
 	_castle_hp_connected = true
@@ -199,6 +285,10 @@ func _try_connect_castle_hp() -> void:
 func _on_castle_health_changed(new_health: float, max_hp: float) -> void:
 	if castle_hp_bar != null:
 		castle_hp_bar.set_health(new_health, max_hp)
+
+
+func _on_castle_low_hp_pulse() -> void:
+	_hp_bar_shake_trauma = 1.0
 
 
 func _try_connect_coins() -> void:
@@ -266,8 +356,10 @@ func _play_timer_juice() -> void:
 
 # ── Game over ─────────────────────────────────────────────────────────────────
 
-## Called by RunManager when the castle dies.
-func show_screen(run_time_seconds: float) -> void:
+## Called by RunManager when the castle dies. standings is the podium order, best first
+## ({"slot", "ch" (character key), "k" (kills)}); character_scenes maps "ch" to the
+## character's PackedScene so each podium spot can show its idle animation.
+func show_screen(run_time_seconds: float, standings: Array = [], character_scenes: Dictionary = {}) -> void:
 	GameManager.submit_time(run_time_seconds)
 	_refresh_best_time_label()
 	_selected = 0
@@ -279,7 +371,23 @@ func show_screen(run_time_seconds: float) -> void:
 		var mins := int(run_time_seconds) / 60
 		var secs := int(run_time_seconds) % 60
 		game_over_time_label.text = "Survived  %d:%02d" % [mins, secs]
+	_fill_podium(standings, character_scenes)
 	_update_selection()
+
+
+## Spots with no player behind them are hidden, so a solo run stands alone in first.
+func _fill_podium(standings: Array, character_scenes: Dictionary) -> void:
+	var places: Array[PodiumPlace] = [podium_first, podium_second, podium_third]
+	for i in places.size():
+		var place: PodiumPlace = places[i]
+		if place == null:
+			continue
+		if i >= standings.size():
+			place.hide()
+			continue
+		var entry: Dictionary = standings[i]
+		place.show_entry(int(entry.get("k", 0)),
+				character_scenes.get(String(entry.get("ch", ""))) as PackedScene)
 
 
 func _refresh_best_time_label() -> void:
@@ -291,6 +399,134 @@ func _refresh_best_time_label() -> void:
 		var mins := int(GameManager.best_time) / 60
 		var secs := int(GameManager.best_time) % 60
 		hud_best_time_label.text = "BEST: %d:%02d" % [mins, secs]
+
+
+# ── Pause menu ────────────────────────────────────────────────────────────────
+
+## Pause is solo-only: freezing get_tree() in an online session would desync peers.
+func _can_pause() -> bool:
+	return GameManager.session_id == ""
+
+
+func _setup_pause_menu() -> void:
+	if pause_control != null:
+		pause_control.hide()
+		pause_control.process_mode = Node.PROCESS_MODE_WHEN_PAUSED
+	if pause_button != null:
+		pause_button.visible = _can_pause()
+		if _can_pause():
+			pause_button.pressed.connect(_toggle_pause)
+	if pause_resume_button != null:
+		pause_resume_button.pressed.connect(_set_paused.bind(false))
+	if pause_restart_button != null:
+		pause_restart_button.pressed.connect(func() -> void:
+			_set_paused(false)
+			_on_restart_pressed())
+	if pause_quit_button != null:
+		pause_quit_button.pressed.connect(func() -> void:
+			_set_paused(false)
+			_on_quit_pressed())
+	if pause_details_panel != null:
+		pause_details_panel.hide()
+	if pause_details_button != null:
+		pause_details_button.pressed.connect(_open_pause_details)
+	if pause_details_close_button != null:
+		pause_details_close_button.pressed.connect(_close_pause_details)
+
+
+func _toggle_pause() -> void:
+	_set_paused(not get_tree().paused)
+
+
+func _set_paused(want_paused: bool) -> void:
+	if not _can_pause():
+		return
+	get_tree().paused = want_paused
+	if pause_control != null:
+		pause_control.visible = want_paused
+	# Always return to the pause menu proper — details panel opens on demand.
+	if not want_paused:
+		_close_pause_details()
+	elif pause_details_panel != null:
+		pause_details_panel.hide()
+
+
+## Opens the character-details panel showing only the player's character.
+func _open_pause_details() -> void:
+	_show_pause_character(GameManager.my_character)
+	if pause_details_panel != null:
+		pause_details_panel.show()
+
+
+func _close_pause_details() -> void:
+	if pause_details_panel != null:
+		pause_details_panel.hide()
+
+
+## Shows only the details container matching the player's chosen character.
+## Falls back to the Knight (the default solo character) for an unset key.
+func _show_pause_character(character_key: String) -> void:
+	var containers := {
+		"red_knight":   pause_knight_container,
+		"green_archer": pause_archer_container,
+		"rogue":        pause_rogue_container,
+	}
+	var shown_key := character_key if character_key in containers else "red_knight"
+	for key in containers:
+		var c: Control = containers[key]
+		if c != null:
+			c.visible = (key == shown_key)
+
+
+# ── Tutorial panel ────────────────────────────────────────────────────────────
+
+func _setup_tutorial_ui() -> void:
+	if tutorial_pause_control != null:
+		tutorial_pause_control.hide()
+	if tutorial_stat_highlight != null:
+		tutorial_stat_highlight.modulate.a = 0.0
+	if tutorial_advance_button != null:
+		var empty := StyleBoxEmpty.new()
+		for style_name in ["normal", "hover", "pressed", "focus", "disabled"]:
+			tutorial_advance_button.add_theme_stylebox_override(style_name, empty)
+		tutorial_advance_button.text = ""
+		tutorial_advance_button.focus_mode = Control.FOCUS_NONE
+
+
+## Called by TutorialRunManager. Shows the pause-and-explain panel with `text`;
+## the caller awaits tutorial_advance_button.pressed to know when it was dismissed.
+func show_tutorial_panel(text: String) -> void:
+	if tutorial_panel_label != null:
+		tutorial_panel_label.text = text
+	if tutorial_pause_control != null:
+		tutorial_pause_control.show()
+
+
+func hide_tutorial_panel() -> void:
+	if tutorial_pause_control != null:
+		tutorial_pause_control.hide()
+	_stop_stat_highlight()
+
+
+## Pulses the stat pips highlight (0 -> 200 -> 0 alpha, repeating) to draw the
+## player's attention to them. Runs until hide_tutorial_panel() stops it.
+func flash_stat_highlight() -> void:
+	if tutorial_stat_highlight == null:
+		return
+	_stop_stat_highlight()
+	tutorial_stat_highlight.modulate.a = 0.0
+	_stat_highlight_tween = create_tween()
+	_stat_highlight_tween.set_loops()
+	_stat_highlight_tween.tween_property(tutorial_stat_highlight, "modulate:a", 200.0 / 255.0, 0.5)
+	_stat_highlight_tween.tween_property(tutorial_stat_highlight, "modulate:a", 0.0, 0.5)
+
+
+func _stop_stat_highlight() -> void:
+	if _stat_highlight_tween != null and _stat_highlight_tween.is_valid():
+		_stat_highlight_tween.kill()
+	_stat_highlight_tween = null
+	if tutorial_stat_highlight != null:
+		tutorial_stat_highlight.modulate.a = 0.0
 
 
 # ── Button callbacks ──────────────────────────────────────────────────────────

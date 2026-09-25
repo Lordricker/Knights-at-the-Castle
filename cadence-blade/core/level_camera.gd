@@ -27,8 +27,22 @@ extends Camera2D
 @export var joiner_position_smooth_speed: float = 10.0
 ## Zoom smoothing used on the joiner to avoid abrupt framing changes during corrections.
 @export var joiner_zoom_smooth_speed: float = 8.0
+@export_group("Shake")
+## Max world-space pixel offset applied at full trauma (trauma = 1.0).
+@export var shake_max_offset: float = 16.0
+## How fast trauma decays per second (1.0 = fully decays in ~1 second).
+@export var shake_decay: float = 2.5
 
 var _camera_initialized: bool = false
+## 0..1 "trauma" driving the shake offset; decays each frame. See add_shake().
+var _shake_trauma: float = 0.0
+
+
+func _ready() -> void:
+	# Read player positions after RunManager has interpolated the remote puppets this
+	# frame. Scene order happens to give this today, but players are added at runtime,
+	# so state it explicitly rather than depending on that.
+	process_priority = 100
 
 
 func _process(delta: float) -> void:
@@ -55,21 +69,50 @@ func _process(delta: float) -> void:
 	var target_center: Vector2 = _calc_center(players)
 	var target_zoom_val: float = _calc_zoom(players)
 	var target_zoom := Vector2(target_zoom_val, target_zoom_val)
-	var smooth_joiner_camera: bool = GameManager.session_id != "" and not GameManager.is_host
+	var online: bool = GameManager.session_id != ""
+	# Position smoothing stays joiner-only. On the host it would put the camera behind
+	# the host's own authoritative character, which is a real feel regression in a
+	# timing game — and with remote puppets now interpolated, target_center is already
+	# smooth, so there is nothing left for it to fix.
+	var smooth_position: bool = online and not GameManager.is_host
 
 	if not _camera_initialized:
 		global_position = target_center
 		zoom = target_zoom
 		_camera_initialized = true
-	elif smooth_joiner_camera:
-		global_position = global_position.lerp(target_center, minf(joiner_position_smooth_speed * delta, 1.0))
-		zoom = zoom.lerp(target_zoom, minf(joiner_zoom_smooth_speed * delta, 1.0))
 	else:
-		global_position = target_center
-		zoom = target_zoom
+		if smooth_position:
+			global_position = global_position.lerp(target_center, minf(joiner_position_smooth_speed * delta, 1.0))
+		else:
+			global_position = target_center
+		# Zoom is smoothed on both sides of an online session: it is a function of the
+		# player bounding box, so any residual remote-position noise would otherwise
+		# modulate the scale of the entire screen.
+		if online:
+			zoom = zoom.lerp(target_zoom, minf(joiner_zoom_smooth_speed * delta, 1.0))
+		else:
+			zoom = target_zoom
+
+	global_position += _calc_shake_offset(delta)
 
 	# Round after smoothing to keep the pixel-art camera crisp.
 	global_position = global_position.round()
+
+
+## Adds trauma (clamped to 1.0) that decays over time, driving a per-frame shake offset.
+## Call from combat code, e.g. a flow-attack crit landing: camera.add_shake(0.6).
+func add_shake(amount: float) -> void:
+	_shake_trauma = clampf(_shake_trauma + amount, 0.0, 1.0)
+
+
+## Returns this frame's random shake offset and advances trauma decay.
+func _calc_shake_offset(delta: float) -> Vector2:
+	if _shake_trauma <= 0.0:
+		return Vector2.ZERO
+	var falloff := _shake_trauma * _shake_trauma
+	var shake_offset := Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * shake_max_offset * falloff
+	_shake_trauma = maxf(0.0, _shake_trauma - shake_decay * delta)
+	return shake_offset
 
 
 func _calc_center(players: Array[Node]) -> Vector2:
@@ -98,4 +141,7 @@ func _calc_zoom(players: Array[Node]) -> float:
 
 	# Pick the axis that needs more zoom-out so both axes fit.
 	var zoom_fit: float = minf(vp.x / span.x, vp.y / span.y)
-	return clampf(zoom_fit, min_zoom, single_player_zoom)
+	# Quantise so small changes in player separation cannot modulate the scale of the
+	# whole screen. 1/16 steps are invisible at these zoom levels, while continuous
+	# zoom turns any residual remote-position noise into full-screen breathing.
+	return snappedf(clampf(zoom_fit, min_zoom, single_player_zoom), 0.0625)

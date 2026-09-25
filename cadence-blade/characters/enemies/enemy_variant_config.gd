@@ -41,3 +41,5 @@ extends Resource
 ## Which coin tier drops when killed with a perfect flow hit.
 ## Set to 0 to use the same tier as a normal kill.
 @export_enum("None", "Coin (1)", "Coin 2 (2)", "Coin 4 (4)") var flow_kill_coin_tier: int = 0
+## Optional second coin dropped alongside the first on death. 0 = none.
+@export_enum("None", "Coin (1)", "Coin 2 (2)", "Coin 4 (4)") var coin_tier_2: int = 0

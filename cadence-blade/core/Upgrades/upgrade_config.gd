@@ -55,3 +55,15 @@ enum StatType {
 ## (HEAL_CASTLE, UPGRADE_CASTLE, FREEZE_ENEMIES) which the host applies for everyone.
 func is_personal() -> bool:
 	return stat_type in [StatType.ATTACK, StatType.SPEED, StatType.UPGRADE_HP, StatType.RESET_FLOW]
+
+
+## Maps this upgrade to a CharacterBase.stat_pips category, or "" for world upgrades.
+## Stat upgrades use pip counts for their escalating cost and cap at MAX_PIPS
+## (except "flow", which refills). `cost` on the resource is the BASE cost.
+func pip_category() -> String:
+	match stat_type:
+		StatType.UPGRADE_HP: return "hp"
+		StatType.ATTACK:     return "attack"
+		StatType.SPEED:      return "speed"
+		StatType.RESET_FLOW: return "flow"
+	return ""

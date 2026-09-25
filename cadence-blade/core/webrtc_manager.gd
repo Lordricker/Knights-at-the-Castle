@@ -1,31 +1,41 @@
 # webrtc_manager.gd
-# Raw WebRTC data-channel transport + Firebase signaling.
+# Raw WebRTC data-channel transport + Firebase signaling — STAR topology.
 #
 # Architecture:
-#   Two WebRTCDataChannels (negotiated, fixed ids):
-#       "reliable"   — ordered, guaranteed (spawn/despawn/gameover events)
+#   The host keeps one PeerLink per joiner slot (2, 3). Each joiner keeps a single
+#   PeerLink to the host. Joiners never connect to each other — the host is the
+#   sole authority and relays all display state.
+#
+#   Each link owns two negotiated WebRTCDataChannels (fixed ids):
+#       "reliable"   — ordered, guaranteed (spawn/despawn/gameover/purchases/hello)
 #       "unreliable" — unreliable ordered  (input + state snapshots)
 #   NO WebRTCMultiplayerPeer, NO @rpc, NO multiplayer.get_unique_id().
-#   Host runs all physics; joiner sends input and receives state.
-#   Firebase is signaling only — no gameplay traffic touches Firebase.
+#
+#   Firebase is signaling only. Each joiner slot uses its own namespace:
+#       /signaling/{sid}/{slot}/offer | answer | ice_host | ice_joiner
 #
 # Public API:
-#   send_reliable(d: Dictionary)   — reliable ordered packet
-#   send_unreliable(d: Dictionary) — unreliable ordered packet
+#   host_session(session_id)            — (re)arm signaling for every free joiner slot
+#   join_session(session_id, my_slot)   — connect to the host as `my_slot`
+#   send_reliable(d)   / send_unreliable(d)   — host: broadcast to all links; joiner: to host
+#   send_reliable_to(slot, d)                 — host: targeted to one joiner slot
+#   disconnect_peer()                         — tear everything down
 #
 # Signals:
-#   connected()                    — both data channels are open
-#   disconnected()                 — peer dropped / connection failed
-#   packet_received(d: Dictionary) — inbound packet (either channel)
-#   debug_status(msg: String)      — live log line for UI / console
-#
-# Add as autoload: Project > Project Settings > Autoload
-#   Name: WebRTCManager   Path: res://core/webrtc_manager.gd
+#   connected()                    — this peer has its first open link
+#   disconnected()                 — joiner: lost the host / host: lost every link
+#   peer_connected(slot)           — a link to `slot` just opened
+#   peer_disconnected(slot)        — an open link to `slot` dropped
+#   packet_received(data)          — inbound packet; data["_from"] = sender slot
+#   connection_failed(reason)      — signaling failed before any link opened
+#   debug_status(message)          — live log line for UI / console
 
 extends Node
 
 signal connected()
 signal disconnected()
+signal peer_connected(slot: int)
+signal peer_disconnected(slot: int)
 signal packet_received(data: Dictionary)
 signal connection_failed(reason: String)
 ## Emitted at each signaling step so the UI can display live progress.
@@ -34,53 +44,64 @@ signal debug_status(message: String)
 enum State { IDLE, SIGNALING, CONNECTED }
 var state: State = State.IDLE
 
-const ICE_SERVERS: Array = [
-	{"urls": "stun:stun.relay.metered.ca:80"},
-	{"urls": "turn:global.relay.metered.ca:80",                    "username": "28a7d695fb2888e9055f8a30", "credential": "fGphVlenByKERTrN"},
-	{"urls": "turn:global.relay.metered.ca:80?transport=tcp",      "username": "28a7d695fb2888e9055f8a30", "credential": "fGphVlenByKERTrN"},
-	{"urls": "turn:global.relay.metered.ca:443",                   "username": "28a7d695fb2888e9055f8a30", "credential": "fGphVlenByKERTrN"},
-	{"urls": "turns:global.relay.metered.ca:443?transport=tcp",    "username": "28a7d695fb2888e9055f8a30", "credential": "fGphVlenByKERTrN"},
-]
+## STUN/TURN servers come from IceConfig, which fetches short-lived relay credentials
+## at runtime — see core/ice_config.gd for why they are no longer listed here.
 
-## How often (seconds) to poll Firebase for the remote SDP and ICE candidates.
-const POLL_INTERVAL: float = 0.8
+## Poll interval (seconds) while a mid-handshake link exchanges answer/ICE — kept
+## short so connection latency stays low.
+const ACTIVE_POLL_INTERVAL: float = 0.8
+## Poll interval (seconds) while the host is merely *waiting* for a joiner's offer.
+## Longer, to keep idle Firebase traffic on an open public session low.
+const IDLE_POLL_INTERVAL: float = 2.5
 ## How often (seconds) to batch and write locally collected ICE candidates to Firebase.
 const ICE_BATCH_INTERVAL: float = 0.5
-## Seconds before giving up on a connection attempt.
+## Seconds before giving up on a joiner-side connection attempt.
 const CONNECT_TIMEOUT: float = 40.0
+## Joiner slots the host will accept, lowest first. The host arms only ONE pending
+## slot at a time — the next is armed once the current one connects.
+const HOST_SLOTS: Array = [2, 3]
 
 var _is_host: bool = false
 var _session_id: String = ""
-var _peer_conn: WebRTCPeerConnection = null
-var _ch_reliable:   WebRTCDataChannel = null
-var _ch_unreliable: WebRTCDataChannel = null
+## Joiner: this peer's own slot. Host: always 1.
+var _my_slot: int = 1
+## Whether this peer is currently hosting / joining (drives re-arm + aggregate state).
+var _hosting: bool = false
+var _joining: bool = false
+## Whether connected() has already been emitted this session.
+var _emitted_connected: bool = false
 
-var _poll_timer: float = 0.0
-var _ice_batch_timer: float = 0.0
-var _connect_timer: float = 0.0
-var _debug_timer: float = 0.0
-## Total local ICE candidates generated this session.
-var _ice_local_count: int = 0
-## Last known connection/gathering states -- used to detect transitions.
-var _last_conn_state: int = -1
-var _last_gather_state: int = -1
+## remote_slot -> PeerLink. Host: entries for joiner slots. Joiner: single entry keyed 1.
+var _links: Dictionary = {}
 
-var _offer_sent: bool = false
-var _offer_received: bool = false
-var _answer_sent: bool = false
-var _answer_received: bool = false
 
-## Local ICE candidates pending the next batch flush to Firebase.
-var _pending_local_ice: Array[Dictionary] = []
-## All local ICE candidates accumulated this session (written in full each flush).
-var _all_local_ice: Array[Dictionary] = []
-## Count of remote ICE candidates we have already applied.
-var _remote_ice_applied: int = 0
-## Set to true once set_remote_description() has been called for this side.
-## addIceCandidate() must not be called before the remote SDP is accepted.
-var _remote_sdp_set: bool = false
-## ICE candidates received before remote SDP was ready; applied once it is.
-var _buffered_remote_ice: Array[Dictionary] = []
+## Per-connection signaling + channel state.
+class PeerLink:
+	## Host: the joiner's slot. Joiner: 1 (the host).
+	var slot: int = 0
+	var conn: WebRTCPeerConnection = null
+	var ch_reliable: WebRTCDataChannel = null
+	var ch_unreliable: WebRTCDataChannel = null
+
+	var offer_sent: bool = false
+	var offer_received: bool = false
+	var answer_sent: bool = false
+	var answer_received: bool = false
+	var remote_sdp_set: bool = false
+
+	var pending_local_ice: Array = []
+	var all_local_ice: Array = []
+	var remote_ice_applied: int = 0
+	var buffered_remote_ice: Array = []
+
+	var poll_timer: float = 0.0
+	var ice_batch_timer: float = 0.0
+	var connect_timer: float = 0.0
+	var debug_timer: float = 0.0
+	var last_conn_state: int = -1
+	var last_gather_state: int = -1
+
+	var is_open: bool = false
 
 
 func _ready() -> void:
@@ -90,403 +111,444 @@ func _ready() -> void:
 
 # ── Public ─────────────────────────────────────────────────────────────────────
 
-## Host side: set up the WebRTC connection and wait for a joiner's offer.
+## Host side: (re)arm signaling for every joiner slot that has no open link yet.
+## Safe to call repeatedly — used both on session start and after a joiner drops.
 func host_session(session_id: String) -> void:
-	if state != State.IDLE:
-		push_warning("WebRTCManager: host_session called while not IDLE")
-		return
 	if not ClassDB.class_exists("WebRTCPeerConnection"):
 		connection_failed.emit("WebRTCPeerConnection not available — use an HTML5 export or install the GDExtension.")
 		return
-	_session_id = session_id
 	_is_host = true
-	state = State.SIGNALING
-	_dbg("HOST: Starting signaling for session '%s'" % session_id)
-	_setup_webrtc()
+	_my_slot = 1
+	_session_id = session_id
+	_hosting = true
+	_recompute_state()
+	# Relay credentials are fetched at runtime. Normally already in hand by now (the
+	# fetch starts at boot); if not, wait rather than arm connections without a relay.
+	if not IceConfig.is_ready():
+		await IceConfig.ensure_ready()
+		if not _hosting:
+			return  # Player backed out while we waited.
+	_arm_next_free_slot()
 	set_process(true)
 
 
-## Joiner side: create an offer and send it to the host.
-func join_session(session_id: String) -> void:
-	if state != State.IDLE:
-		push_warning("WebRTCManager: join_session called while not IDLE")
+## Host: ensure signaling is armed for EVERY joiner slot that isn't already
+## connected. Called on session start and each time a slot connects or drops.
+## A joiner is assigned its slot by the lobby (`_free_joiner_slot`), which can be
+## 3 while 2 is still free (e.g. slot 2 has a stale players/ entry), so the host
+## must poll all free slots — arming only the lowest would leave that joiner
+## stuck on "Connecting..." forever because its offer is never read.
+func _arm_next_free_slot() -> void:
+	if not _hosting:
 		return
+	for slot in HOST_SLOTS:
+		var link: PeerLink = _links.get(slot)
+		if link == null:
+			_create_link(int(slot))
+			_dbg("HOST: armed signaling for slot %d (session '%s')" % [slot, _session_id])
+
+
+## Joiner side: create an offer for the host under this peer's own slot namespace.
+func join_session(session_id: String, my_slot: int = 2) -> void:
+	if state != State.IDLE:
+		# A previous host/join attempt was left half-open (e.g. the player pressed
+		# Back while "Connecting..."). Tear it down so this fresh attempt can start,
+		# rather than silently no-op'ing and hanging on "Connecting..." forever.
+		push_warning("WebRTCManager: join_session called while not IDLE — cleaning up the stale attempt first")
+		_cleanup(false)
 	if not ClassDB.class_exists("WebRTCPeerConnection"):
 		connection_failed.emit("WebRTCPeerConnection not available — use an HTML5 export or install the GDExtension.")
 		return
-	_session_id = session_id
 	_is_host = false
+	_my_slot = my_slot
+	_session_id = session_id
+	_joining = true
+	# Claim SIGNALING before the await below so a second join_session() call trips the
+	# not-IDLE guard above instead of racing this one.
 	state = State.SIGNALING
-	_dbg("JOINER: Starting signaling for session '%s'" % session_id)
-	_setup_webrtc()
-	_dbg("JOINER: Calling create_offer()...")
-	var offer_err: int = _peer_conn.create_offer()
+	_dbg("JOINER(slot %d): starting signaling for session '%s'" % [my_slot, session_id])
+	if not IceConfig.is_ready():
+		await IceConfig.ensure_ready()
+		if not _joining:
+			return  # Player backed out while we waited.
+	var link := _create_link(1)
+	var offer_err: int = link.conn.create_offer()
 	if offer_err != OK:
 		push_error("WebRTCManager: create_offer() failed: %d" % offer_err)
 		connection_failed.emit("create_offer() error %d" % offer_err)
 		_cleanup(false)
 		return
+	_recompute_state()
 	set_process(true)
 
 
-## Send a reliable ordered packet (spawn/despawn/gameover/quit events).
+## Host: broadcast to every open link. Joiner: send to the host.
 func send_reliable(data: Dictionary) -> void:
-	if _ch_reliable == null or _ch_reliable.get_ready_state() != WebRTCDataChannel.STATE_OPEN:
-		push_warning("WebRTCManager: reliable channel not open — packet dropped")
-		return
-	_ch_reliable.put_packet(JSON.stringify(data).to_utf8_buffer())
+	var buf := JSON.stringify(data).to_utf8_buffer()
+	for slot in _links:
+		var link: PeerLink = _links[slot]
+		if link.ch_reliable != null and link.ch_reliable.get_ready_state() == WebRTCDataChannel.STATE_OPEN:
+			link.ch_reliable.put_packet(buf)
 
 
-## Send an unreliable ordered packet (input/state snapshots — loss is acceptable).
+## Host only: send a reliable packet to one joiner slot.
+func send_reliable_to(slot: int, data: Dictionary) -> void:
+	var link: PeerLink = _links.get(slot)
+	if link != null and link.ch_reliable != null and link.ch_reliable.get_ready_state() == WebRTCDataChannel.STATE_OPEN:
+		link.ch_reliable.put_packet(JSON.stringify(data).to_utf8_buffer())
+
+
+## Host: broadcast to every open link. Joiner: send to the host. Loss acceptable.
 func send_unreliable(data: Dictionary) -> void:
-	if _ch_unreliable == null or _ch_unreliable.get_ready_state() != WebRTCDataChannel.STATE_OPEN:
-		return  # silently drop; caller will retry next frame
-	_ch_unreliable.put_packet(JSON.stringify(data).to_utf8_buffer())
+	var buf := JSON.stringify(data).to_utf8_buffer()
+	for slot in _links:
+		var link: PeerLink = _links[slot]
+		if link.ch_unreliable != null and link.ch_unreliable.get_ready_state() == WebRTCDataChannel.STATE_OPEN:
+			link.ch_unreliable.put_packet(buf)
 
 
-## Disconnect and return to IDLE.
+## Disconnect everything and return to IDLE.
 func disconnect_peer() -> void:
-	if GameManager.is_host and GameManager.session_id != "":
-		FirebaseClient.delete_session(GameManager.session_id, func(_c, _d): pass)
+	if _is_host and _session_id != "":
+		FirebaseClient.delete_session(_session_id, func(_c, _d): pass)
 	_cleanup(false)
 
 
-# ── WebRTC setup ───────────────────────────────────────────────────────────────
+# ── Link setup ─────────────────────────────────────────────────────────────────
 
-func _setup_webrtc() -> void:
-	_peer_conn = WebRTCPeerConnection.new()
-	var init_err: int = _peer_conn.initialize({"iceServers": ICE_SERVERS})
+func _create_link(slot: int) -> PeerLink:
+	var link := PeerLink.new()
+	link.slot = slot
+	link.conn = WebRTCPeerConnection.new()
+	var init_err: int = link.conn.initialize({"iceServers": IceConfig.ice_servers()})
 	if init_err != OK:
 		push_error("WebRTCManager: initialize() failed: %d" % init_err)
 		connection_failed.emit("WebRTC init error %d" % init_err)
-		_cleanup(false)
+		return link
+	link.conn.session_description_created.connect(_on_sdp_created.bind(link))
+	link.conn.ice_candidate_created.connect(_on_ice_created.bind(link))
+	link.conn.data_channel_received.connect(_on_data_channel_received.bind(link))
+	# Both sides create negotiated channels by id so no extra signaling is needed.
+	var opt_r: Dictionary = {"negotiated": true, "id": 0, "ordered": true}
+	var opt_u: Dictionary = {"negotiated": true, "id": 1, "ordered": true, "maxRetransmits": 0}
+	link.ch_reliable   = link.conn.create_data_channel("reliable",   opt_r)
+	link.ch_unreliable = link.conn.create_data_channel("unreliable", opt_u)
+	_links[slot] = link
+	return link
+
+
+## Close and forget a link (does not emit peer_disconnected).
+func _destroy_link(link: PeerLink) -> void:
+	if link == null:
 		return
-	_dbg("WebRTCPeerConnection initialized with %d ICE servers" % ICE_SERVERS.size())
+	_links.erase(link.slot)
+	link.ch_reliable = null
+	link.ch_unreliable = null
+	if link.conn != null:
+		link.conn.close()
+		link.conn = null
 
-	_peer_conn.session_description_created.connect(_on_sdp_created)
-	_peer_conn.ice_candidate_created.connect(_on_ice_created)
-	# Joiner receives host-created channels via this signal.
-	_peer_conn.data_channel_received.connect(_on_data_channel_received)
 
-	if _is_host:
-		# Both sides create negotiated channels by id so no extra signaling is needed.
-		var opt_r: Dictionary = {"negotiated": true, "id": 0, "ordered": true}
-		var opt_u: Dictionary = {"negotiated": true, "id": 1, "ordered": true, "maxRetransmits": 0}
-		_ch_reliable   = _peer_conn.create_data_channel("reliable",   opt_r)
-		_ch_unreliable = _peer_conn.create_data_channel("unreliable", opt_u)
-		_dbg("HOST: negotiated data channels created (ids 0=reliable 1=unreliable)")
-	else:
-		# Joiner also creates its end of the negotiated channels.
-		var opt_r: Dictionary = {"negotiated": true, "id": 0, "ordered": true}
-		var opt_u: Dictionary = {"negotiated": true, "id": 1, "ordered": true, "maxRetransmits": 0}
-		_ch_reliable   = _peer_conn.create_data_channel("reliable",   opt_r)
-		_ch_unreliable = _peer_conn.create_data_channel("unreliable", opt_u)
-		_dbg("JOINER: negotiated data channels created (ids 0=reliable 1=unreliable)")
+## Host: a link failed or an open link dropped — forget it and re-arm the lowest
+## free slot so a replacement joiner can take it.
+func _rearm_link(slot: int) -> void:
+	var old: PeerLink = _links.get(slot)
+	if old != null:
+		_destroy_link(old)
+	_arm_next_free_slot()
 
 
 # ── Process loop ───────────────────────────────────────────────────────────────
 
 func _process(delta: float) -> void:
-	if _peer_conn == null:
-		return
-	_peer_conn.poll()
+	# Iterate a copy — links may be destroyed/re-armed mid-loop.
+	for slot in _links.keys():
+		var link: PeerLink = _links.get(slot)
+		if link == null or link.conn == null:
+			continue
+		link.conn.poll()
+		_poll_link_channels(link)
+		_process_link_signaling(link, delta)
+	_recompute_state()
 
-	# Drain inbound packets from both channels (works in SIGNALING and CONNECTED).
-	_poll_channels()
 
-	_connect_timer += delta
+func _process_link_signaling(link: PeerLink, delta: float) -> void:
+	link.connect_timer += delta
 
-	# Timeout guard during signaling.
-	if state == State.SIGNALING and _connect_timer >= CONNECT_TIMEOUT:
-		_print_debug_state()
-		connection_failed.emit("Connection timed out after %.0f seconds" % CONNECT_TIMEOUT)
-		_cleanup(true)
-		return
+	var cs: int = link.conn.get_connection_state()
+	var gs: int = link.conn.get_gathering_state()
 
-	# Detect and log WebRTC state transitions.
-	var conn_names: Array = ["new", "connecting", "connected", "disconnected", "FAILED", "closed"]
-	var gather_names: Array = ["new", "gathering", "complete"]
-	var cs: int = _peer_conn.get_connection_state()
-	var gs: int = _peer_conn.get_gathering_state()
-	if cs != _last_conn_state:
-		_last_conn_state = cs
+	if cs != link.last_conn_state:
+		link.last_conn_state = cs
+		var conn_names: Array = ["new", "connecting", "connected", "disconnected", "FAILED", "closed"]
 		var cn: String = conn_names[cs] if cs < conn_names.size() else str(cs)
-		_dbg(">>> Connection state changed: %s" % cn)
+		_dbg("[slot %d] connection state: %s" % [link.slot, cn])
 		if cs == 4:  # FAILED
-			_print_debug_state()
-			connection_failed.emit("ICE connection FAILED")
-			_cleanup(true)
+			_fail_link(link, "ICE connection FAILED")
 			return
-		if (cs == 3 or cs == 5) and state == State.CONNECTED:  # disconnected/closed
-			_cleanup(true)
+		if (cs == 3 or cs == 5) and link.is_open:  # disconnected / closed
+			_drop_open_link(link)
 			return
-	if gs != _last_gather_state:
-		_last_gather_state = gs
+	if gs != link.last_gather_state:
+		link.last_gather_state = gs
+		var gather_names: Array = ["new", "gathering", "complete"]
 		var gn: String = gather_names[gs] if gs < gather_names.size() else str(gs)
-		_dbg(">>> ICE gathering state: %s (local candidates so far: %d)" % [gn, _ice_local_count])
+		_dbg("[slot %d] ICE gathering: %s (%d local)" % [link.slot, gn, link.all_local_ice.size()])
 
-	if state == State.SIGNALING:
-		_debug_timer += delta
-		if _debug_timer >= 5.0:
-			_debug_timer = 0.0
-			_print_debug_state()
-
-		_ice_batch_timer += delta
-		if _ice_batch_timer >= ICE_BATCH_INTERVAL:
-			_ice_batch_timer = 0.0
-			_flush_local_ice()
-
-		_poll_timer += delta
-		if _poll_timer >= POLL_INTERVAL:
-			_poll_timer = 0.0
-			_do_signal_poll()
-
-		# Check whether both data channels opened once the PeerConnection is up.
-		if cs == 2:  # "connected"
-			_check_channels_open()
-
-
-## Drain any waiting packets from both data channels and emit packet_received.
-func _poll_channels() -> void:
-	if _ch_reliable != null and _ch_reliable.get_ready_state() == WebRTCDataChannel.STATE_OPEN:
-		while _ch_reliable.get_available_packet_count() > 0:
-			_parse_and_emit(_ch_reliable.get_packet())
-	if _ch_unreliable != null and _ch_unreliable.get_ready_state() == WebRTCDataChannel.STATE_OPEN:
-		while _ch_unreliable.get_available_packet_count() > 0:
-			_parse_and_emit(_ch_unreliable.get_packet())
-
-
-func _parse_and_emit(raw: PackedByteArray) -> void:
-	var json := JSON.new()
-	if json.parse(raw.get_string_from_utf8()) == OK:
-		packet_received.emit(json.data)
-
-
-## Transition to CONNECTED once both data channels are open.
-func _check_channels_open() -> void:
-	var r_open: bool = _ch_reliable   != null and _ch_reliable.get_ready_state()   == WebRTCDataChannel.STATE_OPEN
-	var u_open: bool = _ch_unreliable != null and _ch_unreliable.get_ready_state() == WebRTCDataChannel.STATE_OPEN
-	if r_open and u_open:
-		state = State.CONNECTED
-		_dbg("Both data channels OPEN — P2P ready after %.1fs" % _connect_timer)
-		FirebaseClient.delete_signal_data(_session_id, func(_c, _d): pass)
-		connected.emit()
-
-
-# ── Data channel received (joiner only, non-negotiated fallback) ───────────────
-
-func _on_data_channel_received(channel: WebRTCDataChannel) -> void:
-	# With negotiated channels this fires as a secondary notification; we already
-	# hold references from create_data_channel() so we can safely ignore it.
-	_dbg("data_channel_received: '%s' (already stored via negotiated id)" % channel.get_label())
-
-
-func _do_signal_poll() -> void:
-	if state != State.SIGNALING:
+	if link.is_open:
 		return
 
-	# Host waits for joiner's offer; joiner waits for host's answer.
-	if _is_host and not _offer_received:
-		FirebaseClient.read_signal_data(_session_id, "offer", _on_received_offer)
-	elif not _is_host and not _answer_received:
-		FirebaseClient.read_signal_data(_session_id, "answer", _on_received_answer)
+	# Joiner-side timeout: give up on the whole attempt. The host has no timeout —
+	# an un-filled joiner slot just keeps polling Firebase for an offer.
+	if not _is_host and link.connect_timer >= CONNECT_TIMEOUT:
+		_fail_link(link, "Connection timed out after %.0f seconds" % CONNECT_TIMEOUT)
+		return
 
-	# Only poll for the remote ICE candidates after our remote description is set.
-	# Applying ICE before setRemoteDescription() resolves silently drops candidates.
-	if _remote_sdp_set:
+	link.ice_batch_timer += delta
+	if link.ice_batch_timer >= ICE_BATCH_INTERVAL:
+		link.ice_batch_timer = 0.0
+		_flush_local_ice(link)
+
+	link.poll_timer += delta
+	if link.poll_timer >= _poll_interval_for(link):
+		link.poll_timer = 0.0
+		_do_signal_poll(link)
+
+	if cs == 2:  # "connected"
+		_check_link_open(link)
+
+
+## A host link that hasn't received an offer yet polls slowly (idle public
+## session); everything mid-handshake polls fast.
+func _poll_interval_for(link: PeerLink) -> float:
+	if _is_host and not link.offer_received:
+		return IDLE_POLL_INTERVAL
+	return ACTIVE_POLL_INTERVAL
+
+
+func _poll_link_channels(link: PeerLink) -> void:
+	if link.ch_reliable != null and link.ch_reliable.get_ready_state() == WebRTCDataChannel.STATE_OPEN:
+		while link.ch_reliable.get_available_packet_count() > 0:
+			_parse_and_emit(link.ch_reliable.get_packet(), link)
+	if link.ch_unreliable != null and link.ch_unreliable.get_ready_state() == WebRTCDataChannel.STATE_OPEN:
+		while link.ch_unreliable.get_available_packet_count() > 0:
+			_parse_and_emit(link.ch_unreliable.get_packet(), link)
+
+
+func _parse_and_emit(raw: PackedByteArray, link: PeerLink) -> void:
+	var json := JSON.new()
+	if json.parse(raw.get_string_from_utf8()) != OK:
+		return
+	var d: Variant = json.data
+	if d is Dictionary:
+		# Tag the sender so host-side handlers know which joiner a packet came from.
+		d["_from"] = link.slot if _is_host else 1
+		packet_received.emit(d)
+
+
+func _check_link_open(link: PeerLink) -> void:
+	var r_open: bool = link.ch_reliable   != null and link.ch_reliable.get_ready_state()   == WebRTCDataChannel.STATE_OPEN
+	var u_open: bool = link.ch_unreliable != null and link.ch_unreliable.get_ready_state() == WebRTCDataChannel.STATE_OPEN
+	if not (r_open and u_open):
+		return
+	link.is_open = true
+	_dbg("[slot %d] both data channels OPEN after %.1fs" % [link.slot, link.connect_timer])
+	# Clean up this slot's signaling namespace (leave other slots' data intact).
+	FirebaseClient.delete_signal_slot(_session_id, _my_slot if not _is_host else link.slot, func(_c, _d): pass)
+	if not _emitted_connected:
+		_emitted_connected = true
+		connected.emit()
+	peer_connected.emit(link.slot)
+	# Now that this slot is filled, arm the next joiner slot (if any).
+	if _is_host:
+		_arm_next_free_slot()
+
+
+# ── Data channel received (negotiated fallback) ───────────────────────────────
+
+func _on_data_channel_received(channel: WebRTCDataChannel, link: PeerLink) -> void:
+	_dbg("[slot %d] data_channel_received: '%s' (already stored via negotiated id)" % [link.slot, channel.get_label()])
+
+
+# ── Signaling poll ─────────────────────────────────────────────────────────────
+
+func _signal_slot(link: PeerLink) -> int:
+	# The Firebase namespace is always keyed by the joiner's slot.
+	return _my_slot if not _is_host else link.slot
+
+
+func _do_signal_poll(link: PeerLink) -> void:
+	if link.is_open:
+		return
+	var ns: int = _signal_slot(link)
+	if _is_host and not link.offer_received:
+		FirebaseClient.read_signal_data(_session_id, "%d/offer" % ns, _on_received_offer.bind(link))
+	elif not _is_host and not link.answer_received:
+		FirebaseClient.read_signal_data(_session_id, "%d/answer" % ns, _on_received_answer.bind(link))
+
+	if link.remote_sdp_set:
 		var remote_ice_key: String = "ice_joiner" if _is_host else "ice_host"
-		FirebaseClient.read_signal_data(_session_id, remote_ice_key, _on_received_ice_batch)
+		FirebaseClient.read_signal_data(_session_id, "%d/%s" % [ns, remote_ice_key], _on_received_ice_batch.bind(link))
 
 
 # ── SDP exchange ───────────────────────────────────────────────────────────────
 
-## Called by WebRTCPeerConnection when the local SDP offer or answer is ready.
-func _on_sdp_created(type: String, sdp: String) -> void:
-	_peer_conn.set_local_description(type, sdp)
-	# Joiner writes "offer"; host writes "answer".
-	if not _is_host and not _offer_sent:
-		_offer_sent = true
-		_dbg("JOINER: Local SDP ready (type=%s, %d chars) -- writing offer to Firebase" % [type, sdp.length()])
-		FirebaseClient.write_signal_data(_session_id, "offer", {"type": type, "sdp": sdp},
-			func(c: int, _d: Variant) -> void:
-				if c == 200:
-					_dbg("JOINER: Offer written OK (HTTP 200) -- waiting for host answer")
-				else:
-					_dbg("JOINER: WARNING -- offer write returned HTTP %d" % c))
-	elif _is_host and not _answer_sent:
-		_answer_sent = true
-		_dbg("HOST: Local SDP ready (type=%s, %d chars) -- writing answer to Firebase" % [type, sdp.length()])
-		FirebaseClient.write_signal_data(_session_id, "answer", {"type": type, "sdp": sdp},
-			func(c: int, _d: Variant) -> void:
-				if c == 200:
-					_dbg("HOST: Answer written OK (HTTP 200) -- waiting for ICE to settle")
-				else:
-					_dbg("HOST: WARNING -- answer write returned HTTP %d" % c))
-
-
-func _on_received_offer(_code: int, data: Variant) -> void:
-	if _offer_received or data == null or not (data is Dictionary) or not data.has("sdp"):
+func _on_sdp_created(type: String, sdp: String, link: PeerLink) -> void:
+	if link.conn == null:
 		return
-	_offer_received = true
-	_dbg("HOST: Received joiner offer (%d chars) -- setting remote description" % (data["sdp"] as String).length())
-	var set_err: int = _peer_conn.set_remote_description(data.get("type", "offer"), data["sdp"])
+	link.conn.set_local_description(type, sdp)
+	var ns: int = _signal_slot(link)
+	if not _is_host and not link.offer_sent:
+		link.offer_sent = true
+		_dbg("[slot %d] JOINER: offer ready (%d chars) — writing to Firebase" % [link.slot, sdp.length()])
+		FirebaseClient.write_signal_data(_session_id, "%d/offer" % ns, {"type": type, "sdp": sdp}, func(_c, _d): pass)
+	elif _is_host and not link.answer_sent:
+		link.answer_sent = true
+		_dbg("[slot %d] HOST: answer ready (%d chars) — writing to Firebase" % [link.slot, sdp.length()])
+		FirebaseClient.write_signal_data(_session_id, "%d/answer" % ns, {"type": type, "sdp": sdp}, func(_c, _d): pass)
+
+
+func _on_received_offer(_code: int, data: Variant, link: PeerLink) -> void:
+	if link.conn == null or link.offer_received or not (data is Dictionary) or not data.has("sdp"):
+		return
+	link.offer_received = true
+	_dbg("[slot %d] HOST: received joiner offer — setting remote description" % link.slot)
+	var set_err: int = link.conn.set_remote_description(data.get("type", "offer"), data["sdp"])
 	if set_err != OK:
 		push_error("WebRTCManager: set_remote_description(offer) failed: %d" % set_err)
-		_dbg("HOST: ERROR set_remote_description failed: %d" % set_err)
-	# Flag that the remote SDP is now set -- ICE candidates can be applied safely.
-	_remote_sdp_set = true
-	_dbg("HOST: Remote SDP set -- applying %d buffered ICE candidates (answer auto-created by set_remote_description)" % _buffered_remote_ice.size())
-	_apply_buffered_ice()
-	# Immediately poll for the joiner's ICE candidates -- don't wait for the next timer tick.
-	_poll_timer = 0.0
-	_do_signal_poll()
-	# NOTE: set_remote_description() with an offer automatically fires session_description_created
-	# with the answer -- no create_answer() call needed (it doesn't exist on WebRTCPeerConnectionJS).
+	link.remote_sdp_set = true
+	_apply_buffered_ice(link)
+	link.poll_timer = 0.0
+	_do_signal_poll(link)
 
 
-func _on_received_answer(_code: int, data: Variant) -> void:
-	if _answer_received or data == null or not (data is Dictionary) or not data.has("sdp"):
+func _on_received_answer(_code: int, data: Variant, link: PeerLink) -> void:
+	if link.conn == null or link.answer_received or not (data is Dictionary) or not data.has("sdp"):
 		return
-	_answer_received = true
-	_dbg("JOINER: Received host answer (%d chars) -- setting remote description" % (data["sdp"] as String).length())
-	var set_err: int = _peer_conn.set_remote_description(data.get("type", "answer"), data["sdp"])
+	link.answer_received = true
+	_dbg("[slot %d] JOINER: received host answer — setting remote description" % link.slot)
+	var set_err: int = link.conn.set_remote_description(data.get("type", "answer"), data["sdp"])
 	if set_err != OK:
 		push_error("WebRTCManager: set_remote_description(answer) failed: %d" % set_err)
-		_dbg("JOINER: ERROR set_remote_description failed: %d" % set_err)
-	# Flag that the remote SDP is now set -- ICE candidates can be applied safely.
-	_remote_sdp_set = true
-	_dbg("JOINER: Remote SDP set -- applying %d buffered ICE candidates" % _buffered_remote_ice.size())
-	_apply_buffered_ice()
-	# Immediately poll for the host's ICE candidates -- don't wait for the next timer tick.
-	_poll_timer = 0.0
-	_do_signal_poll()
+	link.remote_sdp_set = true
+	_apply_buffered_ice(link)
+	link.poll_timer = 0.0
+	_do_signal_poll(link)
 
 
 # ── ICE candidate exchange ─────────────────────────────────────────────────────
 
-## Called by WebRTCPeerConnection for each locally generated ICE candidate.
-func _on_ice_created(media: String, index: int, name: String) -> void:
+func _on_ice_created(media: String, index: int, name: String, link: PeerLink) -> void:
 	var candidate := {"media": media, "index": index, "name": name}
-	_pending_local_ice.append(candidate)
-	_all_local_ice.append(candidate)
-	_ice_local_count += 1
-	# Parse the candidate type from the SDP string (host / srflx / relay).
-	var ctype: String = "unknown"
-	for part in name.split(" "):
-		if part == "host" or part == "srflx" or part == "relay" or part == "prflx":
-			ctype = part
-			break
-	_dbg("ICE #%d: type=%s media=%s" % [_ice_local_count, ctype, media])
+	link.pending_local_ice.append(candidate)
+	link.all_local_ice.append(candidate)
 
 
-## Write all accumulated local ICE candidates to Firebase (single overwrite -- no read needed).
-func _flush_local_ice() -> void:
-	if _pending_local_ice.is_empty():
+func _flush_local_ice(link: PeerLink) -> void:
+	if link.pending_local_ice.is_empty():
 		return
-	var flush_count: int = _pending_local_ice.size()
-	_pending_local_ice.clear()
+	link.pending_local_ice.clear()
+	var ns: int = _signal_slot(link)
 	var my_ice_key: String = "ice_host" if _is_host else "ice_joiner"
-	_dbg("Flushing %d new ICE candidates to Firebase (total: %d)" % [flush_count, _all_local_ice.size()])
-	# Overwrite with the full running list -- remote only applies candidates it hasn't seen yet.
-	FirebaseClient.write_signal_data(_session_id, my_ice_key,
-		{"candidates": _all_local_ice},
-		func(c: int, _rd: Variant) -> void:
-			if c != 200:
-				_dbg("WARNING: ICE flush returned HTTP %d" % c))
+	FirebaseClient.write_signal_data(_session_id, "%d/%s" % [ns, my_ice_key],
+		{"candidates": link.all_local_ice}, func(_c, _d): pass)
 
 
-## Apply any new remote ICE candidates we haven't seen yet.
-## If the remote description isn't set yet, buffer candidates until it is.
-func _on_received_ice_batch(_code: int, data: Variant) -> void:
-	if data == null or not (data is Dictionary) or not data.has("candidates"):
+func _on_received_ice_batch(_code: int, data: Variant, link: PeerLink) -> void:
+	if link.conn == null or not (data is Dictionary) or not data.has("candidates"):
 		return
 	var candidates: Array = data["candidates"]
-	var new_count: int = candidates.size() - _remote_ice_applied
-	if not _remote_sdp_set:
-		# Store all unseen candidates; _apply_buffered_ice() will apply them later.
-		var prev_buffered: int = _buffered_remote_ice.size()
-		for i in range(_buffered_remote_ice.size(), candidates.size()):
+	if not link.remote_sdp_set:
+		for i in range(link.buffered_remote_ice.size(), candidates.size()):
 			var c: Variant = candidates[i]
 			if c is Dictionary:
-				_buffered_remote_ice.append(c)
-		if _buffered_remote_ice.size() > prev_buffered:
-			_dbg("Buffering %d remote ICE candidates (remote SDP not set yet)" % _buffered_remote_ice.size())
+				link.buffered_remote_ice.append(c)
 		return
-	if new_count > 0:
-		_dbg("Received %d remote ICE candidates, applying %d new (total seen: %d)" % [candidates.size(), new_count, candidates.size()])
-	for i in range(_remote_ice_applied, candidates.size()):
+	for i in range(link.remote_ice_applied, candidates.size()):
 		var c: Variant = candidates[i]
 		if c is Dictionary and c.has("media") and c.has("index") and c.has("name"):
-			_peer_conn.add_ice_candidate(c["media"], int(c["index"]), c["name"])
-	_remote_ice_applied = candidates.size()
+			link.conn.add_ice_candidate(c["media"], int(c["index"]), c["name"])
+	link.remote_ice_applied = candidates.size()
 
 
-## Apply ICE candidates that were received before the remote SDP was ready.
-func _apply_buffered_ice() -> void:
-	for c in _buffered_remote_ice:
+func _apply_buffered_ice(link: PeerLink) -> void:
+	for c in link.buffered_remote_ice:
 		if c.has("media") and c.has("index") and c.has("name"):
-			_peer_conn.add_ice_candidate(c["media"], int(c["index"]), c["name"])
-			_remote_ice_applied += 1
-	_buffered_remote_ice.clear()
+			link.conn.add_ice_candidate(c["media"], int(c["index"]), c["name"])
+			link.remote_ice_applied += 1
+	link.buffered_remote_ice.clear()
 
 
-# ── Cleanup ────────────────────────────────────────────────────────────────────
+# ── Link failure / drop ────────────────────────────────────────────────────────
+
+## A link failed before ever opening.
+func _fail_link(link: PeerLink, reason: String) -> void:
+	_dbg("[slot %d] link failed: %s" % [link.slot, reason])
+	if _is_host:
+		# One joiner slot couldn't connect — re-arm it, keep the session alive.
+		_rearm_link(link.slot)
+		_recompute_state()
+		return
+	# Joiner: the whole attempt failed.
+	if not IceConfig.has_turn():
+		# By design there is no relay (see core/ice_config.gd), so every session needs a
+		# direct player-to-player connection. Tell the player what to try instead of
+		# showing them a raw ICE error they can do nothing with.
+		reason = "Couldn't connect to the host. Your network may block direct connections — try a phone hotspot. (%s)" % reason
+	connection_failed.emit(reason)
+	_cleanup(true)
+
+
+## An open link dropped mid-session.
+func _drop_open_link(link: PeerLink) -> void:
+	var slot := link.slot
+	_dbg("[slot %d] open link dropped" % slot)
+	link.is_open = false
+	if _is_host:
+		peer_disconnected.emit(slot)
+		_rearm_link(slot)
+		_recompute_state()
+		return
+	# Joiner lost the host.
+	peer_disconnected.emit(1)
+	disconnected.emit()
+	_cleanup(false)
+
+
+# ── State / cleanup ────────────────────────────────────────────────────────────
+
+func _recompute_state() -> void:
+	var any_open := false
+	for slot in _links:
+		if (_links[slot] as PeerLink).is_open:
+			any_open = true
+			break
+	if any_open:
+		state = State.CONNECTED
+	elif _hosting or _joining:
+		state = State.SIGNALING
+	else:
+		state = State.IDLE
+
 
 func _cleanup(emit_disc: bool) -> void:
 	set_process(false)
-	state = State.IDLE
+	for slot in _links.keys():
+		_destroy_link(_links[slot])
+	_links.clear()
 	_is_host = false
+	_hosting = false
+	_joining = false
+	_my_slot = 1
 	_session_id = ""
-	_offer_sent = false
-	_offer_received = false
-	_answer_sent = false
-	_answer_received = false
-	_pending_local_ice.clear()
-	_all_local_ice.clear()
-	_remote_ice_applied = 0
-	_remote_sdp_set = false
-	_buffered_remote_ice.clear()
-	_poll_timer = 0.0
-	_ice_batch_timer = 0.0
-	_connect_timer = 0.0
-	_debug_timer = 0.0
-	_ice_local_count = 0
-	_last_conn_state = -1
-	_last_gather_state = -1
-	_ch_reliable = null
-	_ch_unreliable = null
-	if _peer_conn != null:
-		_peer_conn.close()
-		_peer_conn = null
+	_emitted_connected = false
+	state = State.IDLE
 	if emit_disc:
 		disconnected.emit()
 
 
-# ---- Debug helpers -----------------------------------------------------------
+# ── Debug ──────────────────────────────────────────────────────────────────────
 
-## Print msg to the console AND emit debug_status so the UI can show it.
 func _dbg(msg: String) -> void:
 	print("[WebRTC] " + msg)
 	debug_status.emit(msg)
-
-
-## Dump the current WebRTC peer connection states to console and UI.
-func _print_debug_state() -> void:
-	if _peer_conn == null:
-		_dbg("[dump] No peer connection object yet")
-		return
-	var conn_names: Array = ["new", "connecting", "connected", "disconnected", "FAILED", "closed"]
-	var gather_names: Array = ["new", "gathering", "complete"]
-	var sig_names: Array = ["stable", "have-local-offer", "have-remote-offer", "have-local-pranswer", "have-remote-pranswer", "closed"]
-	var cs: int = _peer_conn.get_connection_state()
-	var gs: int = _peer_conn.get_gathering_state()
-	var ss: int = _peer_conn.get_signaling_state()
-	var cn: String = conn_names[cs] if cs < conn_names.size() else str(cs)
-	var gn: String = gather_names[gs] if gs < gather_names.size() else str(gs)
-	var sn: String = sig_names[ss] if ss < sig_names.size() else str(ss)
-	_dbg("[dump t=%.0fs] conn=%s gather=%s sig=%s | offer(sent=%s recv=%s) answer(sent=%s recv=%s) | local_ice=%d remote_ice=%d buffered=%d" % [
-		_connect_timer, cn, gn, sn,
-		str(_offer_sent), str(_offer_received),
-		str(_answer_sent), str(_answer_received),
-		_all_local_ice.size(), _remote_ice_applied, _buffered_remote_ice.size()
-	])

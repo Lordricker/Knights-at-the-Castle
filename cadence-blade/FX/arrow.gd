@@ -57,6 +57,9 @@ var _hit_any: bool = false
 ## Set to true by a HurtBox when it claims this arrow, preventing double-damage
 ## if body_entered fires in the same physics step.
 var consumed: bool = false
+## Player slot that fired this arrow (1-3), or 0 for enemy / tower / hut arrows. A kill
+## made by this arrow is credited to that slot. Read by HurtBox for hurtbox-only enemies.
+var shooter_slot: int = 0
 
 @onready var _sprite: Sprite2D = find_child("Sprite2D") as Sprite2D
 @onready var _particles: CPUParticles2D = find_child("CPUParticles2D") as CPUParticles2D
@@ -94,6 +97,13 @@ func get_damage() -> float:
 	return _damage
 
 
+## Returns whether this arrow was fired on a successful flow-window press.
+## Used by HurtBox so head/body hurtbox hits still register a flow crit
+## (body_entered on plain enemies already gets this via _flow_success).
+func get_flow_success() -> bool:
+	return _flow_success
+
+
 func _apply_particle_color(c: Color) -> void:
 	if _particles != null:
 		_particles.color = c
@@ -104,9 +114,14 @@ func _apply_particle_color(c: Color) -> void:
 func _ready() -> void:
 	if _sprite != null and _velocity != Vector2.ZERO:
 		rotation = _velocity.angle()
-	# Layer 6 (value 32) makes this arrow detectable by monitoring Area2Ds
-	# (e.g. enemy head hitboxes) while staying safely separate from other layers.
-	collision_layer = 32
+	# collision_layer defaults to 32 (layer 6) on the scene itself — see arrow.tscn —
+	# which makes an arrow detectable by monitoring Area2Ds (e.g. a dragon's head/body
+	# HurtBox). It must NOT be forced here: callers configure() an arrow and set
+	# collision_layer BEFORE add_child (same pattern as collision_mask below), and
+	# add_child is deferred, so a hardcoded assignment in _ready() would run after
+	# and silently overwrite it. That previously made enemy archers' attempt to move
+	# their arrows off layer 32 a no-op, letting their arrows trigger the dragon's
+	# own HurtBox as if a player had fired them.
 	body_entered.connect(_on_body_entered)
 	if _pending_color_set and (_particles != null or _particles_2 != null):
 		_apply_particle_color(_pending_particle_color)
@@ -141,8 +156,7 @@ func _on_body_entered(body: Node2D) -> void:
 			return
 		_hit_enemies.append(body)
 		_hit_any = true
-		if body.has_method("take_damage"):
-			body.take_damage(_damage, _flow_success, weapon_type)
+		EnemyBase.player_hit(body, shooter_slot, _damage, _flow_success, weapon_type)
 		if body.has_method("apply_knockback"):
 			body.apply_knockback(global_position, _knockback_force)
 		enemy_hit.emit()
@@ -150,8 +164,7 @@ func _on_body_entered(body: Node2D) -> void:
 	else:
 		# Normal arrow: stop on first hit.
 		_hit_any = true
-		if body.has_method("take_damage"):
-			body.take_damage(_damage, _flow_success, weapon_type)
+		EnemyBase.player_hit(body, shooter_slot, _damage, _flow_success, weapon_type)
 		if body.has_method("apply_knockback"):
 			body.apply_knockback(global_position, _knockback_force)
 		enemy_hit.emit()

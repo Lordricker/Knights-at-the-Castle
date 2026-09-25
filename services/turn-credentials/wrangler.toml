@@ -1,0 +1,20 @@
+name = "cadence-blade-turn"
+main = "src/worker.js"
+compatibility_date = "2026-09-01"
+
+# Rotation state (one small JSON document). Create it once with:
+#   npx wrangler kv namespace create TURN_KV
+# then paste the printed id below.
+[[kv_namespaces]]
+binding = "TURN_KV"
+id = "PASTE_KV_NAMESPACE_ID_HERE"
+
+[vars]
+# Non-secret tuning. Secrets (METERED_CREDENTIAL_URL, METERED_SECRET_KEY) are set
+# with `npx wrangler secret put ...` — never put them in this file, it is committed.
+TURN_HOST = "global.relay.metered.ca"
+STUN_URL = "stun:stun.relay.metered.ca:80"
+CRED_EXPIRY_SECONDS = "86400"
+ROTATE_AFTER_SECONDS = "21600"
+PROPAGATION_SECONDS = "150"
+EDGE_CACHE_SECONDS = "300"

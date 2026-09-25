@@ -1,0 +1,75 @@
+[gd_scene format=3 uid="uid://6mi6tx2lqh4a"]
+
+[ext_resource type="Texture2D" uid="uid://djhb6ck7qk5gr" path="res://assets/sprites/TreasureChest.png" id="1_apapv"]
+[ext_resource type="Texture2D" uid="uid://c6sg71t132q30" path="res://assets/sprites/UI/swordicon.png" id="2_x8mp4"]
+[ext_resource type="Texture2D" uid="uid://de3sdhy0soq3w" path="res://assets/sprites/UI/HUD/heart.png" id="3_6xtrs"]
+[ext_resource type="Texture2D" uid="uid://ch4pnhgqpck2u" path="res://assets/sprites/UI/HUD/speed.png" id="4_0h0dc"]
+[ext_resource type="Script" uid="uid://iufdkrrji78l" path="res://level/treasure_chest.gd" id="5_chest"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_4nbaq"]
+atlas = ExtResource("1_apapv")
+region = Rect2(0, 0, 50, 50)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_xmfhd"]
+atlas = ExtResource("1_apapv")
+region = Rect2(50, 0, 50, 50)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_af0pe"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_4nbaq")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_xmfhd")
+}],
+"loop": 0,
+"name": &"default",
+"speed": 2.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_af0pe"]
+size = Vector2(29, 28)
+
+[node name="TreasureChest" type="Node2D" unique_id=1769251653]
+script = ExtResource("5_chest")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=600962013]
+sprite_frames = SubResource("SpriteFrames_af0pe")
+
+[node name="statspawn" type="Marker2D" parent="." unique_id=427065212]
+position = Vector2(3, -13)
+
+[node name="upattack" type="TextureRect" parent="." unique_id=27514131]
+visible = false
+offset_left = -8.0
+offset_top = -22.0
+offset_right = 56.0
+offset_bottom = 42.0
+scale = Vector2(0.3, 0.3)
+texture = ExtResource("2_x8mp4")
+metadata/_edit_use_anchors_ = true
+
+[node name="upspeed" type="TextureRect" parent="." unique_id=1415022324]
+visible = false
+offset_left = -8.0
+offset_top = -22.0
+offset_right = 56.0
+offset_bottom = 42.0
+scale = Vector2(0.2, 0.2)
+texture = ExtResource("4_0h0dc")
+
+[node name="uphealth" type="TextureRect" parent="." unique_id=2101607780]
+visible = false
+offset_left = -8.0
+offset_top = -22.0
+offset_right = 56.0
+offset_bottom = 42.0
+scale = Vector2(0.2, 0.2)
+texture = ExtResource("3_6xtrs")
+
+[node name="Area2D" type="Area2D" parent="." unique_id=1122708917]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D" unique_id=1024288411]
+position = Vector2(0.5, 1)
+shape = SubResource("RectangleShape2D_af0pe")

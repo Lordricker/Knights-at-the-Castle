@@ -49,8 +49,12 @@ extends EnemyBase
 @export_group("Fireball")
 ## PackedScene for the fireball projectile (assign fireball.tscn in Inspector).
 @export var fireball_scene: PackedScene
-## Damage the fireball deals on impact.
+## Damage the fireball deals to the target it directly hits.
 @export var fireball_damage: float = 30.0
+## Damage dealt to every other Kill-group target caught in the impact splash (0 = no splash).
+@export var fireball_splash_damage: float = 15.0
+## Seconds the fireball's splash zone keeps dealing damage after impact.
+@export var fireball_splash_duration: float = 1.0
 ## Travel speed of the fireball in pixels per second.
 @export var fireball_speed: float = 300.0
 ## Seconds before the fireball auto-explodes if it misses.
@@ -129,6 +133,13 @@ func _ready() -> void:
 
 # ── AI ─────────────────────────────────────────────────────────────────────────
 
+## Facing only re-commits once the dragon is this far past the guard line (world
+## x = 0), well outside the 4px stop radius below. A hut unit's arrows (or any
+## other repeated small knockback) can rock the dragon a few px back and forth
+## across x = 0 while it holds its post — without this margin, _set_facing would
+## flip every time that noise crosses zero and the sprite would waffle in place.
+const GUARD_LINE_FACING_COMMIT: float = 12.0
+
 func _handle_ai(_delta: float) -> void:
 	# Locked during any attack animation.
 	if attack_state != AttackState.NONE:
@@ -158,7 +169,8 @@ func _handle_ai(_delta: float) -> void:
 	else:
 		var dir: float = -signf(dist)
 		velocity.x = move_speed * dir
-		_set_facing(1.0 if dir > 0.0 else -1.0)
+		if absf(dist) > GUARD_LINE_FACING_COMMIT:
+			_set_facing(1.0 if dir > 0.0 else -1.0)
 	velocity.y = 0.0
 
 
@@ -235,7 +247,8 @@ func _fire_fireball() -> void:
 	fb.collision_layer = 0  # invisible to Area2D monitors; damage via own body_entered
 	fb.collision_mask = 1
 	fb.shooter = self
-	fb.configure(spawn_pos, shoot_dir, fireball_speed, fireball_damage, 0.0, fireball_lifetime)
+	fb.configure(spawn_pos, shoot_dir, fireball_speed, fireball_damage, 0.0, fireball_lifetime,
+		fireball_splash_damage, fireball_splash_duration)
 
 	get_tree().current_scene.call_deferred("add_child", fb)
 

@@ -37,24 +37,27 @@ func _ready() -> void:
 ## Spawns a death poof at the given world position.
 ## spawn_coin is false for player deaths; EnemyBase passes true.
 ## coin_tier: 0=none, 1=coin_scene, 2=coin2_scene, 3=coin4_scene.
-func on_entity_died(world_position: Vector2, spawn_coin: bool = true, coin_tier: int = 1) -> void:
-	if death_poof_scene == null:
-		return
-	var poof: Node2D = death_poof_scene.instantiate() as Node2D
-	if poof == null:
-		return
-	add_child(poof)
-	poof.global_position = world_position
-	# Play every child that supports play/restart/emitting.
-	for child in poof.find_children("*"):
-		if child.has_method("restart"):
-			child.restart()
-		if child.has_method("play"):
-			child.play()
-		if "emitting" in child:
-			child.emitting = true
-	# Remove the poof after 5 seconds.
-	get_tree().create_timer(5.0).timeout.connect(poof.queue_free, CONNECT_ONE_SHOT)
+## spawn_poof is false when this is an enemy's second coin drop, so the death
+## poof (already spawned by the first call) isn't duplicated.
+func on_entity_died(world_position: Vector2, spawn_coin: bool = true, coin_tier: int = 1, spawn_poof: bool = true) -> void:
+	if spawn_poof:
+		if death_poof_scene == null:
+			return
+		var poof: Node2D = death_poof_scene.instantiate() as Node2D
+		if poof == null:
+			return
+		add_child(poof)
+		poof.global_position = world_position
+		# Play every child that supports play/restart/emitting.
+		for child in poof.find_children("*"):
+			if child.has_method("restart"):
+				child.restart()
+			if child.has_method("play"):
+				child.play()
+			if "emitting" in child:
+				child.emitting = true
+		# Remove the poof after 5 seconds.
+		get_tree().create_timer(5.0).timeout.connect(poof.queue_free, CONNECT_ONE_SHOT)
 
 	if spawn_coin and coin_tier > 0:
 		var scene_to_use: PackedScene

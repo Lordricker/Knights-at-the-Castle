@@ -19,6 +19,19 @@ extends Node2D
 @export var fill_window: Sprite2D
 
 @export_group("Colors")
+## How the fill color is chosen:
+##   AUTO   - walk up the parent chain, pick ENEMY tint if the owner is an
+##            EnemyBase (or in the "enemies" group), otherwise ALLY tint.
+##   ALLY   - always use ally_fill_color.
+##   ENEMY  - always use enemy_fill_color.
+enum Team { AUTO, ALLY, ENEMY }
+@export var team: Team = Team.AUTO
+## Fill tint for friendly units (players, hut units, castle, towers).
+@export var ally_fill_color: Color = Color(0.15, 0.75, 0.15, 1.0)
+## Fill tint for hostile units.
+@export var enemy_fill_color: Color = Color(0.86, 0.12, 0.12, 1.0)
+## Resolved at runtime from the settings above; also used as a manual override
+## if you set it in a script before _ready().
 @export var fill_color: Color = Color(0.15, 0.75, 0.15, 1.0)
 @export var background_color: Color = Color(0.06, 0.06, 0.06, 0.75)
 
@@ -40,6 +53,7 @@ var _draw_node: Node2D
 
 
 func _ready() -> void:
+	fill_color = _resolve_fill_color()
 	if fill_window == null:
 		push_error(name + ": fill_window is not assigned in the Inspector.")
 		return
@@ -93,6 +107,29 @@ func _process(delta: float) -> void:
 func _redraw() -> void:
 	if _draw_node != null:
 		_draw_node.queue_redraw()
+
+
+## Picks the fill color from `team`, auto-detecting the owning unit's side by
+## walking up the parent chain when team == AUTO.
+func _resolve_fill_color() -> Color:
+	match team:
+		Team.ALLY:
+			return ally_fill_color
+		Team.ENEMY:
+			return enemy_fill_color
+		_:
+			return enemy_fill_color if _owner_is_enemy() else ally_fill_color
+
+
+func _owner_is_enemy() -> bool:
+	var node: Node = get_parent()
+	while node != null:
+		if node is EnemyBase or node.is_in_group(&"enemies"):
+			return true
+		if node is CharacterBase or node is Castle or node.is_in_group(&"hut_units"):
+			return false
+		node = node.get_parent()
+	return false
 
 
 func _get_local_bounds() -> Rect2:

@@ -195,6 +195,10 @@ visible = false
 position = Vector2(0, 4)
 shape = SubResource("RectangleShape2D_t1y0h")
 
+[node name="NavigationAgent2D" type="NavigationAgent2D" parent="CharacterBody2D"]
+path_desired_distance = 8.0
+target_desired_distance = 8.0
+
 [node name="Pivot" type="Node2D" parent="CharacterBody2D" unique_id=1319081332]
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="CharacterBody2D/Pivot" unique_id=1924966790]

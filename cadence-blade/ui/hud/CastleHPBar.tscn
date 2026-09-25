@@ -13,6 +13,8 @@ z_as_relative = false
 [node name="VerticalHealthBar" type="Node2D" parent="." unique_id=1034429636 node_paths=PackedStringArray("fill_window")]
 script = ExtResource("1_8t36v")
 fill_window = NodePath("../HpFill")
+ally_fill_color = Color(0.85882354, 0.12156863, 0.12156863, 1)
+fill_color = Color(0.85882354, 0.12156863, 0.12156863, 1)
 background_color = Color(0.05882353, 0.05882353, 0.05882353, 0.10980392)
 fill_top_y = -50.0
 fill_bottom_y = 50.0

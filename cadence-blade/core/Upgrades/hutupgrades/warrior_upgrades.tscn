@@ -1,9 +1,11 @@
 [gd_scene format=3 uid="uid://7fynlpueelxj"]
 
 [ext_resource type="Texture2D" uid="uid://b76oosggr5jws" path="res://core/Upgrades/hutupgrades/blank scroll.png" id="1_s18j7"]
-[ext_resource type="Texture2D" uid="uid://bk5rkmr4jij1p" path="res://core/Upgrades/hutupgrades/Warrirorlvl2.png" id="2_yerxu"]
+[ext_resource type="Texture2D" uid="uid://csd31uxqwpf2a" path="res://assets/sprites/Unit Hut Sprites/Warrirorlvl5.png" id="2_loyml"]
+[ext_resource type="Texture2D" uid="uid://bk5rkmr4jij1p" path="res://assets/sprites/Unit Hut Sprites/Warrirorlvl2.png" id="2_yerxu"]
 [ext_resource type="FontFile" uid="uid://eayy706a4ihb" path="res://assets/fonts/JMH Typewriter.ttf" id="3_loyml"]
 [ext_resource type="Texture2D" uid="uid://cgutn7e0ug6fc" path="res://core/Upgrades/hutupgrades/chains.png" id="4_a7wmk"]
+[ext_resource type="Texture2D" uid="uid://bumvgxh33fvhs" path="res://assets/sprites/Unit Hut Sprites/Warrirorlvl3.png" id="5_a7wmk"]
 
 [node name="WarriorUpgrades" type="Control" unique_id=1610119576]
 layout_mode = 3
@@ -38,7 +40,7 @@ offset_top = -1.0
 offset_right = 49.0
 offset_bottom = 46.0
 scale = Vector2(0.97, 0.97)
-texture = ExtResource("2_yerxu")
+texture = ExtResource("2_loyml")
 
 [node name="cost" type="Label" parent="buttonlvl5" unique_id=71842399]
 layout_mode = 0
@@ -82,12 +84,12 @@ texture = ExtResource("1_s18j7")
 
 [node name="icon" type="TextureRect" parent="buttonlvl4" unique_id=509853215]
 layout_mode = 0
-offset_left = 5.0
+offset_left = -1.58
 offset_top = -1.0
-offset_right = 49.0
-offset_bottom = 46.0
+offset_right = 48.42
+offset_bottom = 52.0
 scale = Vector2(0.97, 0.97)
-texture = ExtResource("2_yerxu")
+texture = ExtResource("5_a7wmk")
 
 [node name="cost" type="Label" parent="buttonlvl4" unique_id=639357955]
 layout_mode = 0
@@ -130,12 +132,12 @@ texture = ExtResource("1_s18j7")
 
 [node name="icon" type="TextureRect" parent="buttonlvl3" unique_id=1184676180]
 layout_mode = 0
-offset_left = 5.0
+offset_left = -2.325
 offset_top = -1.0
-offset_right = 49.0
-offset_bottom = 46.0
+offset_right = 47.675
+offset_bottom = 52.0
 scale = Vector2(0.97, 0.97)
-texture = ExtResource("2_yerxu")
+texture = ExtResource("5_a7wmk")
 
 [node name="cost" type="Label" parent="buttonlvl3" unique_id=1790352282]
 layout_mode = 0
@@ -177,10 +179,10 @@ texture = ExtResource("1_s18j7")
 
 [node name="icon" type="TextureRect" parent="lvl2Button" unique_id=2079598085]
 layout_mode = 0
-offset_left = 5.0
+offset_left = -1.0000014
 offset_top = -1.0
 offset_right = 49.0
-offset_bottom = 46.0
+offset_bottom = 52.0
 scale = Vector2(0.97, 0.97)
 texture = ExtResource("2_yerxu")
 

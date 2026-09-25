@@ -2,6 +2,7 @@ class_name UnitHut
 extends Node2D
 
 const HutSlotTimerScript = preload("res://core/Upgrades/hutupgrades/hut_slot_timer.gd")
+const WaypointFlagTexture = preload("res://assets/sprites/Unit Hut Sprites/WaypointFlag.png")
 
 ## unit_hut.gd
 ## Placed in the level. Call unlock() when the associated tower is destroyed.
@@ -77,6 +78,23 @@ var _respawn_tweens: Array[Tween] = [null, null, null]
 ## CanvasItem -> the deny-flash Tween currently running on it, so a repeated
 ## click restarts the flash instead of leaving two tweens fighting over modulate.
 var _flash_tweens: Dictionary = {}
+## True after WaypointButton is pressed, until the player's next world click
+## consumes it and relocates this hut's waypoint.
+var _awaiting_waypoint_click: bool = false
+## The flag sprite following the cursor while a waypoint click is armed. Freed
+## (and this cleared) once it settles at the clicked location.
+var _waypoint_flag_preview: Sprite2D = null
+## The player whose local attack input we suppressed while a waypoint placement
+## is armed, so the click that drops the flag doesn't also swing a weapon. Kept
+## so the exact same node gets re-enabled when the placement resolves.
+var _waypoint_attack_suppressed: Node = null
+## Bumped every time a placement is armed, so a stale re-enable timer from a
+## previous placement doesn't unmute attacks during the current one.
+var _waypoint_suppress_gen: int = 0
+## Polygon2D from the "walk_area" group — used to snap a placed waypoint onto
+## the walkable area (see EnemyNavigation). Lazily resolved since huts can be
+## unlocked before the level's walk_area is guaranteed to be in the tree.
+var walk_area: Polygon2D = null
 
 # ── @onready refs ─────────────────────────────────────────────────────────────
 
@@ -88,6 +106,7 @@ var _flash_tweens: Dictionary = {}
 @onready var _icons:          Control          = $icons
 @onready var _spawn_point:    Marker2D         = $spawnPoint
 @onready var _waypoint:       Node2D           = $waypoint
+@onready var _waypoint_button: Button          = $WaypointButton
 
 # Cost labels — kept in sync with the exported costs above so the numbers
 # never have to be hand-edited in the scene when a cost changes.
@@ -147,6 +166,9 @@ var _flash_tweens: Dictionary = {}
 # ── Lifecycle ─────────────────────────────────────────────────────────────────
 
 func _ready() -> void:
+	# Mirrors EnemyTower's "enemy_towers" group so RunManager can enumerate every
+	# hut when building the join-time world snapshot.
+	add_to_group(&"unit_huts")
 	_sync_cost_labels()
 
 	# Initial visual / interaction state.
@@ -157,6 +179,7 @@ func _ready() -> void:
 	_start_buttons.visible  = false
 	_lvl_up_buttons.visible = false
 	_icons.visible          = false
+	_waypoint_button.visible = false
 
 	for i in 3:
 		_sword_icons[i].visible   = false
@@ -171,6 +194,7 @@ func _ready() -> void:
 	$buttons/startButtons/button1.pressed.connect(func() -> void: _request_purchase(UnitType.WARRIOR))
 	$buttons/startButtons/button2.pressed.connect(func() -> void: _request_purchase(UnitType.ARCHER))
 	$buttons/startButtons/button3.pressed.connect(func() -> void: _request_purchase(UnitType.PRIEST))
+	_waypoint_button.pressed.connect(_on_waypoint_button_pressed)
 
 	# Fix button hit areas and unblock clicks through decorative scroll/icon children.
 	_fix_button_children(_initial_build)
@@ -214,6 +238,75 @@ func unlock() -> void:
 	_check_overlapping_bodies.call_deferred()
 
 
+# ── Join-time world resync ────────────────────────────────────────────────────
+
+## Host: full current state of this hut, for a joiner that connected mid-run.
+## Deliberately carries state, not events — replaying the original build/buy
+## packets would also charge the late joiner for purchases it never made.
+func build_snapshot() -> Dictionary:
+	var waypoint_pos: Vector2 = _waypoint.global_position if _waypoint != null else Vector2.ZERO
+	return {
+		"hut_id":    hut_id,
+		"state":     int(_state),
+		"types":     _slot_types.duplicate(),
+		"levels":    _slot_levels.duplicate(),
+		"purchased": _slot_purchased.duplicate(true),
+		"wx":        waypoint_pos.x,
+		"wy":        waypoint_pos.y,
+		"has_wp":    1 if _waypoint != null else 0,
+	}
+
+
+## Joiner: adopt a hut snapshot wholesale. Spawns each purchased unit at its
+## current level. No coin deduction and no build animation — this is catch-up,
+## not a purchase.
+func apply_snapshot(d: Dictionary) -> void:
+	if GameManager.is_host:
+		return
+	_state = int(d.get("state", int(State.LOCKED))) as State
+
+	# Waypoint FIRST: _dest_points are children of _waypoint, so moving it after
+	# spawning would leave the units standing at the old post.
+	if int(d.get("has_wp", 0)) == 1 and _waypoint != null:
+		# Set directly rather than via _apply_waypoint(): the host already snapped
+		# this position to the navmesh when it was placed, and re-snapping here
+		# shifts it again — the joiner's navmesh may not even be baked yet at join
+		# time. _apply_waypoint would also kick units into a walk they don't need.
+		_waypoint.global_position = Vector2(float(d.get("wx", 0.0)), float(d.get("wy", 0.0)))
+
+	var types: Array = d.get("types", [])
+	var levels: Array = d.get("levels", [])
+	var purchased: Array = d.get("purchased", [])
+	_slots_filled = 0
+	for i in 3:
+		var t: int = int(types[i]) if i < types.size() else int(UnitType.NONE)
+		var lv: int = int(levels[i]) if i < levels.size() else 0
+		_slot_types[i] = t
+		_slot_levels[i] = lv
+		if i < purchased.size() and purchased[i] is Array:
+			for lvl_idx in mini((purchased[i] as Array).size(), _slot_purchased[i].size()):
+				_slot_purchased[i][lvl_idx] = bool(purchased[i][lvl_idx])
+		# Replace whatever is standing there with the correct unit at the right level.
+		if _slot_units[i] != null and is_instance_valid(_slot_units[i]):
+			_slot_units[i].queue_free()
+			_slot_units[i] = null
+		if t != int(UnitType.NONE):
+			_slots_filled += 1
+			_slot_units[i] = _spawn_unit(t, i, lv, true)
+			_reveal_slot_icon(i, t)
+			_update_upgrade_lock_ui(i)
+
+	# The hut zone is only interactive once the tower fell; mirror that here rather
+	# than calling unlock(), which early-returns for anything past LOCKED.
+	if _state != State.LOCKED:
+		_area.monitoring = true
+		_area.monitorable = true
+	if _state != State.LOCKED and _state != State.UNLOCKED:
+		_initial_build.visible = false
+		_mark_built_visuals()
+	_update_shop_ui()
+
+
 func _check_overlapping_bodies() -> void:
 	for body in _area.get_overlapping_bodies():
 		if body.has_method(&"add_coins"):
@@ -241,6 +334,7 @@ func _on_area_body_exited(body: Node2D) -> void:
 	_initial_build.visible  = false
 	_start_buttons.visible  = false
 	_lvl_up_buttons.visible = false
+	_waypoint_button.visible = false
 
 # ── UI routing ────────────────────────────────────────────────────────────────
 
@@ -250,6 +344,7 @@ func _update_shop_ui() -> void:
 	_initial_build.visible  = false
 	_start_buttons.visible  = false
 	_lvl_up_buttons.visible = false
+	_waypoint_button.visible = false
 	match _state:
 		State.UNLOCKED:
 			_initial_build.visible = true
@@ -258,6 +353,9 @@ func _update_shop_ui() -> void:
 		State.COMPLETE:
 			_show_correct_upgrade_trees()
 			_lvl_up_buttons.visible = true
+	# The waypoint only matters once there's a unit to send somewhere.
+	if (_state == State.BUILT or _state == State.COMPLETE) and _slots_filled > 0:
+		_waypoint_button.visible = true
 
 # ── Initial build ─────────────────────────────────────────────────────────────
 
@@ -304,6 +402,14 @@ func _try_initial_build(buyer: Node, from_remote: bool = false) -> void:
 	# Broadcast to joiner.
 	if GameManager.session_id != "" and GameManager.is_host:
 		WebRTCManager.send_reliable({"t": "unit_built", "hut_id": hut_id, "cost": build_cost})
+
+
+## The end state of the build animation, applied without playing it. Used by
+## apply_snapshot() so a late joiner sees a finished hut rather than one that
+## appears to be under construction the moment they arrive.
+func _mark_built_visuals() -> void:
+	_sprite.stop()
+	_sprite.frame = 2
 
 
 func _play_build_animation() -> void:
@@ -360,7 +466,9 @@ func _try_purchase(unit_type: int, buyer: Node, from_remote: bool = false) -> vo
 
 	if _slots_filled == 3:
 		_state = State.COMPLETE
-		_update_shop_ui()
+	# Refreshes on every purchase (not just the 3rd) so WaypointButton appears
+	# the moment the first unit is bought, without needing to re-enter the Area2D.
+	_update_shop_ui()
 
 	# Broadcast to joiner.
 	if GameManager.session_id != "" and GameManager.is_host:
@@ -394,7 +502,10 @@ func _sync_cost_labels() -> void:
 ## Spawns the unit at `level` (0-based) for the given type into `slot_index`.
 ## level defaults to 0 (lvl1) for the initial slot purchase.
 ## Returns the instantiated scene root, or null if no scene exists for that level.
-func _spawn_unit(unit_type: int, slot_index: int, level: int = 0) -> Node2D:
+## at_post: place the unit at its destination immediately instead of walking it out
+## of the hut. Used by apply_snapshot() so a mid-run joiner sees units already
+## standing where they are on the host.
+func _spawn_unit(unit_type: int, slot_index: int, level: int = 0, at_post: bool = false) -> Node2D:
 	var scenes: Array[PackedScene] = _get_scenes_for_type(unit_type)
 	if scenes.is_empty() or level >= scenes.size() or scenes[level] == null:
 		push_warning("UnitHut [%d]: no scene for unit_type %d level %d — skipping spawn." % [hut_id, unit_type, level])
@@ -421,6 +532,10 @@ func _spawn_unit(unit_type: int, slot_index: int, level: int = 0) -> Node2D:
 	if body != null and body.has_signal(&"died"):
 		body.died.connect(_on_slot_unit_died.bind(slot_index), CONNECT_ONE_SHOT)
 	get_parent().add_child(unit)
+	# After add_child so the body's @onready refs are resolved and global_position
+	# is meaningful.
+	if at_post and body != null and body.has_method(&"snap_to_post"):
+		body.call(&"snap_to_post")
 	return unit
 
 
@@ -470,6 +585,128 @@ func _get_scenes_for_type(unit_type: int) -> Array[PackedScene]:
 		UnitType.ARCHER:  return archer_scenes
 		UnitType.PRIEST:  return priest_scenes
 	return []
+
+# ── Waypoint ──────────────────────────────────────────────────────────────────
+
+func _on_waypoint_button_pressed() -> void:
+	_awaiting_waypoint_click = true
+	_spawn_waypoint_flag_preview()
+	_waypoint_suppress_gen += 1
+	_set_waypoint_attack_suppressed(true)
+
+
+func _exit_tree() -> void:
+	# Don't leave a player's attacks muted if the hut is torn down mid-placement.
+	_set_waypoint_attack_suppressed(false)
+
+
+## Deferred re-enable target: only clears the mute if no newer placement has been
+## armed since this timer was scheduled (see _waypoint_suppress_gen).
+func _release_waypoint_attack_suppressed(gen: int) -> void:
+	if gen == _waypoint_suppress_gen:
+		_set_waypoint_attack_suppressed(false)
+
+
+## While a placement is armed, keep the interacting player's attack input muted
+## so the click that drops the flag doesn't also trigger an attack. Idempotent.
+func _set_waypoint_attack_suppressed(suppressed: bool) -> void:
+	if suppressed:
+		if _player != null and is_instance_valid(_player) and "disable_local_attack_input" in _player:
+			_player.disable_local_attack_input = true
+			_waypoint_attack_suppressed = _player
+	else:
+		if _waypoint_attack_suppressed != null and is_instance_valid(_waypoint_attack_suppressed) \
+				and "disable_local_attack_input" in _waypoint_attack_suppressed:
+			_waypoint_attack_suppressed.disable_local_attack_input = false
+		_waypoint_attack_suppressed = null
+
+
+## While a waypoint click is armed, the flag sprite tracks the cursor so the
+## player can see where it'll land before confirming with a click.
+func _process(_delta: float) -> void:
+	if _awaiting_waypoint_click and _waypoint_flag_preview != null and is_instance_valid(_waypoint_flag_preview):
+		_waypoint_flag_preview.global_position = get_global_mouse_position()
+
+
+## Consumes the armed waypoint click. Left clicks that land on Control nodes
+## (e.g. the shop buttons) are handled by the GUI first and never reach here.
+func _unhandled_input(event: InputEvent) -> void:
+	if not _awaiting_waypoint_click:
+		return
+	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
+		return
+	_awaiting_waypoint_click = false
+	# Re-enable attacks a beat later, not now: this same click is already latched
+	# as "just pressed" for the physics tick that runs after this input frame, so
+	# clearing the suppression synchronously would let it through as an attack.
+	if is_inside_tree():
+		get_tree().create_timer(0.15).timeout.connect(_release_waypoint_attack_suppressed.bind(_waypoint_suppress_gen))
+	else:
+		_set_waypoint_attack_suppressed(false)
+	var click_pos: Vector2 = get_global_mouse_position()
+	_apply_waypoint(click_pos)
+	if GameManager.session_id != "":
+		WebRTCManager.send_reliable({
+			"t":      "unit_waypoint_set",
+			"hut_id": hut_id,
+			"x":      click_pos.x,
+			"y":      click_pos.y,
+		})
+
+
+## Moves the shared waypoint node (carrying point1/point2/point3 with it),
+## settles the flag visual at its final spot, and sends every currently-spawned
+## unit back to its post. world_pos is first snapped onto walk_area's navmesh
+## so a click that lands outside the walkable ground (e.g. on a wall or off
+## into decoration) doesn't send units marching to an unreachable spot — the
+## flag itself settles at the snapped point too, so what the player sees
+## matches where units actually go.
+func _apply_waypoint(world_pos: Vector2) -> void:
+	if walk_area == null:
+		walk_area = EnemyNavigation.find_walk_area(get_tree())
+	if walk_area != null:
+		world_pos = EnemyNavigation.snap_to_navmesh(walk_area, world_pos)
+	_waypoint.global_position = world_pos
+	_settle_waypoint_flag(world_pos)
+	for unit in _slot_units:
+		if unit == null or not is_instance_valid(unit):
+			continue
+		var body: Node = unit.find_child("CharacterBody2D", true, false)
+		if body != null and body.has_method(&"return_to_post"):
+			body.call(&"return_to_post")
+
+
+## Spawns the WaypointFlag sprite at 0.2 scale, right where the cursor is now.
+## _process() drags it along with the mouse until the placement click lands.
+func _spawn_waypoint_flag_preview() -> void:
+	if _waypoint_flag_preview != null and is_instance_valid(_waypoint_flag_preview):
+		_waypoint_flag_preview.queue_free()
+	var flag := Sprite2D.new()
+	flag.texture = WaypointFlagTexture
+	flag.scale = Vector2(0.2, 0.2)
+	flag.global_position = get_global_mouse_position()
+	get_tree().current_scene.add_child(flag)
+	_waypoint_flag_preview = flag
+
+
+## Stops the flag following the cursor and holds it at `world_pos` for 1 second,
+## then fades it out over the next second. Mirrors FX/heal_number.gd's tween shape.
+## Falls back to spawning a fresh flag when there's no preview to settle — the
+## case for the peer that receives a remote unit_waypoint_set packet, who never
+## armed a click of their own.
+func _settle_waypoint_flag(world_pos: Vector2) -> void:
+	var flag: Sprite2D = _waypoint_flag_preview
+	_waypoint_flag_preview = null
+	if flag == null or not is_instance_valid(flag):
+		flag = Sprite2D.new()
+		flag.texture = WaypointFlagTexture
+		flag.scale = Vector2(0.2, 0.2)
+		get_tree().current_scene.add_child(flag)
+	flag.global_position = world_pos
+	var tween := create_tween()
+	tween.tween_interval(1.0)
+	tween.tween_property(flag, "modulate:a", 0.0, 1.0)
+	tween.tween_callback(flag.queue_free)
 
 # ── Icons ─────────────────────────────────────────────────────────────────────
 
@@ -730,6 +967,10 @@ func _on_packet_received(data: Dictionary) -> void:
 	if int(data.get("hut_id", -1)) != hut_id:
 		return
 	match data.get("t", "") as String:
+		"unit_waypoint_set":
+			# The other peer relocated the waypoint — mirror it locally, no
+			# re-broadcast (that would ping-pong the packet forever).
+			_apply_waypoint(Vector2(float(data.get("x", 0.0)), float(data.get("y", 0.0))))
 		"unit_build":
 			# Joiner requests initial build — host validates.
 			if GameManager.is_host:
@@ -768,7 +1009,7 @@ func _on_packet_received(data: Dictionary) -> void:
 				_reveal_slot_icon(slot_index, unit_type)
 				if _slots_filled == 3:
 					_state = State.COMPLETE
-					_update_shop_ui()
+				_update_shop_ui()
 		"unit_upgrade_buy":
 			# Joiner requests an upgrade tier — host validates.
 			if GameManager.is_host:

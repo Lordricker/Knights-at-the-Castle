@@ -1,0 +1,16 @@
+{
+  "name": "cadence-blade-turn",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Hands the game a short-lived Metered TURN credential so no permanent relay credential ships inside a build.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "test": "node test/rotation.test.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4"
+  }
+}

@@ -3,10 +3,11 @@
 [ext_resource type="Texture2D" uid="uid://cvy0sb28lvp2t" path="res://level/backgroundSprites/Castle.png" id="1_qracd"]
 [ext_resource type="Script" uid="uid://dyajivtxcsito" path="res://characters/castle.gd" id="1_v1fyj"]
 [ext_resource type="Texture2D" uid="uid://dew7fmf2bjfck" path="res://level/backgroundSprites/CastleInside.png" id="2_d4rmk"]
-[ext_resource type="Script" path="res://ui/hud/horizontal_health_bar.gd" id="4_s2tfp"]
+[ext_resource type="Script" uid="uid://1ev0o35afyo" path="res://ui/hud/horizontal_health_bar.gd" id="4_s2tfp"]
 [ext_resource type="Texture2D" uid="uid://b8l1h6bswmk7w" path="res://level/backgroundSprites/CastleHP.png" id="5_kioy7"]
 [ext_resource type="Texture2D" uid="uid://b6gs8kqn8jrdh" path="res://level/backgroundSprites/CastleHPMask.png" id="6_kyk3r"]
 [ext_resource type="Texture2D" uid="uid://bq0y1xj775cm5" path="res://assets/sprites/UI/CastleHPOverlay.png" id="7_d4rmk"]
+[ext_resource type="PackedScene" uid="uid://drasvwq7dtxb1" path="res://ui/hourglass.tscn" id="8_s2tfp"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ma6sk"]
 size = Vector2(80, 233)
@@ -42,8 +43,10 @@ position = Vector2(0, -6.515)
 texture = ExtResource("1_qracd")
 
 [node name="hpbar" type="Node2D" parent="StaticBody2D" unique_id=718268115 node_paths=PackedStringArray("fill_window")]
+position = Vector2(0, -9.61)
 script = ExtResource("4_s2tfp")
 fill_window = NodePath("CastleHpMask")
+ally_fill_color = Color(0.85882354, 0.12156863, 0.12156863, 1)
 fill_color = Color(0.79607844, 0, 0, 1)
 background_color = Color(0.05882353, 0.05882353, 0.05882353, 0)
 fill_left_x = -97.0
@@ -66,3 +69,6 @@ texture = ExtResource("7_d4rmk")
 [node name="InsideBox" type="CollisionShape2D" parent="StaticBody2D/Area2D" unique_id=1414038696]
 position = Vector2(0, 10.5)
 shape = SubResource("RectangleShape2D_cneay")
+
+[node name="hourglass" parent="StaticBody2D" unique_id=1221773736 instance=ExtResource("8_s2tfp")]
+position = Vector2(88, 4)

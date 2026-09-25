@@ -156,6 +156,12 @@ func _fire_arrow() -> void:
 
 	# collision_mask = 1 so the arrow detects players and the castle StaticBody2D.
 	arrow.collision_mask = 1
+	# Arrow._ready() defaults collision_layer to 32 (the player-attack layer that
+	# lets a PLAYER'S arrow hit an enemy's head/body HurtBox). Left unset here,
+	# this enemy arrow would sit on that same layer and could trigger another
+	# enemy's own HurtBox (e.g. the dragon's head/body) — friendly fire. Layer 1
+	# matches the "enemy attack" layer every other enemy hitbox defaults to.
+	arrow.collision_layer = 1
 	arrow.configure(global_position, shoot_dir, arrow_speed, arrow_damage, 0.0)
 	arrow.lifetime = arrow_lifetime
 	# Lambda: handle Area2D hits (e.g. castle's Kill area).

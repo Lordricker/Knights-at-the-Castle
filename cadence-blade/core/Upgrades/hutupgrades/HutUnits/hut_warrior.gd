@@ -90,18 +90,42 @@ var destination: Marker2D = null
 @export var hit_sound_fireball_flow: AudioStream
 @export_range(-40.0, 6.0, 0.1) var hit_sound_fireball_flow_volume_db: float = 0.0
 
+## How far (px) a freshly-spawned unit walks straight down out of its hut
+## before switching to navmesh-following. Huts sit outside walk_area (the
+## polygon isn't carved out around each one), so a unit starts off-mesh —
+## this gets it clear of the hut without needing nav queries against a
+## point that isn't inside the walkable area yet.
+const WALK_OUT_DISTANCE: float = 120.0
+
+## Within this distance of the post, steer straight at the marker instead of
+## through the navmesh. The last few px of a nav path can oscillate around a
+## target that sits just off the baked mesh — that never satisfies the arrival
+## check, so the unit walks in place and (see below) flip-flops its sprite.
+const NAV_ARRIVE_RADIUS: float = 32.0
+## Movement dirs whose horizontal component (post-normalize) is below this don't
+## update facing, so a unit jittering in place near its post doesn't waffle.
+const FACING_DEADZONE: float = 0.15
+
 # ── Runtime state ─────────────────────────────────────────────────────────────
 
-enum GuardState { WALK, GUARD }
+enum GuardState { WALK_OUT, WALK, GUARD }
 enum SlashState { NONE, ATTACKING }
 
-var _guard_state: GuardState = GuardState.WALK
+var _guard_state: GuardState = GuardState.WALK_OUT
+var _walk_out_start: Vector2 = Vector2.ZERO
+## Polygon2D from the "walk_area" group — same shared navmesh source the
+## sheepdog uses (see EnemyNavigation).
+var walk_area: Polygon2D = null
+var nav_region: NavigationRegion2D = null
 var slash_state: SlashState = SlashState.NONE
 var health: float = 0.0
 var is_dead: bool = false
 var target: Node2D = null
 var facing: float = 1.0
 var _prev_footstep_frame: int = -1
+## HPBar.tscn's root is a plain Node2D; the set_health() API lives on its
+## VerticalHealthBar child, so resolve it once instead of calling the root.
+var _health_bar_api: Node = null
 ## Keyed by target instance ID -> {ticks_left, timer}. See hut_dot.gd.
 var _active_dots: Dictionary = {}
 
@@ -129,13 +153,16 @@ const _HIT_FLASH_DURATION := 0.15
 
 @onready var animated_sprite: AnimatedSprite2D = find_child("AnimatedSprite2D") as AnimatedSprite2D
 @onready var slash_hitbox: Area2D = find_child("SlashHitbox") as Area2D
+@onready var nav_agent: NavigationAgent2D = find_child("NavigationAgent2D") as NavigationAgent2D
 
 
 func _ready() -> void:
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
 	set_collision_mask(0)
 	health = max_health
+	_walk_out_start = global_position
 	health_changed.connect(_on_health_changed)
+	_health_bar_api = _resolve_bar_api(health_bar, &"set_health")
 	health_changed.emit(health, max_health)
 	add_to_group(&"entities")
 	add_to_group(&"Kill")  # so real enemies can target this unit back
@@ -176,7 +203,13 @@ func _ready() -> void:
 func _physics_process(_delta: float) -> void:
 	if is_dead:
 		return
+	if walk_area == null:
+		walk_area = EnemyNavigation.find_walk_area(get_tree())
+	if walk_area != null and nav_region == null:
+		nav_region = EnemyNavigation.get_or_create_nav_region(walk_area)
 	match _guard_state:
+		GuardState.WALK_OUT:
+			_handle_walk_out()
 		GuardState.WALK:
 			_handle_walk()
 		GuardState.GUARD:
@@ -185,6 +218,19 @@ func _physics_process(_delta: float) -> void:
 	_check_footstep_sound()
 
 # ── AI ─────────────────────────────────────────────────────────────────────────
+
+## Straight walk clear of the hut (see WALK_OUT_DISTANCE) until this unit is
+## either inside walk_area or has gone far enough — then hand off to navmesh
+## steering. Huts aren't carved out of the polygon, so units always spawn off-mesh.
+func _handle_walk_out() -> void:
+	if (walk_area != null and EnemyNavigation.is_inside(walk_area, global_position)) \
+			or global_position.distance_to(_walk_out_start) >= WALK_OUT_DISTANCE:
+		_guard_state = GuardState.WALK
+		return
+	velocity = Vector2.DOWN * move_speed
+	if animated_sprite.animation != &"running":
+		animated_sprite.play(&"running")
+
 
 func _handle_walk() -> void:
 	if destination == null:
@@ -199,8 +245,15 @@ func _handle_walk() -> void:
 		_guard_state = GuardState.GUARD
 		animated_sprite.play(&"idle")
 		return
-	velocity = to_dest.normalized() * move_speed
-	_set_facing(1.0 if to_dest.x >= 0.0 else -1.0)
+	var dir: Vector2
+	if nav_agent != null and nav_region != null and to_dest.length() > NAV_ARRIVE_RADIUS:
+		nav_agent.target_position = destination.global_position
+		dir = (nav_agent.get_next_path_position() - global_position).normalized()
+	else:
+		dir = to_dest.normalized()
+	velocity = dir * move_speed
+	if absf(dir.x) >= FACING_DEADZONE:
+		_set_facing(1.0 if dir.x >= 0.0 else -1.0)
 	if animated_sprite.animation != &"running":
 		animated_sprite.play(&"running")
 
@@ -213,6 +266,11 @@ func _handle_guard() -> void:
 	var enemies := _get_enemies_in_range()
 	if enemies.size() == 0:
 		target = null
+		# The chase in this function can carry the warrior away from its post —
+		# head back once there's nothing left to fight.
+		if destination != null and global_position.distance_to(destination.global_position) > 4.0:
+			_guard_state = GuardState.WALK
+			return
 		velocity = Vector2.ZERO
 		if animated_sprite.animation != &"idle":
 			animated_sprite.play(&"idle")
@@ -408,6 +466,30 @@ func take_damage(amount: float, flow_success: bool = false, weapon_type: WeaponT
 func apply_knockback(_source_position: Vector2, _force: float) -> void:
 	pass  # guard units hold position
 
+# ── Waypoint ───────────────────────────────────────────────────────────────────
+
+## Called by UnitHut when the player relocates this hut's waypoint, so an
+## already-spawned unit walks to the new post instead of staying on the old one.
+func return_to_post() -> void:
+	if is_dead:
+		return
+	if slash_state == SlashState.ATTACKING:
+		_stop_attack()
+	_guard_state = GuardState.WALK
+
+
+## Places this unit at its post immediately, skipping the walk-out. Used when a
+## joiner adopts the host's world state mid-run: on the host these units reached
+## their posts long ago, so the joiner must not watch them march out again.
+func snap_to_post() -> void:
+	if destination == null:
+		return
+	global_position = destination.global_position
+	velocity = Vector2.ZERO
+	_guard_state = GuardState.GUARD
+	if animated_sprite != null:
+		animated_sprite.play(&"idle")
+
 
 func _die() -> void:
 	died.emit()
@@ -424,8 +506,22 @@ func _die() -> void:
 
 
 func _on_health_changed(new_health: float, max_hp: float) -> void:
-	if health_bar != null and health_bar.has_method("set_health"):
-		health_bar.set_health(new_health, max_hp)
+	if _health_bar_api != null:
+		_health_bar_api.set_health(new_health, max_hp)
+
+
+## Walks `root` depth-first for the node exposing `required_method`, so the
+## Inspector can be pointed at either the HPBar scene root or the bar itself.
+func _resolve_bar_api(root: Node, required_method: StringName) -> Node:
+	if root == null:
+		return null
+	if root.has_method(required_method):
+		return root
+	for child in root.get_children():
+		var found: Node = _resolve_bar_api(child, required_method)
+		if found != null:
+			return found
+	return null
 
 # ── SFX / hit-flash helpers ────────────────────────────────────────────────────
 

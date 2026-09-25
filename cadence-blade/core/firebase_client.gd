@@ -54,6 +54,31 @@ func delete_session(session_id: String, cb: Callable) -> void:
 	_enqueue("DELETE", "/sessions/%s.json" % session_id, "", cb)
 
 
+## Blocking DELETE for app shutdown, when an async HTTPRequest would never finish
+## before the process exits. Desktop only; gives up after `timeout_ms`.
+func delete_session_blocking(session_id: String, timeout_ms: int = 2000) -> void:
+	var url := FIREBASE_DB_URL.rstrip("/")
+	var host := url.trim_prefix("https://")
+	var client := HTTPClient.new()
+	if client.connect_to_host("https://" + host) != OK:
+		return
+	var deadline := Time.get_ticks_msec() + timeout_ms
+	while client.get_status() in [HTTPClient.STATUS_CONNECTING, HTTPClient.STATUS_RESOLVING]:
+		client.poll()
+		if Time.get_ticks_msec() > deadline:
+			return
+		OS.delay_msec(10)
+	if client.get_status() != HTTPClient.STATUS_CONNECTED:
+		return
+	if client.request(HTTPClient.METHOD_DELETE, "/sessions/%s.json" % session_id, ["Content-Type: application/json"]) != OK:
+		return
+	while client.get_status() == HTTPClient.STATUS_REQUESTING:
+		client.poll()
+		if Time.get_ticks_msec() > deadline:
+			return
+		OS.delay_msec(10)
+
+
 ## Write a WebRTC signaling payload (offer, answer, or ICE batch).
 func write_signal_data(session_id: String, key: String, data: Dictionary, cb: Callable) -> void:
 	_enqueue("PUT", "/signaling/%s/%s.json" % [session_id, key], JSON.stringify(data), cb)
@@ -67,6 +92,18 @@ func read_signal_data(session_id: String, key: String, cb: Callable) -> void:
 ## Delete all signaling data for a session (cleanup after P2P connects).
 func delete_signal_data(session_id: String, cb: Callable) -> void:
 	_enqueue("DELETE", "/signaling/%s.json" % session_id, "", cb)
+
+
+## Delete one joiner slot's signaling subtree (star topology — each joiner slot
+## has its own /signaling/{sid}/{slot}/... namespace).
+func delete_signal_slot(session_id: String, slot: int, cb: Callable) -> void:
+	_enqueue("DELETE", "/signaling/%s/%d.json" % [session_id, slot], "", cb)
+
+
+## DELETE an arbitrary sub-path under the DB root.
+## path must start with "/" and end with ".json".
+func delete_subpath(path: String, cb: Callable) -> void:
+	_enqueue("DELETE", path, "", cb)
 
 
 ## PUT data to an arbitrary sub-path under the DB root.

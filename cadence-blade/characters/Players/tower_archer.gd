@@ -41,6 +41,19 @@ const SHOOT_FRAME: int = 5
 ## How fast knockback decelerates (kept for EnemyBase arrow compatibility).
 @export var knockback_friction: float = 600.0
 
+@export_group("Respawn")
+## Tower archers are a PERMANENT purchase (like UnitHut units). When one dies it
+## stays down for this many seconds, then respawns for free at the same tower.
+@export var respawn_seconds: float = 15.0
+## Base (background) colour of the pie countdown shown above the tower while dead.
+@export var respawn_bar_base_color: Color = Color(0.4, 0.4, 0.4, 0.85)
+## Foreground (wedge) colour of the pie countdown.
+@export var respawn_bar_progress_color: Color = Color(0.85, 0.85, 0.85, 0.9)
+## Radius of the pie countdown, in pixels.
+@export var respawn_bar_radius: float = 14.0
+## How far above this archer's origin (in pixels) the pie countdown is drawn.
+@export var respawn_bar_height_above_origin: float = 40.0
+
 @export_group("Setup")
 ## Which direction the archer faces. 1.0 = right tower, -1.0 = left tower.
 @export_range(-1.0, 1.0, 2.0) var facing: float = 1.0
@@ -88,6 +101,12 @@ const SHOOT_FRAME: int = 5
 
 var health: float = 0.0
 var is_dead: bool = false
+
+# ── Respawn countdown ─────────────────────────────────────────────────────────
+## Node2D drawn above the tower with a shrinking pie while the archer is dead.
+var _respawn_bar: Node2D = null
+var _respawn_bar_progress: float = 0.0
+var _respawn_tween: Tween = null
 
 enum ShootState { NONE, ATTACKING }
 var shoot_state: ShootState = ShootState.NONE
@@ -151,6 +170,42 @@ func _ready() -> void:
 	mat.shader = load(_HIT_FLASH_SHADER)
 	animated_sprite.material = mat
 	_hit_flash_material = mat
+	_setup_respawn_bar()
+
+
+## Creates the procedural pie-countdown drawn above the tower while the archer is
+## dead. Mirrors UnitHut's hut_slot_timer overlay — no art dependency.
+func _setup_respawn_bar() -> void:
+	_respawn_bar = Node2D.new()
+	_respawn_bar.z_as_relative = false
+	_respawn_bar.z_index = 100
+	_respawn_bar.position = Vector2(0.0, -respawn_bar_height_above_origin)
+	_respawn_bar.visible = false
+	add_child(_respawn_bar)
+	_respawn_bar.draw.connect(_on_respawn_bar_draw)
+
+
+func _on_respawn_bar_draw() -> void:
+	if _respawn_bar_progress <= 0.0:
+		return
+	var radius: float = respawn_bar_radius
+	_respawn_bar.draw_circle(Vector2.ZERO, radius, respawn_bar_base_color)
+	if _respawn_bar_progress >= 1.0:
+		_respawn_bar.draw_circle(Vector2.ZERO, radius, respawn_bar_progress_color)
+		return
+	var steps: int = 32
+	var end_angle: float = TAU * _respawn_bar_progress
+	var points := PackedVector2Array([Vector2.ZERO])
+	for i in steps + 1:
+		var a: float = -PI / 2.0 + (end_angle * i / steps)
+		points.append(Vector2(cos(a), sin(a)) * radius)
+	_respawn_bar.draw_colored_polygon(points, respawn_bar_progress_color)
+
+
+func _set_respawn_progress(v: float) -> void:
+	_respawn_bar_progress = v
+	if _respawn_bar != null:
+		_respawn_bar.queue_redraw()
 
 
 func _physics_process(_delta: float) -> void:
@@ -232,16 +287,51 @@ func apply_knockback(_source: Vector2, _force: float) -> void:
 func _die() -> void:
 	is_dead = true
 	shoot_state = ShootState.NONE
+	_arrow_fired = false
+	_target = null
 	set_physics_process(false)
 	if animated_sprite != null:
+		animated_sprite.stop()
 		animated_sprite.hide()
 	if health_bar != null:
 		health_bar.hide()
-	# Deactivate the parent wrapper node so the upgrade can be purchased again.
-	var parent := get_parent()
-	if parent != null:
-		parent.process_mode = Node.PROCESS_MODE_DISABLED
-		parent.hide()
+	if detection_zone != null:
+		detection_zone.monitoring = false
+	# Permanent purchase (like UnitHut units): don't deactivate for re-purchase —
+	# count down and respawn for free at the same tower.
+	_start_respawn_countdown()
+
+
+func _start_respawn_countdown() -> void:
+	_set_respawn_progress(1.0)
+	if _respawn_bar != null:
+		_respawn_bar.visible = true
+	if _respawn_tween != null and _respawn_tween.is_valid():
+		_respawn_tween.kill()
+	_respawn_tween = create_tween()
+	_respawn_tween.tween_method(_set_respawn_progress, 1.0, 0.0, maxf(respawn_seconds, 0.01))
+	_respawn_tween.finished.connect(_respawn)
+
+
+func _respawn() -> void:
+	_respawn_tween = null
+	is_dead = false
+	health = max_health
+	shoot_state = ShootState.NONE
+	_arrow_fired = false
+	_target = null
+	_set_respawn_progress(0.0)
+	if _respawn_bar != null:
+		_respawn_bar.visible = false
+	if detection_zone != null:
+		detection_zone.monitoring = true
+	if animated_sprite != null:
+		animated_sprite.show()
+		animated_sprite.play(&"idle")
+	if health_bar != null:
+		health_bar.show()
+	set_physics_process(true)
+	health_changed.emit(health, max_health)
 
 
 func _on_health_changed(new_health: float, max_hp: float) -> void:

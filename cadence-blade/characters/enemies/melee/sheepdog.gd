@@ -48,8 +48,12 @@ var _bash_lunge_active: bool = false
 
 ## Polygon2D from the "walk_area" group — constrains movement like the players.
 var walk_area: Polygon2D = null
+## Baked once per walk_area so the sheepdog paths around its (often concave)
+## boundary instead of beelining straight at the player through walls.
+var nav_region: NavigationRegion2D = null
 
 @onready var bash_hitbox: Area2D = find_child("BashHitbox") as Area2D
+@onready var nav_agent: NavigationAgent2D = find_child("NavigationAgent2D") as NavigationAgent2D
 
 var _bash_audio: AudioStreamPlayer2D = null
 
@@ -78,14 +82,8 @@ func _physics_process(delta: float) -> void:
 		knockback_velocity = Vector2.ZERO
 		return
 
-	# Joiner: no local AI — interpolate toward the host-authoritative position.
-	if GameManager.session_id != "" and not GameManager.is_host:
-		if _net_synced:
-			var dist := global_position.distance_to(_net_target_pos)
-			if dist > 300.0:
-				global_position = _net_target_pos
-			else:
-				global_position = global_position.lerp(_net_target_pos, minf(10.0 * delta, 1.0))
+	# Joiner: no local AI — mirror the host's position from the network buffer.
+	if apply_net_position():
 		return
 
 	# Lazy lookup for walk_area polygon.
@@ -93,6 +91,8 @@ func _physics_process(delta: float) -> void:
 		var areas: Array[Node] = get_tree().get_nodes_in_group("walk_area")
 		if areas.size() > 0:
 			walk_area = areas[0] as Polygon2D
+	if walk_area != null and nav_region == null:
+		nav_region = EnemyNavigation.get_or_create_nav_region(walk_area, 16.0)
 
 	_handle_ai(delta)
 	velocity += knockback_velocity
@@ -105,8 +105,6 @@ func _physics_process(delta: float) -> void:
 
 	if walk_area != null:
 		_constrain_to_walk_area()
-
-	position = position.round()
 
 
 # ── AI ─────────────────────────────────────────────────────────────────────────
@@ -125,13 +123,23 @@ func _handle_ai(_delta: float) -> void:
 		_begin_bash()
 		return
 
-	# Chase nearest living player.
+	# Chase nearest living player — via the navmesh when it's ready so the
+	# sheepdog routes around the walk_area's boundary instead of beelining
+	# straight at the player and shoving into a wall.
 	var nearest := _get_nearest_player()
 	if nearest != null:
 		target = nearest
-		var dir := (nearest.global_position - global_position).normalized()
+		var dir: Vector2
+		if nav_agent != null and nav_region != null:
+			nav_agent.target_position = nearest.global_position
+			dir = (nav_agent.get_next_path_position() - global_position).normalized()
+		else:
+			dir = (nearest.global_position - global_position).normalized()
 		velocity = dir * move_speed
-		_set_facing(1.0 if dir.x >= 0.0 else -1.0)
+		# Ignore a near-vertical steering dir so the sprite doesn't flip-flop
+		# when the navmesh path oscillates around a target it's nearly on.
+		if absf(dir.x) >= 0.15:
+			_set_facing(1.0 if dir.x >= 0.0 else -1.0)
 	else:
 		target = null
 		velocity = Vector2.ZERO
@@ -274,8 +282,12 @@ func _constrain_to_walk_area() -> void:
 
 	if total_offset != Vector2.ZERO:
 		global_position += total_offset
-		velocity = Vector2.ZERO
-		knockback_velocity = Vector2.ZERO
+		# Cancel only the into-wall component so the along-wall component
+		# survives -- knockback and movement slide along the edge instead
+		# of stopping dead.
+		var wall_normal: Vector2 = total_offset.normalized()
+		velocity -= wall_normal * minf(velocity.dot(wall_normal), 0.0)
+		knockback_velocity -= wall_normal * minf(knockback_velocity.dot(wall_normal), 0.0)
 
 
 func _get_shape_test_points() -> Array[Vector2]:

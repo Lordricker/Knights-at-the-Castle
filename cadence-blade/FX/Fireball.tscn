@@ -22,11 +22,15 @@ point_count = 2
 [sub_resource type="Gradient" id="Gradient_t40mn"]
 colors = PackedColorArray(0.89459115, 0.731565, 0.18060651, 1, 0.7092767, 0.15213937, 0.18955913, 1)
 
-[node name="Fireball" type="Area2D" unique_id=692383866 node_paths=PackedStringArray("trail_particles", "explosion_particles")]
+[sub_resource type="CircleShape2D" id="CircleShape2D_af0pe"]
+radius = 42.107006
+
+[node name="Fireball" type="Area2D" unique_id=692383866 node_paths=PackedStringArray("trail_particles", "explosion_particles", "splash_zone")]
 gravity = 300.0
 script = ExtResource("1_ldvry")
 trail_particles = NodePath("lifetimeParticles")
 explosion_particles = NodePath("deathexplosion")
+splash_zone = NodePath("SplashZone")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1703352748]
 shape = SubResource("CircleShape2D_hyrg3")
@@ -120,3 +124,11 @@ scale_amount_max = 4.0
 scale_amount_curve = SubResource("Curve_ldvry")
 color = Color(0.83291507, 0.7502015, 1.1551381e-06, 1)
 color_ramp = SubResource("Gradient_t40mn")
+
+[node name="SplashZone" type="Area2D" parent="." unique_id=705404059]
+monitoring = false
+monitorable = false
+
+[node name="splashzone" type="CollisionShape2D" parent="SplashZone" unique_id=705404058]
+position = Vector2(0, -10)
+shape = SubResource("CircleShape2D_af0pe")

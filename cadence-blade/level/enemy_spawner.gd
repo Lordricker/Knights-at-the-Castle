@@ -42,9 +42,17 @@ extends Node2D
 
 # ── Exports ───────────────────────────────────────────────────────────────────
 
+@export_group("Schedule")
+## The full spawn schedule (curves, enemy types, night cycle) as one resource,
+## authored in the Spawn Designer tool. When assigned, every field below is
+## overwritten from it on _ready — the inline exports are only a fallback for
+## scenes that predate the resource.
+@export var schedule: SpawnScheduleConfig
+
 @export_group("Enemy Types")
 ## Outer array: one entry per sprite category (e.g. Knight, Archer, Warrior).
 ## Each EnemyTypeConfig holds an inner variants array.
+## Ignored when `schedule` is assigned.
 @export var enemy_types: Array[EnemyTypeConfig] = []
 
 @export_group("Global Spawn Curves")
@@ -108,6 +116,12 @@ var _guaranteed_next_index: Dictionary = {}
 ## Public so RunManager can read positions for state broadcasts.
 var alive_enemy_map: Dictionary = {}
 
+## Joiner only: the host clock's playback time, refreshed once per frame by
+## RunManager. Each enemy samples its own NetInterp buffer against this in
+## EnemyBase.apply_net_position(), so players and enemies share one clock and stay
+## in consistent relative time.
+var net_play_time: float = 0.0
+
 ## Active spawn sources, one per currently-active EnemyTower (and any activated
 ## terminal spawn points). Each entry: {"marker": Marker2D, "path": Path2D}.
 ## Populated/emptied by EnemyTower.activate() / destroy() via add_spawn_source()
@@ -119,6 +133,7 @@ var _spawn_sources: Array[Dictionary] = []
 
 func _ready() -> void:
 	add_to_group(&"enemy_spawner")
+	_apply_schedule()
 	if enemy_container == null:
 		enemy_container = get_parent()
 
@@ -136,6 +151,34 @@ func _ready() -> void:
 
 	# Prime the timer so the first spawn fires after one full interval.
 	_spawn_timer = _sample_spawn_interval(0.0)
+
+
+## Copy every field from `schedule` into the inline vars the rest of this script
+## reads. No-op when no schedule is assigned (legacy scenes keep their inline
+## exports).
+func _apply_schedule() -> void:
+	if schedule == null:
+		return
+	enemy_types = schedule.enemy_types
+	spawn_rate_curve = schedule.spawn_rate_curve
+	max_total_curve = schedule.max_total_curve
+	# Solo runs get their own alive-cap curve when one is authored — one player
+	# can't stem the same tide as three. This ONLY swaps which curve feeds the
+	# single spawn loop; it never adds a second spawn path, and every spawned
+	# enemy is broadcast to joiners identically regardless. session_id is already
+	# set by GameManager.start_solo() / begin_hosting() before this scene loads,
+	# and is non-empty for BOTH the host and joiners of a multiplayer session.
+	var is_solo_run := GameManager.session_id == ""
+	if is_solo_run and schedule.solo_max_total_curve != null:
+		max_total_curve = schedule.solo_max_total_curve
+	night_periods = schedule.night_periods
+	night_fade_seconds = schedule.night_fade_seconds
+	curve_time_scale_minutes = schedule.run_length_minutes
+	print("[Spawner] schedule applied — %s run, %d enemy types, max_total curve = %s" % [
+		"SOLO" if is_solo_run else "MULTIPLAYER",
+		enemy_types.size(),
+		"solo_max_total_curve" if (is_solo_run and schedule.solo_max_total_curve != null)
+			else "max_total_curve"])
 
 
 func _process(delta: float) -> void:
@@ -192,9 +235,13 @@ func _apply_curve_domains() -> void:
 
 # ── Curve helpers ─────────────────────────────────────────────────────────────
 
-## Returns elapsed minutes, clamped to [0, curve_time_scale_minutes].
+## Real elapsed minutes since the run started. NOT clamped to the run length:
+## Curve.sample() already clamps to each curve's own max_domain (set from
+## curve_time_scale_minutes in _apply_curve_domains), and night_periods must be
+## compared against real time or a night whose window touches the run-length
+## boundary would latch on forever.
 func _elapsed_minutes() -> float:
-	return clampf(time_elapsed / 60.0, 0.0, curve_time_scale_minutes)
+	return maxf(0.0, time_elapsed / 60.0)
 
 
 # ── Night cycle ───────────────────────────────────────────────────────────────
@@ -404,6 +451,8 @@ func _spawn_variant(key: Vector2i) -> void:
 		signal_source.coin_tier = vi_cfg.coin_tier
 	if "flow_kill_coin_tier" in signal_source:
 		signal_source.flow_kill_coin_tier = vi_cfg.flow_kill_coin_tier
+	if "coin_tier_2" in signal_source:
+		signal_source.coin_tier_2 = vi_cfg.coin_tier_2
 
 	# Notify joiner so it can instantiate a matching node.
 	if GameManager.session_id != "" and GameManager.is_host:
@@ -432,14 +481,16 @@ func _on_enemy_died(key: Vector2i, spawn_id: int) -> void:
 ## Host: send all currently alive enemies to the newly connected joiner.
 ## Called once from RunManager.spawn_peer_mid_game so the joiner's screen
 ## isn't empty for enemies that spawned before the connection was established.
-func send_all_alive_to_joiner() -> void:
-	print("[Spawner] Sending %d alive enemies to joiner." % alive_enemy_map.size())
+## Re-send every alive enemy as a spawn packet. Pass `to_slot` to target a single
+## newly-joined joiner; 0 broadcasts to all (joiners dedupe by node name).
+func send_all_alive_to_joiner(to_slot: int = 0) -> void:
+	print("[Spawner] Sending %d alive enemies to joiner(s)." % alive_enemy_map.size())
 	for spawn_id: int in alive_enemy_map:
 		var info: Dictionary = alive_enemy_map[spawn_id]
 		var node: Node = info.get("node") as Node
 		if is_instance_valid(node):
 			var e_spr := node.get("animated_sprite") as AnimatedSprite2D
-			WebRTCManager.send_reliable({
+			var pkt := {
 				"t":  "spawn",
 				"id": spawn_id,
 				"ti": info["ti"],
@@ -447,7 +498,11 @@ func send_all_alive_to_joiner() -> void:
 				"x":  node.global_position.x,
 				"y":  node.global_position.y,
 				"an": e_spr.animation if e_spr != null else "",
-			})
+			}
+			if to_slot > 0:
+				WebRTCManager.send_reliable_to(to_slot, pkt)
+			else:
+				WebRTCManager.send_reliable(pkt)
 
 
 ## Joiner: instantiate a mirrored enemy from a reliable spawn packet.
@@ -456,17 +511,30 @@ func on_spawn_packet(data: Dictionary) -> void:
 	var vi: int = int(data.get("vi", -1))
 	var spawn_id: int = int(data.get("id", -1))
 	if ti < 0 or vi < 0 or spawn_id < 0:
+		if DEBUG_NET_ENEMIES:
+			print("[ENEMYDBG] REJECT spawn: bad indices ti=%d vi=%d id=%d" % [ti, vi, spawn_id])
 		return
 	if ti >= enemy_types.size():
+		if DEBUG_NET_ENEMIES:
+			print("[ENEMYDBG] REJECT spawn id=%d: ti=%d out of range (enemy_types.size()=%d)"
+				% [spawn_id, ti, enemy_types.size()])
 		return
 	var type_cfg: EnemyTypeConfig = enemy_types[ti]
 	if vi >= type_cfg.variants.size():
+		if DEBUG_NET_ENEMIES:
+			print("[ENEMYDBG] REJECT spawn id=%d: vi=%d out of range for ti=%d (variants=%d)"
+				% [spawn_id, vi, ti, type_cfg.variants.size()])
 		return
 	var vi_cfg: EnemyVariantConfig = type_cfg.variants[vi]
 	if vi_cfg == null or vi_cfg.scene == null:
+		if DEBUG_NET_ENEMIES:
+			print("[ENEMYDBG] REJECT spawn id=%d: ti=%d vi=%d has no scene wired" % [spawn_id, ti, vi])
 		return
 	var existing_name: String = "En%d" % spawn_id
 	if enemy_container != null and enemy_container.has_node(existing_name):
+		if DEBUG_NET_ENEMIES:
+			print("[ENEMYDBG] REJECT spawn id=%d: node '%s' already exists (dedupe)"
+				% [spawn_id, existing_name])
 		return
 	var instance: Node = vi_cfg.scene.instantiate()
 	instance.name = existing_name
@@ -483,16 +551,19 @@ func on_spawn_packet(data: Dictionary) -> void:
 	# Tag the physics body with its spawn ID so the joiner's melee hitboxes can identify
 	# which enemy was struck and route damage packets correctly via "melee_hit".
 	signal_source.set_meta(&"spawn_id", spawn_id)
-	# Seed the network-sync position so EnemyBase._physics_process can lerp immediately.
-	# Do NOT disable physics_process — EnemyBase already skips AI and lerps to
-	# _net_target_pos when (session_id != "" and not is_host).
-	if "_net_target_pos" in signal_source:
-		signal_source._net_target_pos = initial_pos
-		signal_source._net_synced = true
+	# The buffer is created lazily by apply_enemy_state on the first snapshot. Until
+	# then the node simply holds at initial_pos (set above).
+	# Do NOT disable physics_process — EnemyBase already skips AI when not the host.
+	if DEBUG_NET_ENEMIES:
+		print("[ENEMYDBG] SPAWN PACKET id=%d wrapper=%s body=%s at %s (container=%s)" % [
+			spawn_id, instance.name, signal_source.name, str(initial_pos),
+			enemy_container.name if enemy_container != null else "NULL"])
 	if "coin_tier" in signal_source:
 		signal_source.coin_tier = vi_cfg.coin_tier
 	if "flow_kill_coin_tier" in signal_source:
 		signal_source.flow_kill_coin_tier = vi_cfg.flow_kill_coin_tier
+	if "coin_tier_2" in signal_source:
+		signal_source.coin_tier_2 = vi_cfg.coin_tier_2
 	# Apply the initial animation from the spawn packet so the enemy looks correct.
 	var spawn_anim: String = data.get("an", "")
 	if not spawn_anim.is_empty():
@@ -506,6 +577,7 @@ func on_despawn_packet(data: Dictionary) -> void:
 	var spawn_id: int = int(data.get("id", -1))
 	if spawn_id < 0:
 		return
+	# No buffer bookkeeping needed: it lives on the enemy node and dies with it.
 	var existing_name: String = "En%d" % spawn_id
 	if enemy_container == null or not enemy_container.has_node(existing_name):
 		return
@@ -527,27 +599,43 @@ func on_despawn_packet(data: Dictionary) -> void:
 		root.queue_free()
 
 
-## Called by RunManager with the "e" section of a state snapshot.
-## Lerps joiner enemy nodes toward their host positions.
-func apply_enemy_state(e: Dictionary) -> void:
+## Scene root may be a plain Node2D wrapper; returns the actual EnemyBase node.
+## Identified by the _net_interp property rather than by a method name, so this can
+## only ever resolve to a node that actually owns a network buffer.
+func _resolve_enemy_node(root: Node) -> Node:
+	if root == null or "_net_interp" in root:
+		return root
+	for child in root.get_children():
+		if "_net_interp" in child:
+			return child
+	return root
+
+
+## Called by RunManager with the "e" section of a state snapshot and that snapshot's
+## sender timestamp. Positions go into each enemy's own interpolation buffer, which it
+## samples in its _physics_process; everything else applies immediately.
+func apply_enemy_state(e: Dictionary, ts: float) -> void:
 	for eid_str in e:
 		var ed: Dictionary = e[eid_str]
 		var enemy_name: String = "En%s" % eid_str
 		if enemy_container == null or not enemy_container.has_node(enemy_name):
+			if DEBUG_NET_ENEMIES and not _dbg_missing.has(eid_str):
+				_dbg_missing[eid_str] = true
+				print("[ENEMYDBG] state names enemy %s but node '%s' is NOT in container"
+					% [eid_str, enemy_name])
 			continue
 		var enemy_root: Node = enemy_container.get_node(enemy_name)
-		# Scene root may be a Node2D wrapper; find the actual EnemyBase child.
-		var enemy_node: Node = enemy_root
-		if "_net_target_pos" not in enemy_root:
-			for child in enemy_root.get_children():
-				if "_net_target_pos" in child:
-					enemy_node = child
-					break
+		var enemy_node: Node = _resolve_enemy_node(enemy_root)
 		var target := Vector2(float(ed.get("x", 0.0)), float(ed.get("y", 0.0)))
-		if "_net_target_pos" in enemy_node:
-			enemy_node._net_target_pos = target
-			enemy_node._net_synced = true
+		if ts >= 0.0 and "_net_interp" in enemy_node:
+			var buf: NetInterp = enemy_node.get("_net_interp")
+			if buf == null:
+				buf = NetInterp.new()
+				enemy_node.set("_net_interp", buf)
+			buf.push(ts, target)
 		else:
+			# Host predates timestamped snapshots, or this node has no buffer of its
+			# own — fall back to a hard set so the enemy still tracks.
 			enemy_node.global_position = target
 		# Sync animation. "a" key is only present when non-default (not "running").
 		var e_spr := enemy_node.get("animated_sprite") as AnimatedSprite2D
@@ -562,14 +650,82 @@ func apply_enemy_state(e: Dictionary) -> void:
 				enemy_node.set("facing", f)
 				if enemy_node.has_method("_apply_facing"):
 					enemy_node.call("_apply_facing")
-		# Sync HP so health bar updates visually on joiner.
+		# Sync HP so health bar updates visually on joiner. "mh" (max_health) can
+		# change at runtime — e.g. the weasel doubles it when it steals an hp pip —
+		# so apply it before re-emitting so the bar ratio matches the host.
+		var hp_dirty := false
+		if ed.has("mh") and "max_health" in enemy_node:
+			var new_max: float = float(ed["mh"])
+			if enemy_node.max_health != new_max:
+				enemy_node.max_health = new_max
+				hp_dirty = true
 		if ed.has("hp") and "health" in enemy_node:
 			var new_hp: float = float(ed["hp"])
 			if enemy_node.health != new_hp:
 				enemy_node.health = new_hp
-				if enemy_node.has_signal("health_changed"):
-					enemy_node.health_changed.emit(new_hp,
-						enemy_node.max_health if "max_health" in enemy_node else 100.0)
+				hp_dirty = true
+		if hp_dirty and enemy_node.has_signal("health_changed"):
+			enemy_node.health_changed.emit(enemy_node.health,
+				enemy_node.max_health if "max_health" in enemy_node else 100.0)
+
+
+## Joiner only: called once per frame by RunManager with the host clock's playback
+## time. Each enemy samples its own buffer against this in its _physics_process, so
+## all this has to do is publish the clock.
+func update_enemy_interpolation(play_time: float) -> void:
+	net_play_time = play_time
+	if DEBUG_NET_ENEMIES:
+		_debug_report(play_time)
+
+
+# ── Temporary joiner-side diagnostics (set DEBUG_NET_ENEMIES = false to silence) ─
+
+## Flip to false once the enemy-visibility bug is resolved, then delete this block.
+const DEBUG_NET_ENEMIES: bool = true
+var _dbg_timer: float = 0.0
+var _dbg_seen: Dictionary = {}
+var _dbg_missing: Dictionary = {}
+
+
+## Walks the actual enemy nodes in the container (not a side map, so it reports what
+## is really in the scene) and prints one line per enemy on first sight and then once
+## a second. Answers: does the node exist, did node resolution find the EnemyBase, is
+## it receiving samples, where is it, and is its sprite drawable?
+func _debug_report(play_time: float) -> void:
+	if enemy_container == null:
+		return
+	_dbg_timer += get_process_delta_time()
+	var periodic: bool = _dbg_timer >= 1.0
+	if periodic:
+		_dbg_timer = 0.0
+	for child in enemy_container.get_children():
+		var nm: String = str(child.name)
+		if not nm.begins_with("En"):
+			continue
+		var first_time: bool = not _dbg_seen.has(nm)
+		if not first_time and not periodic:
+			continue
+		_dbg_seen[nm] = true
+		var node: Node = _resolve_enemy_node(child)
+		var resolved_ok: bool = node != child and "_net_interp" in node
+		var buf: NetInterp = node.get("_net_interp") if "_net_interp" in node else null
+		var spr := node.get("animated_sprite") as AnimatedSprite2D
+		print("[ENEMYDBG]%s %s body=%s resolved=%s samples=%s play=%.3f newest=%.3f pos=%s wrapper=%s vis=%s meta_id=%s spr=%s anim=%s playing=%s" % [
+			"[NEW]" if first_time else "",
+			nm,
+			node.name,
+			"OK" if resolved_ok else "FAILED(using wrapper)",
+			"yes" if (buf != null and buf.has_data) else "NONE",
+			play_time,
+			buf.newest_time() if buf != null else -1.0,
+			str((node as Node2D).global_position) if node is Node2D else "n/a",
+			str((child as Node2D).global_position) if child is Node2D else "n/a",
+			str((node as CanvasItem).is_visible_in_tree()) if node is CanvasItem else "n/a",
+			str(node.get_meta(&"spawn_id")) if node.has_meta(&"spawn_id") else "MISSING",
+			"null" if spr == null else "ok",
+			"-" if spr == null else str(spr.animation),
+			"-" if spr == null else str(spr.is_playing()),
+		])
 
 
 # ── Debug ─────────────────────────────────────────────────────────────────────

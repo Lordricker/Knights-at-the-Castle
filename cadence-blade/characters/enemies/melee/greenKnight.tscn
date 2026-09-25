@@ -127,7 +127,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_y2huv")
 }],
-"loop": false,
+"loop": 0,
 "name": &"block",
 "speed": 6.0
 }, {
@@ -150,7 +150,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_637cw")
 }],
-"loop": true,
+"loop": 1,
 "name": &"running",
 "speed": 6.0
 }, {
@@ -170,7 +170,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_uvgwt")
 }],
-"loop": false,
+"loop": 0,
 "name": &"slash",
 "speed": 6.0
 }, {
@@ -193,13 +193,13 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_ku2bq")
 }],
-"loop": false,
+"loop": 0,
 "name": &"slash2",
 "speed": 6.0
 }]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ptajg"]
-size = Vector2(28, 35)
+size = Vector2(30, 38.295)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_0412h"]
 size = Vector2(53, 31)
@@ -266,10 +266,9 @@ monitoring = false
 monitorable = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D2/Pivot/AttackHitbox" unique_id=341442971]
-visible = false
 z_index = 1
 y_sort_enabled = true
-position = Vector2(2, 1.5)
+position = Vector2(3, 1.5)
 shape = SubResource("RectangleShape2D_ptajg")
 debug_color = Color(0.9536274, 7.70092e-07, 0.5495344, 0.41960785)
 

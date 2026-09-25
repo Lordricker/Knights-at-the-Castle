@@ -1,0 +1,330 @@
+[gd_resource type="Resource" script_class="SpawnScheduleConfig" format=3 uid="uid://bc8w1hqg37ed8"]
+
+[ext_resource type="Script" uid="uid://dj8qa3itlkqdw" path="res://characters/enemies/enemy_type_config.gd" id="1_bbfo6"]
+[ext_resource type="Script" uid="uid://dnnh0acalw8gk" path="res://characters/enemies/enemy_variant_config.gd" id="2_w7rto"]
+[ext_resource type="PackedScene" uid="uid://1brrmdyvuppp" path="res://characters/enemies/melee/blackKnight.tscn" id="3_o6g83"]
+[ext_resource type="PackedScene" uid="uid://ondoaw0ikat3" path="res://characters/enemies/melee/greenKnight.tscn" id="4_j0fcw"]
+[ext_resource type="PackedScene" uid="uid://kcbg2rjwv8mf" path="res://characters/enemies/range/blackArcher.tscn" id="5_qjahm"]
+[ext_resource type="PackedScene" uid="uid://b8gftcetbxiww" path="res://characters/enemies/range/green_archer.tscn" id="6_uccea"]
+[ext_resource type="PackedScene" uid="uid://df7kwq8ydgev6" path="res://characters/enemies/melee/blackSpearman.tscn" id="7_kfcsv"]
+[ext_resource type="PackedScene" uid="uid://1rqlas7yg3a1" path="res://characters/enemies/melee/greenSpearman.tscn" id="8_hmg6g"]
+[ext_resource type="PackedScene" uid="uid://cc5rsxrl2ed31" path="res://characters/enemies/melee/sheepdog.tscn" id="9_yce1b"]
+[ext_resource type="PackedScene" uid="uid://e105y00k30fn" path="res://characters/enemies/elites/greenDragon.tscn" id="10_86ycl"]
+[ext_resource type="PackedScene" uid="uid://cinhw8em6sg6c" path="res://characters/enemies/elites/skeletonKnight.tscn" id="11_jwwls"]
+[ext_resource type="PackedScene" uid="uid://dd4qo1t43ct0k" path="res://characters/enemies/elites/red_dragon.tscn" id="11_o6g83"]
+[ext_resource type="Script" uid="uid://cyyidq82qubnu" path="res://level/night_period.gd" id="12_wfux8"]
+[ext_resource type="Script" uid="uid://3bsomkk5248g" path="res://level/spawn_schedule_config.gd" id="13_alakd"]
+[ext_resource type="PackedScene" uid="uid://bsqtc3qpaosda" path="res://characters/enemies/melee/Weasle.tscn" id="14_weasl"]
+
+[sub_resource type="Curve" id="Curve_5e6cr"]
+_limits = [0.0, 1.0, 0.0, 60.0]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(27, 2), 0.037037037, 0.0, 1, 1]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_wriuf"]
+_limits = [0.0, 30.0, 0.0, 60.0]
+_data = [Vector2(0, 5), 0.0, 0.0, 0, 0, Vector2(9, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Resource" id="Resource_wkhrf"]
+script = ExtResource("2_w7rto")
+display_name = "black knight"
+scene = ExtResource("3_o6g83")
+pool_tickets_curve = SubResource("Curve_wriuf")
+max_alive_curve = SubResource("Curve_5e6cr")
+guaranteed_spawn_minutes = Array[float]([0.0, 0.0])
+flow_kill_coin_tier = 2
+
+[sub_resource type="Curve" id="Curve_6exvt"]
+_limits = [0.0, 1.0, 0.0, 60.0]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(19.25, 2), 0.051948052, 0.0, 1, 1]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_v2lga"]
+_limits = [0.0, 30.0, 0.0, 60.0]
+_data = [Vector2(4.2992125, 0), 0.0, 0.12649392, 0, 0, Vector2(4.3937006, 1.143426), 0.49382088, 0.49382088, 0, 0, Vector2(30.25, 7), 0.4583328, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="Resource" id="Resource_8sl6q"]
+script = ExtResource("2_w7rto")
+display_name = "green knight"
+scene = ExtResource("4_j0fcw")
+pool_tickets_curve = SubResource("Curve_v2lga")
+max_alive_curve = SubResource("Curve_6exvt")
+coin_tier = 2
+flow_kill_coin_tier = 3
+
+[sub_resource type="Resource" id="Resource_l8s2w"]
+script = ExtResource("1_bbfo6")
+type_name = "Warrior"
+variants = Array[ExtResource("2_w7rto")]([SubResource("Resource_wkhrf"), SubResource("Resource_8sl6q")])
+
+[sub_resource type="Curve" id="Curve_3noh7"]
+_limits = [0.0, 1.0, 0.0, 60.0]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(12.25, 2), 0.08163265, 0.0, 1, 1]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_pguia"]
+_limits = [0.0, 30.0, 0.0, 60.0]
+_data = [Vector2(0, 5), 0.0, 0.0, 0, 0, Vector2(9, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Resource" id="Resource_o2w5h"]
+script = ExtResource("2_w7rto")
+display_name = "BlackArcher"
+scene = ExtResource("5_qjahm")
+pool_tickets_curve = SubResource("Curve_pguia")
+max_alive_curve = SubResource("Curve_3noh7")
+flow_kill_coin_tier = 2
+
+[sub_resource type="Curve" id="Curve_hw7e2"]
+_limits = [0.0, 1.0, 0.0, 60.0]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(23.25, 2), 0.043010753, 0.0, 1, 1]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_uo0a5"]
+_limits = [0.0, 30.0, 0.0, 60.0]
+_data = [Vector2(4.2992125, 0), 0.0, 0.12649392, 0, 0, Vector2(4.3937006, 1.143426), 0.49382088, 0.49382088, 0, 0, Vector2(30.25, 7), 0.4583328, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="Resource" id="Resource_8hdxg"]
+script = ExtResource("2_w7rto")
+display_name = "greenArcher"
+scene = ExtResource("6_uccea")
+pool_tickets_curve = SubResource("Curve_uo0a5")
+max_alive_curve = SubResource("Curve_hw7e2")
+coin_tier = 2
+flow_kill_coin_tier = 3
+
+[sub_resource type="Resource" id="Resource_qbo0k"]
+script = ExtResource("1_bbfo6")
+type_name = "Acher"
+variants = Array[ExtResource("2_w7rto")]([SubResource("Resource_o2w5h"), SubResource("Resource_8hdxg")])
+
+[sub_resource type="Curve" id="Curve_1avoc"]
+_limits = [0.0, 1.0, 0.0, 60.0]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(10, 2), 0.10000001, 0.0, 1, 1]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_7wmwv"]
+_limits = [0.0, 30.0, 0.0, 60.0]
+_data = [Vector2(0, 5), 0.0, 0.0, 0, 0, Vector2(9, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Resource" id="Resource_o0bqh"]
+script = ExtResource("2_w7rto")
+display_name = "blackSpearman"
+scene = ExtResource("7_kfcsv")
+pool_tickets_curve = SubResource("Curve_7wmwv")
+max_alive_curve = SubResource("Curve_1avoc")
+flow_kill_coin_tier = 2
+
+[sub_resource type="Curve" id="Curve_41dp3"]
+_limits = [0.0, 1.0, 0.0, 60.0]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(29.5, 2), 0.033898305, 0.0, 1, 1]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_hncv6"]
+_limits = [0.0, 30.0, 0.0, 60.0]
+_data = [Vector2(4.2992125, 0), 0.0, 0.12649392, 0, 0, Vector2(4.3937006, 1.143426), 0.49382088, 0.49382088, 0, 0, Vector2(30, 7), 0.4583328, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="Resource" id="Resource_f28yn"]
+script = ExtResource("2_w7rto")
+display_name = "green spearman"
+scene = ExtResource("8_hmg6g")
+pool_tickets_curve = SubResource("Curve_hncv6")
+max_alive_curve = SubResource("Curve_41dp3")
+coin_tier = 2
+flow_kill_coin_tier = 3
+
+[sub_resource type="Resource" id="Resource_08ixu"]
+script = ExtResource("1_bbfo6")
+type_name = "spearman"
+variants = Array[ExtResource("2_w7rto")]([SubResource("Resource_o0bqh"), SubResource("Resource_f28yn")])
+
+[sub_resource type="Curve" id="Curve_3bbtu"]
+_limits = [0.0, 1.0, 0.0, 60.0]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(10.25, 3), 0.19512196, 0.0, 1, 1]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_hgh4b"]
+_limits = [0.0, 30.0, 0.0, 60.0]
+_data = [Vector2(0, 5), 0.0, 0.0, 0, 0, Vector2(15, 4), 0.0, 0.0, 0, 0, Vector2(28, 2), -0.15384616, 0.0, 1, 1]
+point_count = 3
+
+[sub_resource type="Resource" id="Resource_wcfde"]
+script = ExtResource("2_w7rto")
+display_name = ""
+scene = ExtResource("9_yce1b")
+pool_tickets_curve = SubResource("Curve_hgh4b")
+max_alive_curve = SubResource("Curve_3bbtu")
+
+[sub_resource type="Resource" id="Resource_j2u23"]
+script = ExtResource("1_bbfo6")
+type_name = "SheepDog"
+variants = Array[ExtResource("2_w7rto")]([SubResource("Resource_wcfde")])
+
+[sub_resource type="Curve" id="Curve_rij3p"]
+_limits = [0.0, 1.0, 0.0, 60.0]
+_data = [Vector2(1e-05, 1), 0.0, 0.0, 0, 0, Vector2(34, 3), 0.05882355, 0.0, 1, 1]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_jf3uj"]
+_limits = [0.0, 30.0, 0.0, 60.0]
+_data = [Vector2(10.677165, 0), 0.0, 0.0, 0, 0, Vector2(21, 5), 0.0, 0.0, 0, 0, Vector2(43.084476, 8.882345), 0.17579521, 0.0, 1, 1]
+point_count = 3
+
+[sub_resource type="Resource" id="Resource_32qtl"]
+script = ExtResource("2_w7rto")
+display_name = "Green Dragon"
+scene = ExtResource("10_86ycl")
+pool_tickets_curve = SubResource("Curve_jf3uj")
+max_alive_curve = SubResource("Curve_rij3p")
+guaranteed_spawn_minutes = Array[float]([5.0])
+flow_kill_coin_tier = 2
+coin_tier_2 = 2
+
+[sub_resource type="Curve" id="Curve_qjahm"]
+_limits = [0.0, 1.0, 0.0, 60.0]
+_data = [Vector2(35.5, 0), 0.0, 0.12244898, 1, 1, Vector2(60, 3), 0.12244898, 0.0, 1, 1]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_j0fcw"]
+_limits = [0.0, 1.0, 0.0, 60.0]
+_data = [Vector2(36.5, 0), 0.0, 0.71428573, 1, 1, Vector2(43.5, 5), 0.71428573, 0.0, 1, 1]
+point_count = 2
+
+[sub_resource type="Resource" id="Resource_1125a"]
+script = ExtResource("2_w7rto")
+display_name = "RedDragon"
+scene = ExtResource("11_o6g83")
+pool_tickets_curve = SubResource("Curve_j0fcw")
+max_alive_curve = SubResource("Curve_qjahm")
+guaranteed_spawn_minutes = Array[float]([29.75])
+coin_tier = 2
+flow_kill_coin_tier = 3
+coin_tier_2 = 3
+metadata/_custom_type_script = "uid://dnnh0acalw8gk"
+
+[sub_resource type="Resource" id="Resource_acesk"]
+script = ExtResource("1_bbfo6")
+type_name = "Dragon"
+variants = Array[ExtResource("2_w7rto")]([SubResource("Resource_32qtl"), SubResource("Resource_1125a")])
+
+[sub_resource type="Curve" id="Curve_bbfo6"]
+_limits = [0.0, 5.0, 0.0, 60.0]
+_data = [Vector2(0, 0), 0.0, 0.032222573, 1, 1, Vector2(16.589085, 0.534543), 0.032222573, 0.31165257, 1, 1, Vector2(24.5, 3), 0.31165257, 0.24534963, 1, 1, Vector2(45.119877, 8.059079), 0.24534963, 0.0, 1, 1]
+point_count = 4
+
+[sub_resource type="Resource" id="Resource_5niq2"]
+script = ExtResource("2_w7rto")
+display_name = "redSkeletonKnight"
+scene = ExtResource("11_jwwls")
+pool_tickets_curve = SubResource("Curve_bbfo6")
+guaranteed_spawn_minutes = Array[float]([9.0, 13.0])
+flow_kill_coin_tier = 2
+coin_tier_2 = 2
+
+[sub_resource type="Resource" id="Resource_lmh2h"]
+script = ExtResource("1_bbfo6")
+type_name = "SkeletonKnight"
+variants = Array[ExtResource("2_w7rto")]([SubResource("Resource_5niq2")])
+
+[sub_resource type="Curve" id="Curve_o6g83"]
+_limits = [0.0, 1.0, 0.0, 60.0]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0.9975845), 0.0, 0.0, 0, 0, Vector2(46, 2), 0.022275899, 0.0, 1, 1]
+point_count = 3
+
+[sub_resource type="Curve" id="Curve_weasl2"]
+_limits = [0.0, 30.0, 0.0, 60.0]
+_data = [Vector2(4, 0), 0.0, 0.0, 0, 0, Vector2(6.75, 1), 0.0, 0.0, 0, 0, Vector2(18.5, 3), 0.17021276, 0.18604651, 1, 1, Vector2(29.25, 5), 0.0, 0.0, 0, 0]
+point_count = 4
+
+[sub_resource type="Resource" id="Resource_weaslv"]
+script = ExtResource("2_w7rto")
+display_name = "weasel"
+scene = ExtResource("14_weasl")
+pool_tickets_curve = SubResource("Curve_weasl2")
+max_alive_curve = SubResource("Curve_o6g83")
+coin_tier = 2
+flow_kill_coin_tier = 2
+
+[sub_resource type="Resource" id="Resource_weaslt"]
+script = ExtResource("1_bbfo6")
+type_name = "Weasel"
+variants = Array[ExtResource("2_w7rto")]([SubResource("Resource_weaslv")])
+
+[sub_resource type="Curve" id="Curve_5h6w5"]
+_limits = [0.0, 30.0, 0.0, 60.0]
+_data = [Vector2(0, 1.3364887), 0.0, 0.0, 0, 0, Vector2(1.2449799, 3.0358353), 0.0, 0.0, 0, 0, Vector2(4.9799194, 3.9734058), 0.0, 0.0, 0, 0, Vector2(5.02, 1), 0.0, 0.0, 0, 0, Vector2(6.345, 1), 0.0, 0.0, 0, 0, Vector2(6.425702, 4.1492004), 0.3171947, 0.3171947, 0, 0, Vector2(8.51312, 5.471897), 0.0, 0.0, 0, 0, Vector2(9.037901, 1.0604439), 0.0, 0.0, 0, 0, Vector2(10.2040825, 0.99681854), 0.0, 0.0, 0, 0, Vector2(10.583091, 5.8536577), 0.36373258, 0.36373258, 0, 0, Vector2(13.644316, 7.74125), 0.0, 0.0, 0, 0, Vector2(14.110787, 1.6118755), 0.0, 0.0, 0, 0, Vector2(16.18076, 1.6330853), 0.0, 0.0, 0, 0, Vector2(16.793005, 8.865322), 0.5819719, 0.5819719, 0, 0, Vector2(30.5, 19), 0.0, 0.0, 0, 0]
+point_count = 15
+
+[sub_resource type="Resource" id="Resource_2xd05"]
+script = ExtResource("12_wfux8")
+duration_seconds = 5.0
+
+[sub_resource type="Resource" id="Resource_bjh6o"]
+script = ExtResource("12_wfux8")
+start_minute = 3.0
+duration_seconds = 8.0
+
+[sub_resource type="Resource" id="Resource_rgbu7"]
+script = ExtResource("12_wfux8")
+start_minute = 6.0
+duration_seconds = 11.0
+
+[sub_resource type="Resource" id="Resource_e4h8m"]
+script = ExtResource("12_wfux8")
+start_minute = 10.0
+duration_seconds = 15.0
+
+[sub_resource type="Resource" id="Resource_kx3eb"]
+script = ExtResource("12_wfux8")
+start_minute = 14.0
+duration_seconds = 15.0
+
+[sub_resource type="Resource" id="Resource_u24rq"]
+script = ExtResource("12_wfux8")
+start_minute = 18.90946616676353
+duration_seconds = 15.0
+
+[sub_resource type="Resource" id="Resource_w7rto"]
+script = ExtResource("12_wfux8")
+start_minute = 23.0
+duration_seconds = 15.0
+
+[sub_resource type="Resource" id="Resource_o6g83"]
+script = ExtResource("12_wfux8")
+start_minute = 30.0
+duration_seconds = 16.418030325289976
+
+[sub_resource type="Resource" id="Resource_j0fcw"]
+script = ExtResource("12_wfux8")
+start_minute = 40.0
+duration_seconds = 15.0
+
+[sub_resource type="Resource" id="Resource_qjahm"]
+script = ExtResource("12_wfux8")
+start_minute = 50.0
+duration_seconds = 15.0
+
+[sub_resource type="Curve" id="Curve_w7rto"]
+_limits = [0.0, 30.0, 0.0, 60.0]
+_data = [Vector2(0, 1.3364887), 0.0, 0.0, 0, 0, Vector2(0.6653094, 2.1097524), 0.0, 0.0, 0, 0, Vector2(4.9491982, 2.6017966), 0.0, 0.0, 0, 0, Vector2(5.02, 1), 0.0, 0.0, 0, 0, Vector2(6.345, 1), 0.0, 0.0, 0, 0, Vector2(6.5, 3), 0.3171947, 0.3171947, 0, 0, Vector2(8.775803, 3.6407263), 0.0, 0.0, 0, 0, Vector2(9.037901, 1.0604439), 0.0, 0.0, 0, 0, Vector2(10.2040825, 0.99681854), 0.0, 0.0, 0, 0, Vector2(10.5, 4), 0.36373258, 0.36373258, 0, 0, Vector2(13.75, 5), 0.0, 0.0, 0, 0, Vector2(14.110787, 1.6118755), 0.0, 0.0, 0, 0, Vector2(16.18076, 1.6330853), 0.0, 0.0, 0, 0, Vector2(16.75, 6), 0.5819719, 0.5819719, 0, 0, Vector2(30.25, 10), 0.0, 0.0, 0, 0]
+point_count = 15
+
+[sub_resource type="Curve" id="Curve_t1qoe"]
+_limits = [0.0, 30.0, 0.0, 60.0]
+_data = [Vector2(0, 0.50709915), 0.0, 0.0, 0, 0, Vector2(0.01, 10), 0.0, 0.0023232235, 0, 0, Vector2(6.7469873, 3.0121703), -0.35879362, -0.35879362, 0, 0, Vector2(14.9799185, 1.0198336), -0.29257885, 0.0, 0, 0]
+point_count = 4
+
+[resource]
+script = ExtResource("13_alakd")
+run_length_minutes = 60.0
+spawn_rate_curve = SubResource("Curve_t1qoe")
+max_total_curve = SubResource("Curve_5h6w5")
+solo_max_total_curve = SubResource("Curve_w7rto")
+night_periods = Array[Resource]([SubResource("Resource_2xd05"), SubResource("Resource_bjh6o"), SubResource("Resource_rgbu7"), SubResource("Resource_e4h8m"), SubResource("Resource_kx3eb"), SubResource("Resource_u24rq"), SubResource("Resource_w7rto"), SubResource("Resource_o6g83"), SubResource("Resource_j0fcw"), SubResource("Resource_qjahm")])
+night_fade_seconds = 1.0
+enemy_types = Array[ExtResource("1_bbfo6")]([SubResource("Resource_l8s2w"), SubResource("Resource_qbo0k"), SubResource("Resource_08ixu"), SubResource("Resource_j2u23"), SubResource("Resource_acesk"), SubResource("Resource_lmh2h"), SubResource("Resource_weaslt")])
