@@ -1,0 +1,61 @@
+[gd_scene format=3 uid="uid://xnqisqlngf8j"]
+
+[ext_resource type="Texture2D" uid="uid://bh8q245u3ify2" path="res://level/backgroundSprites/Pawn_Run Gold.png" id="1_c2m3c"]
+[ext_resource type="Script" uid="uid://gj8xctk8wbjl" path="res://level/sprite_pace.gd" id="2_rvg0n"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_rvg0n"]
+atlas = ExtResource("1_c2m3c")
+region = Rect2(0, 0, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_1bck8"]
+atlas = ExtResource("1_c2m3c")
+region = Rect2(192, 0, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_bt8jq"]
+atlas = ExtResource("1_c2m3c")
+region = Rect2(384, 0, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_oyjdk"]
+atlas = ExtResource("1_c2m3c")
+region = Rect2(576, 0, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_6cxhc"]
+atlas = ExtResource("1_c2m3c")
+region = Rect2(768, 0, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_r7ci1"]
+atlas = ExtResource("1_c2m3c")
+region = Rect2(960, 0, 192, 192)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_u8n6w"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_rvg0n")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_1bck8")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_bt8jq")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_oyjdk")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_6cxhc")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_r7ci1")
+}],
+"loop": 1,
+"name": &"default",
+"speed": 6.0
+}]
+
+[node name="GoldCarry" type="AnimatedSprite2D" unique_id=397917978]
+sprite_frames = SubResource("SpriteFrames_u8n6w")
+autoplay = "default"
+script = ExtResource("2_rvg0n")
+distance = 200.0
+move_time = 4.0

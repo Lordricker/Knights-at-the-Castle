@@ -13,6 +13,7 @@ offset_top = -308.0
 offset_right = 300.0
 offset_bottom = -8.0
 grow_vertical = 0
+mouse_filter = 2
 script = ExtResource("1_8x4dy")
 
 [node name="Base" type="TextureRect" parent="."]
@@ -29,6 +30,7 @@ offset_bottom = 100.0
 grow_horizontal = 2
 grow_vertical = 2
 pivot_offset = Vector2(100, 100)
+mouse_filter = 2
 mouse_force_pass_scroll_events = false
 texture = ExtResource("2_jhjs2")
 stretch_mode = 5
@@ -47,5 +49,6 @@ offset_bottom = 50.0
 grow_horizontal = 2
 grow_vertical = 2
 pivot_offset = Vector2(50, 50)
+mouse_filter = 2
 texture = ExtResource("3_3etdg")
 stretch_mode = 5

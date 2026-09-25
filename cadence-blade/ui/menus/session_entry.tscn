@@ -49,7 +49,7 @@ corner_radius_bottom_left = 10
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rl1jp"]
 bg_color = Color(0.95000005, 1, 0, 1)
 
-[node name="SessionEntry" type="Control" unique_id=1428386207 node_paths=PackedStringArray("play_button", "join_button", "private_toggle", "session_id_label")]
+[node name="SessionEntry" type="Control" unique_id=1428386207 node_paths=PackedStringArray("play_button", "join_button", "private_toggle", "solo_toggle", "session_id_label")]
 custom_minimum_size = Vector2(320, 936)
 layout_mode = 3
 anchors_preset = 0
@@ -57,6 +57,7 @@ script = ExtResource("1_rl1jp")
 play_button = NodePath("PlayButton")
 join_button = NodePath("JoinButton")
 private_toggle = NodePath("privateToggle")
+solo_toggle = NodePath("soloToggle")
 session_id_label = NodePath("sessionID")
 
 [node name="Longbanner" type="Sprite2D" parent="." unique_id=797657117]
@@ -104,9 +105,9 @@ expand_icon = true
 
 [node name="knightbutton" type="Button" parent="." unique_id=1887066309]
 layout_mode = 0
-offset_left = 738.0
+offset_left = 400.0
 offset_top = 121.0
-offset_right = 901.0
+offset_right = 563.0
 offset_bottom = 284.0
 theme_override_styles/normal = SubResource("StyleBoxFlat_ahvrw")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_mnm16")
@@ -117,18 +118,18 @@ icon_alignment = 1
 vertical_icon_alignment = 0
 expand_icon = true
 
-[node name="PortraitRedKnight" type="Sprite2D" parent="." unique_id=62984681]
-position = Vector2(818.9995, 203)
+[node name="PortraitRedKnight" type="Sprite2D" parent="knightbutton" unique_id=62984681]
+position = Vector2(80.99951, 82)
 scale = Vector2(1.4999999, 1.5)
 texture = ExtResource("2_rl1jp")
 
-[node name="KnightCover" type="ColorRect" parent="." unique_id=1121187871]
+[node name="KnightCover" type="ColorRect" parent="knightbutton" unique_id=1121187871]
 visible = false
 layout_mode = 0
-offset_left = 739.0
-offset_top = 123.0
-offset_right = 899.0
-offset_bottom = 282.0
+offset_left = 1.0
+offset_top = 2.0
+offset_right = 161.0
+offset_bottom = 161.0
 color = Color(0.1, 0.1, 0.1, 0.76862746)
 
 [node name="archerbutton" type="Button" parent="." unique_id=1942249815]
@@ -146,18 +147,18 @@ icon_alignment = 1
 vertical_icon_alignment = 0
 expand_icon = true
 
-[node name="PortraitGreenArcher" type="Sprite2D" parent="." unique_id=417919323]
-position = Vector2(649, 203)
+[node name="PortraitGreenArcher" type="Sprite2D" parent="archerbutton" unique_id=417919323]
+position = Vector2(81, 81)
 scale = Vector2(1.4999999, 1.5)
 texture = ExtResource("3_rwuya")
 
-[node name="ArcherCover" type="ColorRect" parent="." unique_id=809875263]
+[node name="ArcherCover" type="ColorRect" parent="archerbutton" unique_id=809875263]
 visible = false
 layout_mode = 0
-offset_left = 569.0
-offset_top = 123.0
-offset_right = 729.0
-offset_bottom = 282.0
+offset_left = 1.0
+offset_top = 1.0
+offset_right = 161.0
+offset_bottom = 160.0
 color = Color(0.1, 0.1, 0.1, 0.76862746)
 
 [node name="privateToggle" type="CheckButton" parent="." unique_id=1592998372]
@@ -170,6 +171,17 @@ scale = Vector2(1.535, 1.535)
 theme_override_colors/font_color = Color(0.17, 0, 0.0056666615, 1)
 theme_override_font_sizes/font_size = 16
 text = "Private"
+
+[node name="soloToggle" type="CheckButton" parent="." unique_id=83496009]
+layout_mode = 0
+offset_left = 228.6
+offset_top = 188.31
+offset_right = 331.6
+offset_bottom = 227.3101
+scale = Vector2(1.535, 1.535)
+theme_override_colors/font_color = Color(0.17, 0, 0.0056666615, 1)
+theme_override_font_sizes/font_size = 16
+text = "Solo"
 
 [node name="Label" type="Label" parent="." unique_id=904521607]
 layout_mode = 0
@@ -194,9 +206,9 @@ horizontal_alignment = 1
 
 [node name="roguebutton" type="Button" parent="." unique_id=1239657064]
 layout_mode = 0
-offset_left = 400.0
+offset_left = 738.0
 offset_top = 120.0
-offset_right = 563.0
+offset_right = 901.0
 offset_bottom = 283.0
 theme_override_styles/normal = SubResource("StyleBoxFlat_ahvrw")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_mnm16")
@@ -207,16 +219,16 @@ icon_alignment = 1
 vertical_icon_alignment = 0
 expand_icon = true
 
-[node name="PortraitBlueRogue" type="Sprite2D" parent="." unique_id=684724780]
-position = Vector2(480.9995, 202)
+[node name="PortraitBlueRogue" type="Sprite2D" parent="roguebutton" unique_id=684724780]
+position = Vector2(80.99951, 82)
 scale = Vector2(1.4999999, 1.5)
 texture = ExtResource("7_rwuya")
 
-[node name="RogueCover" type="ColorRect" parent="." unique_id=1311569354]
+[node name="RogueCover" type="ColorRect" parent="roguebutton" unique_id=1311569354]
 visible = false
 layout_mode = 0
-offset_left = 401.0
-offset_top = 123.0
-offset_right = 561.0
-offset_bottom = 282.0
+offset_left = 1.0
+offset_top = 3.0
+offset_right = 161.0
+offset_bottom = 162.0
 color = Color(0.1, 0.1, 0.1, 0.76862746)

@@ -1,0 +1,22 @@
+// SteamPipe app build for the Cadence Blade DEMO app.
+// Paths are relative to this file. Run steam/upload_demo.sh, not this directly.
+"AppBuild"
+{
+	// The DEMO app's own id — NOT 5224940, which is Cadence_Blade itself.
+	// Steam numbers the first depot appid+1, and the demo's depot is 5323101.
+	"AppID" "5323100"
+	"Desc" "Cadence Blade demo"
+	"BuildOutput" "../builds/steam_logs/"
+	"ContentRoot" "../builds/"
+	// Empty = do not auto-publish. Set the build live from the Steamworks
+	// SteamPipe > Builds page once it is uploaded.
+	"SetLive" ""
+
+	"Depots"
+	{
+		// Windows depot, from Steamworks > demo app > SteamPipe > Depots.
+		// Linux players are served by Proton, so there is no Linux depot; adding one
+		// later means a second depot id here plus depot_build_linux.vdf.
+		"5323101" "depot_build_windows.vdf"
+	}
+}

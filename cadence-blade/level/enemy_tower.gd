@@ -37,6 +37,15 @@ extends Node2D
 ## Area2D the player must enter (while holding TNT) to detonate.
 @export var interaction_area: Area2D
 
+@export_group("Treasure")
+## Chest spawned where this tower falls. A player who touches it gains one free
+## random stat pip (see treasure_chest.gd). Defaults to treasureChest.tscn;
+## set to null to suppress the drop for this tower.
+@export var treasure_chest_scene: PackedScene = preload("res://level/treasureChest.tscn")
+## World-space offset from the tower origin where the chest appears.
+## Default drops it ~50 px down, roughly at the base of the tower.
+@export var treasure_chest_offset: Vector2 = Vector2(0, 50)
+
 @export_group("Pathing")
 ## Where enemies spawn while this tower is the active frontier. Defaults to
 ## the child node named "spawnpoint" if left unassigned.
@@ -67,6 +76,10 @@ func _ready() -> void:
 	if interaction_area != null:
 		interaction_area.monitoring   = false
 		interaction_area.monitorable  = false
+	# Tower destruction is host-authoritative (TNT only calls destroy() on the
+	# host). The joiner falls its matching tower + unlocks its hut on this packet.
+	if GameManager.session_id != "":
+		WebRTCManager.packet_received.connect(_on_packet_received)
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
@@ -106,11 +119,18 @@ func destroy() -> void:
 	if level != null and level.has_method(&"on_entity_died"):
 		level.call(&"on_entity_died", global_position, false)
 
+	# Drop the reward chest where the tower stood.
+	_spawn_treasure_chest()
+
 	tower_destroyed.emit(self)
 
 	# Unlock the associated unit hut.
 	if unit_hut != null and unit_hut.has_method(&"unlock"):
 		unit_hut.call(&"unlock")
+
+	# Mirror the destruction on the joiner (sprite hide + poof + hut unlock).
+	if GameManager.session_id != "" and GameManager.is_host:
+		WebRTCManager.send_reliable({"t": "tower_destroyed", "tower": str(name)})
 
 	# Retire this tower's own spawn source and hand off to whatever is next
 	# down the road — either more towers, terminal spawn points, or both.
@@ -128,6 +148,72 @@ func destroy() -> void:
 	for tower in next_towers:
 		if tower != null and tower.has_method(&"activate"):
 			tower.call(&"activate")
+
+
+## Joiner that connected AFTER this tower fell: adopt the destroyed state without
+## any of the one-time theatre. Deliberately skips the death poof and the treasure
+## chest — the poof would fire for an event minutes in the past, and the chest may
+## already have been opened by the players who were here at the time.
+func apply_destroyed_snapshot() -> void:
+	if GameManager.is_host or is_destroyed:
+		return
+	is_destroyed = true
+	is_active    = false
+	if interaction_area != null:
+		interaction_area.monitoring  = false
+		interaction_area.monitorable = false
+	if tower_sprite != null:
+		tower_sprite.visible = false
+	if unit_hut != null and unit_hut.has_method(&"unlock"):
+		unit_hut.call(&"unlock")
+
+
+## Joiner: the host destroyed a tower — play the same visual destruction and
+## unlock this tower's hut. No spawn-source / next-tower hand-off (that is host
+## simulation only) and no re-broadcast.
+func _on_packet_received(data: Dictionary) -> void:
+	if GameManager.is_host:
+		return
+	if str(data.get("t", "")) != "tower_destroyed":
+		return
+	if str(data.get("tower", "")) != str(name):
+		return
+	if is_destroyed:
+		return
+	is_destroyed = true
+	is_active    = false
+	if interaction_area != null:
+		interaction_area.monitoring  = false
+		interaction_area.monitorable = false
+	if tower_sprite != null:
+		tower_sprite.visible = false
+	var level := _find_level()
+	if level != null and level.has_method(&"on_entity_died"):
+		level.call(&"on_entity_died", global_position, false)
+	_spawn_treasure_chest()
+	tower_destroyed.emit(self)
+	if unit_hut != null and unit_hut.has_method(&"unlock"):
+		unit_hut.call(&"unlock")
+
+
+## Instances the reward chest at this tower's position. Both peers call this from
+## their own destruction path (host in destroy(), joiner in _on_packet_received),
+## naming the chest after the tower so treasure_chest.gd can correlate the two
+## copies over the network.
+func _spawn_treasure_chest() -> void:
+	if treasure_chest_scene == null:
+		return
+	var chest := treasure_chest_scene.instantiate() as Node2D
+	if chest == null:
+		return
+	chest.name = "TreasureChest_" + str(name)
+	var parent: Node = _find_level()
+	if parent == null:
+		parent = get_tree().current_scene
+	if parent == null:
+		return
+	parent.add_child(chest)
+	chest.global_position = global_position + treasure_chest_offset
 
 
 ## Walks up the tree to find a Node with on_entity_died() (the level root).

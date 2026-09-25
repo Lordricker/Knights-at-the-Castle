@@ -235,26 +235,36 @@ castle health, game-over. Firebase is not involved during gameplay.
 |---|---|---|
 | Enemy positions not synced | Clients see their own copy of enemies; can't see the host's enemies | Add `MultiplayerSpawner` + `MultiplayerSynchronizer` on enemy scenes |
 | Enemy health not synced | Both peers can kill the same enemy independently | Host-authoritative enemy health + `rpc_take_damage` on `EnemyBase` |
-| No TURN relay | ~10–30% of connections fail on mobile/corporate networks | Add a TURN server (see below) |
-| Session max 2 players | Only 2 characters exist; will auto-expand to 3 when 3rd character added | Add 3rd character scene, register in `CHARACTER_KEYS` array |
+| No relay fallback (by choice) | Players whose network blocks a direct connection can't play at all — historically ~10–30% on mobile/corporate networks | Only worth fixing with a relay that has real bandwidth; see below |
+| Relay unavailable over TCP/TLS on desktop | Players whose network blocks UDP can't connect from the Steam build (browsers are fine) | Limitation of libjuice in the WebRTC GDExtension; no workaround in-game |
+| Session max 3 players | Star topology: host (slot 1) + up to 2 joiners (slots 2/3), one per character. `WebRTCManager` keeps a `PeerLink` per joiner slot; joiners never connect to each other. Signaling namespace is per slot: `/signaling/{sid}/{slot}/...`. A dropped joiner frees its slot for a replacement (fresh character = wiped upgrades). | Full mesh / N>3 would need per-joiner link generalization beyond `HOST_SLOTS` |
 | No session rejoin | Refreshing the browser exits the session | Implement session state save/restore via localStorage |
 
-### Adding a TURN Server (for mobile connection reliability)
+### Relay (TURN) — deliberately off
 
-If mobile users encounter connection failures, add a TURN relay to `webrtc_manager.gd`:
+**Runs are peer-to-peer, hosted on a player's PC.** All gameplay traffic — the 20 Hz
+state stream, 60 Hz positions, hits, purchases — goes directly between players and
+never through a server. Firebase only carries the handshake.
 
-```gdscript
-const ICE_SERVERS: Array = [
-    {"urls": ["stun:stun.l.google.com:19302"]},
-    {
-        "urls": ["turn:YOUR-TURN-SERVER:3478"],
-        "username": "your-username",
-        "credential": "your-password"
-    }
-]
-```
+STUN gets most players connected directly. A player whose network blocks that would
+need a TURN relay, which carries *every packet of the run* and so costs real
+bandwidth. Measured at level-1 peak (3 players, 19 enemies): a state packet is
+~1.8 KB at 20 Hz per joiner, so one relayed 10-minute trio run moves ~24 MB, billed
+~48 MB as ingress+egress. Metered's free tier is 500 MB/month — about ten sessions.
 
-Free TURN options: **Metered.ca** (500 GB/month free), **Open Relay** (community).
+So `IceConfig.ICE_ENDPOINT` is empty and there is no relay. Players who can't connect
+directly get a clear message suggesting a phone hotspot, and that's accepted.
+
+**Never hardcode a relay credential in `webrtc_manager.gd`.** One used to live there;
+it shipped inside every build, the repo is public, so it had to be treated as leaked.
+If you ever add a relay with real bandwidth (self-hosted coturn, or a paid plan), use
+`services/turn-credentials/` — a Cloudflare Worker that keeps the provider's secret
+key server-side and hands the game a short-lived credential. Set `ICE_ENDPOINT` to its
+URL and everything else already works.
+
+Reducing the state-packet size (round positions to whole pixels, drop the constant
+flow-window fields, send only enemies that changed) would cut the per-run cost by well
+over half, and is worth doing before ever paying for relay bandwidth.
 
 ### Syncing Enemies Properly (Future)
 

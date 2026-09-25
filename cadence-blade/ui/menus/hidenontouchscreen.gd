@@ -6,7 +6,7 @@
 extends Control
 
 func _ready() -> void:
-	if DisplayServer.is_touchscreen_available():
+	if GameManager.is_touch_device():
 		return  # Mobile/tablet — stay visible always.
 	_blink_then_fade()
 

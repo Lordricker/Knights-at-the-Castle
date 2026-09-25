@@ -1,0 +1,58 @@
+[gd_resource type="Resource" script_class="SpawnScheduleConfig" format=3 uid="uid://8yf41rrahgtf"]
+
+[ext_resource type="Script" uid="uid://3bsomkk5248g" path="res://level/spawn_schedule_config.gd" id="1_sched"]
+[ext_resource type="Script" uid="uid://dj8qa3itlkqdw" path="res://characters/enemies/enemy_type_config.gd" id="2_type"]
+[ext_resource type="Script" uid="uid://dnnh0acalw8gk" path="res://characters/enemies/enemy_variant_config.gd" id="3_variant"]
+[ext_resource type="PackedScene" uid="uid://dkpby1kbrorup" path="res://characters/enemies/tutorial/WeakBlackKnight.tscn" id="4_weak"]
+[ext_resource type="PackedScene" uid="uid://cq607jnr3qabi" path="res://characters/enemies/tutorial/StrongBlackKnight.tscn" id="5_strong"]
+
+[sub_resource type="Curve" id="Curve_weak_alive"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0]
+point_count = 1
+
+[sub_resource type="Curve" id="Curve_weak_tickets"]
+_data = [Vector2(0, 5), 0.0, 0.0, 0, 0]
+point_count = 1
+
+[sub_resource type="Resource" id="Resource_weak"]
+script = ExtResource("3_variant")
+display_name = "Weak Black Knight"
+scene = ExtResource("4_weak")
+pool_tickets_curve = SubResource("Curve_weak_tickets")
+max_alive_curve = SubResource("Curve_weak_alive")
+guaranteed_spawn_minutes = Array[float]([0.05])
+flow_kill_coin_tier = 2
+metadata/_custom_type_script = "uid://dnnh0acalw8gk"
+
+[sub_resource type="Curve" id="Curve_strong_alive"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0]
+point_count = 1
+
+[sub_resource type="Resource" id="Resource_strong"]
+script = ExtResource("3_variant")
+display_name = "Strong Black Knight"
+scene = ExtResource("5_strong")
+max_alive_curve = SubResource("Curve_strong_alive")
+coin_tier = 0
+metadata/_custom_type_script = "uid://dnnh0acalw8gk"
+
+[sub_resource type="Resource" id="Resource_type"]
+script = ExtResource("2_type")
+type_name = "Tutorial Black Knight"
+variants = Array[ExtResource("3_variant")]([SubResource("Resource_weak"), SubResource("Resource_strong")])
+metadata/_custom_type_script = "uid://dj8qa3itlkqdw"
+
+[sub_resource type="Curve" id="Curve_maxtotal"]
+_data = [Vector2(0, 2), 0.0, 0.0, 0, 0]
+point_count = 1
+
+[sub_resource type="Curve" id="Curve_rate"]
+_data = [Vector2(0, 6), 0.0, 0.0, 0, 0]
+point_count = 1
+
+[resource]
+script = ExtResource("1_sched")
+spawn_rate_curve = SubResource("Curve_rate")
+max_total_curve = SubResource("Curve_maxtotal")
+enemy_types = Array[ExtResource("2_type")]([SubResource("Resource_type")])
+metadata/_custom_type_script = "uid://3bsomkk5248g"

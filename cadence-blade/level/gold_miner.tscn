@@ -1,0 +1,57 @@
+[gd_scene format=3 uid="uid://b5g05bwif5nwb"]
+
+[ext_resource type="Texture2D" uid="uid://bsd0hkha71dex" path="res://level/backgroundSprites/Pawn_Interact Pickaxe.png" id="1_1ja4t"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_xqytm"]
+atlas = ExtResource("1_1ja4t")
+region = Rect2(0, 0, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_kuc4l"]
+atlas = ExtResource("1_1ja4t")
+region = Rect2(192, 0, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ekn5i"]
+atlas = ExtResource("1_1ja4t")
+region = Rect2(384, 0, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_xh0yt"]
+atlas = ExtResource("1_1ja4t")
+region = Rect2(576, 0, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_scta8"]
+atlas = ExtResource("1_1ja4t")
+region = Rect2(768, 0, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_lhfes"]
+atlas = ExtResource("1_1ja4t")
+region = Rect2(960, 0, 192, 192)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_u8n6w"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_xqytm")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_kuc4l")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ekn5i")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_xh0yt")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_scta8")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_lhfes")
+}],
+"loop": 1,
+"name": &"default",
+"speed": 6.0
+}]
+
+[node name="GoldMiner" type="AnimatedSprite2D" unique_id=397917978]
+sprite_frames = SubResource("SpriteFrames_u8n6w")
+autoplay = "default"

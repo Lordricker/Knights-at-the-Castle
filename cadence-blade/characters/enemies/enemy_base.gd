@@ -2,6 +2,7 @@ class_name EnemyBase
 extends CharacterBody2D
 
 const DamageNumber = preload("res://FX/damage_number.gd")
+const FXManager = preload("res://FX/fx_manager.gd")
 
 # EnemyBase - shared base class for all enemy types.
 # Follows the same walk_path group as the player.
@@ -40,13 +41,25 @@ var target: Node2D = null
 var coin_tier: int = 1
 ## Set by EnemySpawner. 0=same as coin_tier, otherwise overrides on flow kill.
 var flow_kill_coin_tier: int = 0
+## Set by EnemySpawner. 0=none, otherwise a second coin dropped alongside coin_tier.
+var coin_tier_2: int = 0
 var walk_path: Path2D = null
 var knockback_velocity: Vector2 = Vector2.ZERO
 ## When true, movement, AI, and knockback are suspended (Freeze Enemies upgrade).
 var is_frozen: bool = false
+## Player slot behind the take_damage() call currently in flight, 0 when it isn't a
+## player's attack. Set only for the duration of player_hit(), so a hut unit, tower
+## archer or DoT tick can never inherit credit from an earlier player hit.
+var _attacker_slot: int = 0
 
 ## How fast knockback decelerates in pixels/sec.
 @export var knockback_friction: float = 600.0
+
+## Optional: AnimatedSprite2D animation name to play on death. While it runs the
+## sprite stays visible and the death FX (poof + coin) plus node cleanup are
+## deferred until its last frame. Leave empty for the default (hide immediately).
+## The animation must have loop OFF or animation_finished never fires.
+@export var death_animation: StringName = &""
 
 @export_group("SFX Distance")
 ## Beyond this many pixels from the audio listener (camera / local player) volume falls to zero.
@@ -120,11 +133,6 @@ var _hit_audio_hammer_flow: AudioStreamPlayer2D = null
 var _hit_audio_claw_flow: AudioStreamPlayer2D = null
 var _hit_audio_fireball_flow: AudioStreamPlayer2D = null
 
-## Network position target received from host. Only used on joiner.
-var _net_target_pos: Vector2 = Vector2.ZERO
-## True once the first position sync has arrived -- prevents lerping from origin.
-var _net_synced: bool = false
-
 signal died(enemy: EnemyBase)
 signal health_changed(new_health: float, max_hp: float)
 
@@ -189,14 +197,8 @@ func _physics_process(delta: float) -> void:
 		knockback_velocity = Vector2.ZERO
 		return
 
-	# Joiner: no local AI -- interpolate toward the host-authoritative position.
-	if GameManager.session_id != "" and not GameManager.is_host:
-		if _net_synced:
-			var dist := global_position.distance_to(_net_target_pos)
-			if dist > 300.0:
-				global_position = _net_target_pos  # teleport if desynced
-			else:
-				global_position = global_position.lerp(_net_target_pos, minf(10.0 * delta, 1.0))
+	# Joiner: no local AI — mirror the host's position from the network buffer.
+	if apply_net_position():
 		return
 
 	# Lazy lookup - retry until the level's Path2D is in the tree.
@@ -285,15 +287,35 @@ func take_damage(amount: float, flow_success: bool = false, weapon_type: WeaponT
 		return
 	health = maxf(0.0, health - amount)
 	health_changed.emit(health, max_health)
-	DamageNumber.spawn_at(get_tree().current_scene, global_position, amount)
+	DamageNumber.spawn_at(get_tree().current_scene, global_position, amount, flow_success)
 	_flash_white()
 	if hit_particles != null:
 		hit_particles.restart()
 	_play_weapon_hit_sound(weapon_type, flow_success)
+	if flow_success:
+		FXManager.flow_crit(self, self)
 	if GameManager.session_id != "" and GameManager.is_host:
 		WebRTCManager.send_reliable({"t": "hit_fx", "p": str(get_path()), "wt": int(weapon_type), "fs": 1 if flow_success else 0, "dmg": amount, "dx": global_position.x, "dy": global_position.y})
 	if health == 0.0:
+		# Credited here rather than in die(): most enemy subclasses override die().
+		GameManager.record_kill(_attacker_slot)
 		die(flow_success)
+
+
+## Deal a hit on behalf of a player, so that if it lands the killing blow the kill is
+## credited to that player's slot. Every player-side attack goes through here; targets
+## that aren't enemies just take the damage as before.
+static func player_hit(victim: Node, attacker_slot: int, amount: float, flow_success: bool,
+		weapon_type: WeaponType.WeaponType) -> void:
+	if victim == null or not victim.has_method(&"take_damage"):
+		return
+	var enemy := victim as EnemyBase
+	if enemy == null:
+		victim.take_damage(amount, flow_success, weapon_type)
+		return
+	enemy._attacker_slot = attacker_slot
+	enemy.take_damage(amount, flow_success, weapon_type)
+	enemy._attacker_slot = 0
 
 
 func _play_weapon_hit_sound(weapon_type: WeaponType.WeaponType, flow_success: bool = false) -> void:
@@ -317,20 +339,40 @@ func die(flow_success: bool = false) -> void:
 	set_collision_layer(0)
 	set_collision_mask(0)
 	set_physics_process(false)
-	if animated_sprite != null:
-		animated_sprite.hide()
 	if health_bar != null:
 		health_bar.hide()
 	died.emit(self)
-	# Signal the level so it can spawn the death poof and the correct coin.
+
+	var tier: int = coin_tier
+	if flow_success and flow_kill_coin_tier > 0:
+		tier = flow_kill_coin_tier
+	var tier2: int = coin_tier_2
+
+	var has_death_anim: bool = death_animation != &"" and animated_sprite != null \
+		and animated_sprite.sprite_frames != null \
+		and animated_sprite.sprite_frames.has_animation(death_animation)
+	if has_death_anim:
+		# Keep the sprite visible; spawn the poof / coin(s) only once the last
+		# death frame has played.
+		animated_sprite.play(death_animation)
+		animated_sprite.animation_finished.connect(
+			_finish_death.bind(tier, tier2), CONNECT_ONE_SHOT)
+	else:
+		if animated_sprite != null:
+			animated_sprite.hide()
+		_finish_death(tier, tier2)
+
+
+func _finish_death(tier: int, tier2: int = 0) -> void:
+	# Signal the level so it can spawn the death poof and the correct coin(s).
 	# Only run on host (or offline) -- joiner must not duplicate coins.
 	# Deferred so this never runs mid-physics-flush (e.g. triggered by a hitbox signal).
 	if (GameManager.session_id == "" or GameManager.is_host) and \
 			get_tree().current_scene.has_method("on_entity_died"):
-		var tier: int = coin_tier
-		if flow_success and flow_kill_coin_tier > 0:
-			tier = flow_kill_coin_tier
 		get_tree().current_scene.call_deferred("on_entity_died", global_position, true, tier)
+		if tier2 > 0:
+			# Second coin: skip the death poof (already spawned above).
+			get_tree().current_scene.call_deferred("on_entity_died", global_position, true, tier2, false)
 	# Clean up after the death poof finishes (~2 seconds).
 	# Use owner (the scene root Node2D) so the entire instance is freed,
 	# not just this CharacterBody2D child node.
@@ -419,5 +461,28 @@ func _sample_path_y(world_x: float) -> float:
 	return global_position.y
 
 
-# ── Network position (set by EnemySpawner.apply_enemy_state on joiner) ────────
-## _net_target_pos and _net_synced are set externally each state snapshot tick.
+# ── Network position ──────────────────────────────────────────────────────────
+
+## Joiner-side interpolation buffer, created and fed by
+## EnemySpawner.apply_enemy_state(). Null on the host and in solo.
+##
+## The buffer lives on the enemy itself (rather than in a map on the spawner) so the
+## node that samples it is always the node that owns it. A parallel id -> node map is
+## a standing invitation for the two to disagree, which shows up as an enemy that is
+## both mispositioned and unhittable.
+var _net_interp: NetInterp = null
+var _net_spawner: Node = null
+
+
+## Joiner: write this frame's interpolated network position. Returns true when this
+## peer is a joiner mirroring the host, meaning the caller must skip local AI.
+## Called from _physics_process here and in every subclass that overrides it.
+func apply_net_position() -> bool:
+	if GameManager.session_id == "" or GameManager.is_host:
+		return false
+	if _net_interp != null and _net_interp.has_data:
+		if _net_spawner == null or not is_instance_valid(_net_spawner):
+			_net_spawner = get_tree().get_first_node_in_group(&"enemy_spawner")
+		if _net_spawner != null:
+			global_position = _net_interp.sample(_net_spawner.net_play_time)
+	return true

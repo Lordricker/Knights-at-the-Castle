@@ -79,7 +79,7 @@ region = Rect2(500, 400, 250, 200)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_nuj5j"]
 atlas = ExtResource("9_nuj5j")
-region = Rect2(500, 1000, 250, 200)
+region = Rect2(1000, 1000, 250, 200)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_kfe2d"]
 atlas = ExtResource("9_nuj5j")
@@ -340,13 +340,13 @@ y_sort_enabled = true
 y_sort_enabled = true
 script = ExtResource("1_hsov1")
 slash_knockback_force = 150.0
-slash_hitbox_frames = Array[int]([2, 3])
+slash_hitbox_frames = Array[int]([2])
 slash_pause_frame = 0
 slash_flow_fill_duration = 0.3
 slash_flow_window_center = 0.7
 slash_swing_sound = ExtResource("2_nuj5j")
 slash_swing_sound_frames = Array[int]([4, 8])
-smash_knockback_force = 700.0
+smash_knockback_force = 600.0
 smash_hitbox_frames = Array[int]([6])
 smash_pause_frame = 1
 smash_advance_frame = 6
@@ -359,14 +359,19 @@ dash_pause_frame = 1
 dash_flow_fill_duration = 0.6
 dash_swing_sound = ExtResource("2_nuj5j")
 dash_swing_sound_frames = Array[int]([5])
+kill_streak_heal_amount = 50.0
+kill_streak_bar_height_above_origin = 25.0
+kill_streak_bar_width = 30.0
+kill_streak_bar_height = 3.0
 move_speed = 250.0
-display_name = "Blue Rogue"
+display_name = "Musashi: \"If I do it right you wont even\" know I'm here."
 body_box = NodePath("bodyBox")
-max_health = 200.0
+max_health = 120.0
 facing_pivot = NodePath("Pivot")
 health_bar = NodePath("Pivot/HPBar")
 flow_bar = NodePath("Pivot/FlowBar")
 hit_particles = NodePath("hitparticles")
+knockback_friction = 400.0
 walk_sound = ExtResource("4_55hfr")
 hit_sound_sword = ExtResource("7_mxgkj")
 hit_sound_arrow = ExtResource("6_nuj5j")
@@ -380,7 +385,6 @@ hit_sound_fireball = ExtResource("8_cx32c")
 position = Vector2(77, -32)
 sprite_frames = SubResource("SpriteFrames_rvc6b")
 animation = &"slash"
-frame = 4
 
 [node name="SlashHitbox" type="Area2D" parent="CharacterBody2D/Pivot" unique_id=1571313381]
 position = Vector2(21.85, 0)

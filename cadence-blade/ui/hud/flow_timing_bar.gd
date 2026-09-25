@@ -101,6 +101,14 @@ func stop_flow() -> void:
 	_redraw()
 
 
+## True while a flow sequence is running (the fill loop is live). CharacterBase
+## cross-checks this against its own _flow_active flag so a bar that was stopped
+## out from under an active attack (e.g. a stray network packet) can be detected
+## and force-resolved instead of hanging the animation forever.
+func is_active() -> bool:
+	return _active
+
+
 ## Advance the fill. Call every physics frame while active.
 ## Returns true once the bar has reached the top.
 func advance(delta: float, fill_duration: float) -> bool:
@@ -117,6 +125,11 @@ func try_attempt() -> AttemptResult:
 	if not _active or _attempt_used:
 		return AttemptResult.NONE
 	_attempt_used = true
+	# Zero-width (or inverted) window — the player is out of Flow pips. No success possible.
+	if success_window_end <= success_window_start:
+		_current_fill_color = missed_fill_color
+		_redraw()
+		return AttemptResult.MISS
 	var zone_half := (success_window_end - success_window_start) * 0.5
 	var zone_center := (success_window_start + success_window_end) * 0.5
 	var detect_half := zone_half * (1.0 + hit_window_expand)

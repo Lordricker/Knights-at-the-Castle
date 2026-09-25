@@ -44,9 +44,15 @@ enum AttackState {
 	DASH_WINDUP,
 	DASH_PAUSED,
 	DASH_FINISH,
+	## Shared state: a new attack's flow bar is filling while the previous swing's
+	## *_FINISH animation keeps playing. The previous attack is interrupted only
+	## when this bar resolves (see _commit_interrupt).
+	INTERRUPT_WINDUP,
 }
 
 var attack_state: AttackState = AttackState.NONE
+## Input action ("action1/2/3") of the attack currently overlapping in INTERRUPT_WINDUP.
+var _pending_interrupt_action: StringName = &""
 var _slash_effect_pending_hide: bool = false
 var _dash_flow_checks_completed: int = 0
 # True once the smash hitbox has stepped forward for the current swing.
@@ -163,6 +169,25 @@ var _smash_advanced: bool = false
 @export var dash_weapon_type: WeaponType.WeaponType = WeaponType.WeaponType.SWORD
 @export_group("")
 
+# ── Speed Ability ─────────────────────────────────────────────────────────────
+
+@export_group("Speed Ability")
+## Seconds after a kill during which a follow-up kill still counts as a streak.
+@export var kill_streak_window: float = 4.0
+## HP restored when a kill lands while a streak is already active.
+@export var kill_streak_heal_amount: float = 15.0
+## Background color of the streak-timer bar shown above the rogue's head while a streak is active.
+@export var kill_streak_bar_background_color: Color = Color(0.06, 0.06, 0.06, 0.75)
+## Foreground (fill) color of the streak-timer bar.
+@export var kill_streak_bar_foreground_color: Color = Color(0.3, 0.85, 1.0, 1.0)
+## How far above this character's origin (in pixels) the bar is drawn.
+@export var kill_streak_bar_height_above_origin: float = 70.0
+## Width of the streak-timer bar, in pixels.
+@export var kill_streak_bar_width: float = 40.0
+## Height of the streak-timer bar, in pixels.
+@export var kill_streak_bar_height: float = 6.0
+@export_group("")
+
 # ── Hitbox nodes ──────────────────────────────────────────────────────────────
 
 @onready var slash_hitbox: Area2D = find_child("SlashHitbox") as Area2D
@@ -185,6 +210,12 @@ var _root_z_index_base: int = 0
 # True from 2 frames after any attack's pause frame until the attack ends —
 # player takes no damage or knockback (i-frames for the attack's commitment window).
 var _attack_invincible: bool = false
+
+# ── Speed ability state ──────────────────────────────────────────────────────
+var _kill_streak_active: bool = false
+var _kill_streak_time_remaining: float = 0.0
+## Drawn procedurally (no art dependency) — depletes right-to-left as the streak window runs out.
+var _kill_streak_bar_node: Node2D = null
 
 var _slash_swing_audio: AudioStreamPlayer2D = null
 var _smash_swing_audio: AudioStreamPlayer2D = null
@@ -213,6 +244,50 @@ func _ready() -> void:
 	_slash_swing_audio = _make_sfx_player(slash_swing_sound, slash_swing_sound_volume_db)
 	_smash_swing_audio = _make_sfx_player(smash_swing_sound, smash_swing_sound_volume_db)
 	_dash_swing_audio = _make_sfx_player(dash_swing_sound, dash_swing_sound_volume_db)
+	_setup_kill_streak_bar()
+
+
+func _physics_process(delta: float) -> void:
+	super(delta)
+	if _kill_streak_active:
+		_kill_streak_time_remaining -= delta
+		if _kill_streak_time_remaining <= 0.0:
+			_kill_streak_active = false
+	if _kill_streak_bar_node != null:
+		_kill_streak_bar_node.visible = _kill_streak_active
+		if _kill_streak_active:
+			_kill_streak_bar_node.queue_redraw()
+
+
+## Called whenever a Blue Rogue hit kills an enemy. Chaining a second kill within
+## kill_streak_window of the first restores HP; the streak then resets to track
+## the next follow-up kill.
+func _register_kill() -> void:
+	if _kill_streak_active:
+		heal(kill_streak_heal_amount)
+	_kill_streak_active = true
+	_kill_streak_time_remaining = kill_streak_window
+
+
+## Creates the procedural streak-timer bar drawn above the rogue's head. No art
+## dependency — fully described by the kill_streak_bar_* Inspector fields.
+func _setup_kill_streak_bar() -> void:
+	_kill_streak_bar_node = Node2D.new()
+	_kill_streak_bar_node.z_as_relative = false
+	_kill_streak_bar_node.z_index = 100
+	_kill_streak_bar_node.visible = false
+	add_child(_kill_streak_bar_node)
+	_kill_streak_bar_node.draw.connect(_on_kill_streak_bar_draw)
+
+
+## Draws the background bar plus a foreground fill that depletes right-to-left
+## (fixed at the left edge, its right edge recedes leftward) as % of streak time remaining.
+func _on_kill_streak_bar_draw() -> void:
+	var top_left := Vector2(-kill_streak_bar_width / 2.0, -kill_streak_bar_height_above_origin)
+	_kill_streak_bar_node.draw_rect(Rect2(top_left, Vector2(kill_streak_bar_width, kill_streak_bar_height)), kill_streak_bar_background_color)
+	var ratio: float = clampf(_kill_streak_time_remaining / maxf(kill_streak_window, 0.001), 0.0, 1.0)
+	if ratio > 0.0:
+		_kill_streak_bar_node.draw_rect(Rect2(top_left, Vector2(kill_streak_bar_width * ratio, kill_streak_bar_height)), kill_streak_bar_foreground_color)
 
 
 # ── Movement ───────────────────────────────────────────────────────────────────
@@ -220,7 +295,8 @@ func _ready() -> void:
 func _handle_movement() -> void:
 	var in_pause: bool = (attack_state == AttackState.SLASH_PAUSED
 						or attack_state == AttackState.SMASH_PAUSED
-						or attack_state == AttackState.DASH_PAUSED)
+						or attack_state == AttackState.DASH_PAUSED
+						or attack_state == AttackState.INTERRUPT_WINDUP)
 	var in_finish: bool = (attack_state == AttackState.SLASH_FINISH
 						or attack_state == AttackState.SMASH_FINISH
 						or attack_state == AttackState.DASH_FINISH)
@@ -269,36 +345,17 @@ func _update_animation(dir_x: float, dir_y: float) -> void:
 # ── Attack input ───────────────────────────────────────────────────────────────
 
 func _handle_attack_input() -> void:
+	if _try_begin_interrupt():
+		return
 	match attack_state:
 		AttackState.NONE:
 			if not attacks_locked:
 				if _action_just_pressed("action1"):
-					_begin_attack(AttackState.SLASH_WINDUP)
-					var _sh := _sample_window_half(slash_flow_window_size_curve,
-							slash_flow_window_half_size, slash_flow_window_curve_max_time)
-					_start_flow(&"slash",
-						func(mult: float):
-							_current_attack_damage_multiplier = mult
-							_finish_attack("slash", slash_pause_frame, AttackState.SLASH_FINISH),
-						slash_flow_fill_duration, slash_flow_miss_multiplier,
-						slash_flow_window_center, _sh, slash_flow_window_random_range)
-					_play_attack_animation("slash")
+					_start_slash_attack(false)
 				elif _action_just_pressed("action2"):
-					_begin_attack(AttackState.SMASH_WINDUP)
-					_smash_advanced = false
-					var _sm := _sample_window_half(smash_flow_window_size_curve,
-							smash_flow_window_half_size, smash_flow_window_curve_max_time)
-					_start_flow(&"smash",
-						func(mult: float):
-							_current_attack_damage_multiplier = mult
-							_finish_attack("smash", smash_pause_frame, AttackState.SMASH_FINISH),
-						smash_flow_fill_duration, smash_flow_miss_multiplier,
-						smash_flow_window_center, _sm, smash_flow_window_random_range)
-					_play_attack_animation("smash")
+					_start_smash_attack(false)
 				elif _action_just_pressed("action3"):
-					_begin_attack(AttackState.DASH_WINDUP)
-					_start_dash_flow_check()
-					_play_attack_animation("dash")
+					_start_dash_attack(false)
 
 		AttackState.SLASH_WINDUP:
 			_handle_flow_attempt(&"action1")
@@ -318,6 +375,110 @@ func _handle_attack_input() -> void:
 		AttackState.DASH_PAUSED:
 			_handle_flow_attempt(&"action3")
 
+		AttackState.INTERRUPT_WINDUP:
+			_handle_flow_attempt(_pending_interrupt_action)
+
+
+## True while an attack's *_FINISH animation is playing.
+func _is_finish_state(s: AttackState) -> bool:
+	return (s == AttackState.SLASH_FINISH
+			or s == AttackState.SMASH_FINISH
+			or s == AttackState.DASH_FINISH)
+
+
+## When the current swing came from a SUCCESS and its white linger has elapsed,
+## a fresh attack press starts that attack's flow bar right away (straight to the
+## bar). The current swing keeps playing until the new bar resolves. Returns true
+## if an interrupt was started this frame.
+func _try_begin_interrupt() -> bool:
+	if attacks_locked or not _is_finish_state(attack_state):
+		return false
+	if not flow_finish_interruptible():
+		return false
+	if _action_just_pressed("action1"):
+		_reset_attack_runtime_state()
+		_pending_interrupt_action = &"action1"
+		_start_slash_attack(true)
+		return true
+	if _action_just_pressed("action2"):
+		_reset_attack_runtime_state()
+		_pending_interrupt_action = &"action2"
+		_start_smash_attack(true)
+		return true
+	if _action_just_pressed("action3"):
+		_reset_attack_runtime_state()
+		_pending_interrupt_action = &"action3"
+		_start_dash_attack(true)
+		return true
+	return false
+
+
+## Finalize an interrupt: the previous swing is cut off and this attack's swing
+## plays from its pause frame. Teardown of the previous attack already happened in
+## _try_begin_interrupt.
+func _commit_interrupt(anim_name: String, resume_frame: int, next_state: AttackState) -> void:
+	_pending_interrupt_action = &""
+	_finish_attack(anim_name, resume_frame, next_state)
+
+
+func _start_slash_attack(as_interrupt: bool) -> void:
+	var _sh := _sample_window_half(slash_flow_window_size_curve,
+			slash_flow_window_half_size, slash_flow_window_curve_max_time)
+	var on_res := func(mult: float) -> void:
+		_current_attack_damage_multiplier = mult
+		if as_interrupt:
+			_commit_interrupt("slash", slash_pause_frame, AttackState.SLASH_FINISH)
+		else:
+			_finish_attack("slash", slash_pause_frame, AttackState.SLASH_FINISH)
+	if as_interrupt:
+		attack_state = AttackState.INTERRUPT_WINDUP
+		_current_attack_damage_multiplier = 1.0
+		start_interrupt_flow(&"slash", on_res,
+			slash_flow_fill_duration, slash_flow_miss_multiplier,
+			slash_flow_window_center, _sh, slash_flow_window_random_range)
+	else:
+		_begin_attack(AttackState.SLASH_WINDUP)
+		_start_flow(&"slash", on_res,
+			slash_flow_fill_duration, slash_flow_miss_multiplier,
+			slash_flow_window_center, _sh, slash_flow_window_random_range)
+		_play_attack_animation("slash")
+
+
+func _start_smash_attack(as_interrupt: bool) -> void:
+	var _sm := _sample_window_half(smash_flow_window_size_curve,
+			smash_flow_window_half_size, smash_flow_window_curve_max_time)
+	var on_res := func(mult: float) -> void:
+		_current_attack_damage_multiplier = mult
+		if as_interrupt:
+			_commit_interrupt("smash", smash_pause_frame, AttackState.SMASH_FINISH)
+		else:
+			_finish_attack("smash", smash_pause_frame, AttackState.SMASH_FINISH)
+	_smash_advanced = false
+	if as_interrupt:
+		attack_state = AttackState.INTERRUPT_WINDUP
+		_current_attack_damage_multiplier = 1.0
+		start_interrupt_flow(&"smash", on_res,
+			smash_flow_fill_duration, smash_flow_miss_multiplier,
+			smash_flow_window_center, _sm, smash_flow_window_random_range)
+	else:
+		_begin_attack(AttackState.SMASH_WINDUP)
+		_start_flow(&"smash", on_res,
+			smash_flow_fill_duration, smash_flow_miss_multiplier,
+			smash_flow_window_center, _sm, smash_flow_window_random_range)
+		_play_attack_animation("smash")
+
+
+func _start_dash_attack(as_interrupt: bool) -> void:
+	if as_interrupt:
+		attack_state = AttackState.INTERRUPT_WINDUP
+		_current_attack_damage_multiplier = 1.0
+		_dash_flow_checks_completed = 0
+		_start_dash_flow_check(true, true)
+	else:
+		_begin_attack(AttackState.DASH_WINDUP)
+		_start_dash_flow_check()
+		_play_attack_animation("dash")
+
 
 ## Returns a stats dictionary consumed by character_description_panel.gd.
 ## Call get_character_stats() on the instantiated scene to read current Inspector values.
@@ -327,9 +488,9 @@ func get_character_stats() -> Dictionary:
 		"max_health":   max_health,
 		"move_speed":   move_speed,
 		"knockback_friction": knockback_friction,
-		"action1": {"name": "[ J ] Slash",  "damage": slash_damage, "knockback": slash_knockback_force},
-		"action2": {"name": "[ K ] Smash",  "damage": smash_damage, "knockback": smash_knockback_force},
-		"action3": {"name": "[ L ] Dash",   "damage": dash_damage,  "knockback": dash_knockback_force},
+		"action1": {"name": "[ J ] Speed Slash",  "damage": slash_damage, "knockback": slash_knockback_force},
+		"action2": {"name": "     [ K ] Heavy Smash",  "damage": smash_damage, "knockback": smash_knockback_force},
+		"action3": {"name": "     [ L ] Double Dash",   "damage": dash_damage,  "knockback": dash_knockback_force},
 	}
 
 
@@ -337,35 +498,43 @@ func get_character_stats() -> Dictionary:
 ## so a mid-animation attack cannot keep dealing damage after the poof.
 func die() -> void:
 	attack_state = AttackState.NONE
-	_dash_flow_checks_completed = 0
-	_slash_effect_pending_hide = false
-	_current_attack_damage_multiplier = 1.0
-	_reset_smash_advance()
-	_reset_smash_z_boost()
-	_attack_invincible = false
+	_pending_interrupt_action = &""
+	_reset_attack_runtime_state()
 	_stop_flow()
-	_set_hitbox(slash_hitbox, false)
-	_set_hitbox(smash_hitbox, false)
-	_set_hitbox(dash_hitbox, false)
-	_set_slash_effect_sprite(false)
+	_kill_streak_active = false
+	_kill_streak_time_remaining = 0.0
+	if _kill_streak_bar_node != null:
+		_kill_streak_bar_node.hide()
 	super()
 
 
 ## Reset all attack state on respawn so the player does not resume mid-swing.
 func revive(at: Vector2) -> void:
 	attack_state = AttackState.NONE
+	_pending_interrupt_action = &""
+	_reset_attack_runtime_state()
+	_stop_flow()
+	_kill_streak_active = false
+	_kill_streak_time_remaining = 0.0
+	super(at)
+
+
+## Disables every attack hitbox and clears per-swing runtime bookkeeping.
+## Does NOT touch flow state — callers that need the flow bar cleared call
+## _stop_flow() separately (die / revive / animation-finished); _try_begin_interrupt
+## calls this alone so the previous swing's hitboxes stop while its animation
+## keeps playing.
+func _reset_attack_runtime_state() -> void:
 	_dash_flow_checks_completed = 0
 	_slash_effect_pending_hide = false
 	_current_attack_damage_multiplier = 1.0
 	_reset_smash_advance()
 	_reset_smash_z_boost()
 	_attack_invincible = false
-	_stop_flow()
 	_set_hitbox(slash_hitbox, false)
 	_set_hitbox(smash_hitbox, false)
 	_set_hitbox(dash_hitbox, false)
 	_set_slash_effect_sprite(false)
-	super(at)
 
 
 ## Block incoming damage during an attack's i-frame window.
@@ -400,17 +569,28 @@ func _begin_attack(next_state: AttackState) -> void:
 func _play_attack_animation(anim_name: String) -> void:
 	animated_sprite.play(anim_name)
 	animated_sprite.frame = 0
+	# Godot does NOT emit frame_changed when the sprite was already on frame 0
+	# (common right after a prior swing restarts the idle loop). Without that
+	# signal the pause-frame handler never runs, so a swing whose pause_frame is 0
+	# plays straight through its hitbox frames at full (unresolved) damage while
+	# the flow bar silently times out. Run the handler manually to be sure.
+	_on_frame_changed()
 
 
-func _start_dash_flow_check(allow_immediate: bool = false) -> void:
+func _start_dash_flow_check(allow_immediate: bool = false, is_interrupt: bool = false) -> void:
 	var _half := _sample_window_half(dash_flow_window_size_curve,
 			dash_flow_window_half_size, dash_flow_window_curve_max_time)
 	_start_flow(&"dash",
 		func(mult: float):
 			_current_attack_damage_multiplier = minf(_current_attack_damage_multiplier, mult)
 			_dash_flow_checks_completed += 1
+			if is_interrupt:
+				# First interrupt check resolved: the previous swing ends here and
+				# the dash animation takes over for any remaining checks.
+				_pending_interrupt_action = &""
 			if _dash_flow_checks_completed < DASH_FLOW_CHECK_COUNT:
 				attack_state = AttackState.DASH_PAUSED
+				animated_sprite.play("dash")
 				animated_sprite.frame = dash_pause_frame
 				animated_sprite.pause()
 				call_deferred("_start_dash_flow_check", true)
@@ -464,6 +644,12 @@ func _on_frame_changed() -> void:
 				_play_sfx(_slash_swing_audio)
 			if f >= slash_pause_frame:
 				attack_state = AttackState.SLASH_PAUSED
+				# A frame-skip (lag hitch) can land us past the pause point, even on
+				# a hitbox frame — snap back so the pause holds exactly at
+				# slash_pause_frame with no hitbox live.
+				if f > slash_pause_frame:
+					animated_sprite.frame = slash_pause_frame
+				_set_hitbox(slash_hitbox, false)
 				if not _flow_set_can_resolve():
 					animated_sprite.pause()
 					_flow_can_resolve = true
@@ -488,6 +674,9 @@ func _on_frame_changed() -> void:
 				_play_sfx(_smash_swing_audio)
 			if f >= smash_pause_frame:
 				attack_state = AttackState.SMASH_PAUSED
+				if f > smash_pause_frame:
+					animated_sprite.frame = smash_pause_frame
+				_set_hitbox(smash_hitbox, false)
 				if not _flow_set_can_resolve():
 					animated_sprite.pause()
 					_flow_can_resolve = true
@@ -512,6 +701,9 @@ func _on_frame_changed() -> void:
 				_play_sfx(_dash_swing_audio)
 			if f >= dash_pause_frame:
 				attack_state = AttackState.DASH_PAUSED
+				if f > dash_pause_frame:
+					animated_sprite.frame = dash_pause_frame
+				_set_hitbox(dash_hitbox, false)
 				if not _flow_set_can_resolve():
 					animated_sprite.pause()
 					_flow_can_resolve = true
@@ -531,18 +723,23 @@ func _on_animation_finished() -> void:
 	match attack_state:
 		AttackState.SLASH_FINISH, AttackState.SMASH_FINISH, AttackState.DASH_FINISH:
 			attack_state = AttackState.NONE
-			_dash_flow_checks_completed = 0
-			_current_attack_damage_multiplier = 1.0
-			_reset_smash_advance()
-			_reset_smash_z_boost()
-			_attack_invincible = false
+			_reset_attack_runtime_state()
 			_stop_flow()
-			_set_hitbox(slash_hitbox, false)
-			_set_hitbox(smash_hitbox, false)
-			_set_hitbox(dash_hitbox, false)
-			_slash_effect_pending_hide = false
-			_set_slash_effect_sprite(false)
 			animated_sprite.play("idle")
+		AttackState.NONE:
+			pass
+		_:
+			# Attack animation ended while still in a windup / paused / interrupt
+			# state — the normal pause→resolve path was skipped (frame-skip on a lag
+			# spike, or external interference). If a flow bar is still live, leave it
+			# for _update_flow to resolve; otherwise force a clean idle so the rogue
+			# never hangs mid-swing.
+			if not is_flow_busy():
+				attack_state = AttackState.NONE
+				_pending_interrupt_action = &""
+				_reset_attack_runtime_state()
+				_stop_flow()
+				animated_sprite.play("idle")
 
 
 ## Called when any active hitbox touches an enemy body.
@@ -563,6 +760,26 @@ func _on_dash_hit_body(body: Node2D) -> void:
 	_apply_hit_body(body)
 
 
+## Knockback force for the attack in progress. Mirrors the selection in
+## _apply_hit_body so hurtbox-routed hits (dragon, skeleton knight) knock back the
+## same as body_entered hits. Read by HurtBox when forwarding a joiner's hit.
+func _get_current_knockback_force() -> float:
+	match attack_state:
+		AttackState.SMASH_WINDUP, AttackState.SMASH_PAUSED, AttackState.SMASH_FINISH:
+			return smash_knockback_force
+		AttackState.DASH_WINDUP, AttackState.DASH_PAUSED, AttackState.DASH_FINISH:
+			return dash_knockback_force
+		_:
+			return slash_knockback_force
+
+
+## Whether the attack in progress landed its flow window. Read by HurtBox so
+## hurtbox-routed hits (dragon, skeleton knight) get the same crit FX/audio as
+## body_entered hits.
+func _get_current_flow_success() -> bool:
+	return _current_attack_damage_multiplier >= 1.0
+
+
 func _apply_hit_body(body: Node2D) -> void:
 	var flow_success: bool = _current_attack_damage_multiplier >= 1.0
 	var kforce: float
@@ -578,7 +795,9 @@ func _apply_hit_body(body: Node2D) -> void:
 			kforce = slash_knockback_force
 			wtype = slash_weapon_type
 	if body.has_method("take_damage"):
-		body.take_damage(_get_current_attack_damage(), flow_success, wtype)
+		EnemyBase.player_hit(body, player_slot, _get_current_attack_damage(), flow_success, wtype)
+		if "health" in body and body.health <= 0.0:
+			_register_kill()
 	if body.has_method("apply_knockback"):
 		body.apply_knockback(global_position, kforce)
 	# Joiner: enemy take_damage returns early locally — forward the hit to the host.
@@ -756,19 +975,12 @@ func _get_run_elapsed() -> float:
 	return 0.0
 
 
-## Returns the window half-size for this attack frame, sampling the curve when
-## one is assigned. curve_max_time is the run duration (seconds) that maps to x=1.
-func _sample_window_half(curve: Curve, default_half: float, curve_max_time: float) -> float:
-	if curve == null:
-		return default_half
-	var t := clampf(_get_run_elapsed() / maxf(curve_max_time, 1.0), 0.0, 1.0)
-	var half := curve.sample_baked(t)
-	# Clamp to [0, default_half]: prevents negative values (curve extrapolating
-	# past the last key with a downward tangent) and positive bounce-back
-	# (upward tangent causing the window to re-grow past its start size).
-	# Snap sub-resolution residuals to exactly zero so the window fully closes
-	# when the curve reaches its minimum.
-	half = clampf(half, 0.0, default_half)
+## Returns the window half-size for this attack frame. The window now steps with
+## the player's Flow pips: full size at 5 pips, shrinking 20% per lost pip and
+## fully closed (no green window) at 0 pips. `curve` / `curve_max_time` are
+## retained for signature compatibility but no longer used.
+func _sample_window_half(_curve: Curve, default_half: float, _curve_max_time: float) -> float:
+	var half := default_half * get_flow_window_scale()
 	return 0.0 if half < 0.005 else half
 
 

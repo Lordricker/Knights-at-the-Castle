@@ -1,0 +1,52 @@
+[gd_scene format=3 uid="uid://drasvwq7dtxb1"]
+
+[ext_resource type="Texture2D" uid="uid://cdj77jhblqvp2" path="res://assets/sprites/UI/hourglass.png" id="1_r0ddp"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_lq1y3"]
+atlas = ExtResource("1_r0ddp")
+region = Rect2(0, 0, 21, 21)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_m04yt"]
+atlas = ExtResource("1_r0ddp")
+region = Rect2(21, 0, 21, 21)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_dcbiw"]
+atlas = ExtResource("1_r0ddp")
+region = Rect2(42, 0, 21, 21)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_wi2yw"]
+atlas = ExtResource("1_r0ddp")
+region = Rect2(0, 21, 21, 21)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_h0mmc"]
+atlas = ExtResource("1_r0ddp")
+region = Rect2(21, 21, 21, 21)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_af0pe"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_lq1y3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_m04yt")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_dcbiw")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_wi2yw")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_h0mmc")
+}],
+"loop": 1,
+"name": &"default",
+"speed": 0.5
+}]
+
+[node name="hourglass" type="Node2D" unique_id=1221773736]
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=834414496]
+sprite_frames = SubResource("SpriteFrames_af0pe")
+animation = &"default"

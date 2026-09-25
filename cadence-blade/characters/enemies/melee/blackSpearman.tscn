@@ -11,7 +11,7 @@
 [ext_resource type="AudioStream" uid="uid://dub7f0kquia1l" path="res://assets/Sounds/arrowflesh.mp3" id="7_hitsi"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_xsjc2"]
-size = Vector2(20, 30)
+size = Vector2(24, 34)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_wif16"]
 atlas = ExtResource("2_koxke")
@@ -70,7 +70,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_rhr3q")
 }],
-"loop": true,
+"loop": 1,
 "name": &"running",
 "speed": 6.0
 }, {
@@ -84,13 +84,13 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_hitsi")
 }],
-"loop": false,
+"loop": 0,
 "name": &"slash",
 "speed": 6.0
 }]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ptajg"]
-size = Vector2(49, 13)
+size = Vector2(49, 24.81)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_0412h"]
 size = Vector2(58, 21)
@@ -133,8 +133,7 @@ oscillate = true
 oscillate_speed = 0.2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D" unique_id=1533444482]
-visible = false
-position = Vector2(0, 4)
+position = Vector2(-2, 5)
 shape = SubResource("RectangleShape2D_xsjc2")
 
 [node name="Pivot" type="Node2D" parent="CharacterBody2D" unique_id=212786294]
@@ -149,7 +148,7 @@ monitoring = false
 monitorable = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D/Pivot/SlashHitbox" unique_id=341442971]
-position = Vector2(12.5, 11.5)
+position = Vector2(12.5, 7)
 shape = SubResource("RectangleShape2D_ptajg")
 debug_color = Color(0.9536274, 7.70092e-07, 0.5495344, 0.41960785)
 

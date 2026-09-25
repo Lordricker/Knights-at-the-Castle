@@ -33,6 +33,12 @@ extends StaticBody2D
 ## HP restored per minute while the castle is alive. Set to 0 to disable regen.
 @export var regen_per_minute: float = 10.0
 
+@export_group("Low HP Warning")
+## Played once every time the castle's health drops by another 10% of max_health
+## (measured from its most recent high point, so regen resets the countdown).
+@export var low_hp_warning_sound: AudioStream = preload("res://assets/Sounds/princessScream.mp3")
+@export_range(-40.0, 6.0, 0.1) var low_hp_warning_volume_db: float = 0.0
+
 # ── Fade ──────────────────────────────────────────────────────────────────────
 
 @export_group("Death")
@@ -59,13 +65,21 @@ extends StaticBody2D
 var health: float = 0.0
 var _health_bar_api: Node = null
 var _died_emitted: bool = false
+## High-water mark used to detect each 10%-of-max_health drop. Rises with the
+## current health (so regen "refills" the countdown) and steps down by 10%
+## chunks as health falls, firing low_hp_pulse each time it steps.
+var _low_hp_alert_baseline: float = 0.0
 
 signal health_changed(new_health: float, max_hp: float)
+## Fired once each time the castle loses another 10% of max_health since its
+## last high point. Used for the low-HP warning sound/HUD shake.
+signal low_hp_pulse()
 signal died()
 
 
 func _ready() -> void:
 	health = max_health
+	_low_hp_alert_baseline = max_health
 	add_to_group(&"Kill")
 	_health_bar_api = _resolve_bar_api(health_bar)
 	health_changed.connect(_on_health_changed)
@@ -138,6 +152,25 @@ func _on_died() -> void:
 func _on_health_changed(new_hp: float, max_hp: float) -> void:
 	if _health_bar_api != null:
 		_health_bar_api.set_health(new_hp, max_hp)
+	_check_low_hp_alert(new_hp, max_hp)
+
+
+## Steps _low_hp_alert_baseline down in 10%-of-max_health chunks as health
+## falls, firing low_hp_pulse for each chunk crossed (handles big single hits
+## that cross more than one 10% mark). Healing above the baseline raises it
+## instead, so regen "buys back" the countdown to the next warning.
+func _check_low_hp_alert(new_hp: float, max_hp: float) -> void:
+	if new_hp >= _low_hp_alert_baseline:
+		_low_hp_alert_baseline = new_hp
+		return
+	var threshold := max_hp * 0.10
+	if threshold <= 0.0:
+		return
+	while _low_hp_alert_baseline - new_hp >= threshold:
+		_low_hp_alert_baseline -= threshold
+		if low_hp_warning_sound != null:
+			AudioManager.play_sfx(low_hp_warning_sound, low_hp_warning_volume_db)
+		low_hp_pulse.emit()
 
 
 func _resolve_bar_api(bar: Node) -> Node:

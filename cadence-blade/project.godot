@@ -20,12 +20,15 @@ config/icon="res://icon.svg"
 GameManager="*res://core/game_manager.gd"
 AudioManager="*res://core/audio_manager.gd"
 FirebaseClient="*res://core/firebase_client.gd"
+IceConfig="*res://core/ice_config.gd"
 WebRTCManager="*res://core/webrtc_manager.gd"
 
 [display]
 
 window/size/viewport_width=1920
 window/size/viewport_height=1080
+window/size/window_width_override=1280
+window/size/window_height_override=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
@@ -81,10 +84,13 @@ face_lock={
 
 [physics]
 
+common/physics_jitter_fix=0.0
 3d/physics_engine="Jolt Physics"
 
 [rendering]
 
 textures/canvas_textures/default_texture_filter=0
 rendering_device/driver.windows="d3d12"
+environment/defaults/default_clear_color=Color(0, 0.5294118, 0.13725491, 1)
+2d/snap/snap_2d_transforms_to_pixel=true
 2d/snap/snap_2d_vertices_to_pixel=true

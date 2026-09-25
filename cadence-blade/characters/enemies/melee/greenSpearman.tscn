@@ -94,7 +94,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_igbm1")
 }],
-"loop": true,
+"loop": 1,
 "name": &"running",
 "speed": 6.0
 }, {
@@ -108,7 +108,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_mav38")
 }],
-"loop": false,
+"loop": 0,
 "name": &"slash",
 "speed": 6.0
 }, {
@@ -131,13 +131,13 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_jgt47")
 }],
-"loop": false,
+"loop": 0,
 "name": &"slash2",
 "speed": 6.0
 }]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ptajg"]
-size = Vector2(54, 13)
+size = Vector2(54, 24.245)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_0412h"]
 size = Vector2(58, 21)
@@ -202,7 +202,7 @@ monitoring = false
 monitorable = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D/Pivot/SlashHitbox" unique_id=341442971]
-position = Vector2(15, 11.5)
+position = Vector2(15, 7)
 shape = SubResource("RectangleShape2D_ptajg")
 debug_color = Color(0.9536274, 7.70092e-07, 0.5495344, 0.41960785)
 

@@ -1,41 +1,226 @@
 [gd_scene format=3 uid="uid://dgpoi6oalb82t"]
 
 [ext_resource type="Script" uid="uid://bo1tq4rdbi5r8" path="res://ui/menus/main_menu.gd" id="1_1kjlq"]
+[ext_resource type="Script" uid="uid://cn8lqd0r4wtxm" path="res://ui/menus/loading_label.gd" id="1_loading"]
 [ext_resource type="Texture2D" uid="uid://b56ydo3qajwgp" path="res://assets/sprites/UI/title.png" id="2_vuv8w"]
 [ext_resource type="PackedScene" uid="uid://bqd7aeac31hoi" path="res://ui/menus/session_entry.tscn" id="3_5ssi0"]
 [ext_resource type="FontFile" uid="uid://3k4f02awf4kq" path="res://assets/fonts/FRSCRIPT.TTF" id="3_h223f"]
 [ext_resource type="FontFile" uid="uid://eayy706a4ihb" path="res://assets/fonts/JMH Typewriter.ttf" id="3_w22xg"]
+[ext_resource type="Theme" uid="uid://crfkl8ej3r226" path="res://buttonShrink.tres" id="3_xv1rc"]
+[ext_resource type="Texture2D" uid="uid://bx4sfv3veuo3f" path="res://assets/sprites/UI/SmallBlueSquareButton_Pressed.png" id="4_j3y0t"]
 [ext_resource type="Texture2D" uid="uid://bxiea3eu0sstp" path="res://assets/sprites/UI/redRibbon.png" id="4_l3r6a"]
 [ext_resource type="Texture2D" uid="uid://qp1cx7diu7ko" path="res://assets/sprites/UI/yellowRibbon.png" id="5_1kjlq"]
 [ext_resource type="Texture2D" uid="uid://fghf0bg470be" path="res://assets/Textures/stonewallTexture.png" id="6_u0fm7"]
-[ext_resource type="Texture2D" uid="uid://d1lle3v0whs5l" path="res://assets/sprites/UI/blueRibbon.png" id="6_vuv8w"]
+[ext_resource type="Texture2D" uid="uid://ddpjdaao6ge5u" path="res://assets/sprites/UI/soundicon.png" id="7_cxjfc"]
+[ext_resource type="Texture2D" uid="uid://blfaeluyq33n0" path="res://ui/menus/distantCastle.png" id="8_bkt3i"]
 [ext_resource type="Script" uid="uid://2rlap08kcs04" path="res://ui/menus/character_description_panel.gd" id="9_g305v"]
 [ext_resource type="PackedScene" uid="uid://dbk1qvdllygxo" path="res://characters/Players/RedKnight.tscn" id="10_10bvg"]
 [ext_resource type="PackedScene" uid="uid://cbhrtdam3e0k7" path="res://characters/Players/GreenArcher.tscn" id="11_buwx5"]
-[ext_resource type="PackedScene" uid="uid://diy8f1xpxbdsp" path="res://characters/Players/BlueRogue.tscn" id="15_rogue"]
+[ext_resource type="FontFile" uid="uid://di588hyvkxc6w" path="res://assets/fonts/LATINWD.TTF" id="11_xmuii"]
+[ext_resource type="Texture2D" uid="uid://bykq5s1nwsufx" path="res://assets/sprites/UI/SmallRedSquareButton_Pressed.png" id="12_0lxgr"]
 [ext_resource type="Texture2D" uid="uid://doujfkefol0m5" path="res://assets/sprites/UI/SessionMenuIcons/heart.png" id="12_buwx5"]
 [ext_resource type="Texture2D" uid="uid://cydfq1n1r4pmb" path="res://assets/sprites/UI/SessionMenuIcons/speed.png" id="13_o1ovh"]
 [ext_resource type="Texture2D" uid="uid://cgv28h1b8wge" path="res://assets/sprites/UI/SessionMenuIcons/weight.png" id="14_o1ovh"]
+[ext_resource type="PackedScene" uid="uid://diy8f1xpxbdsp" path="res://characters/Players/BlueRogue.tscn" id="15_rogue"]
+[ext_resource type="Script" uid="uid://jn0yb6i43xum" path="res://ui/menus/detailed_stats_panel.gd" id="18_xv1rc"]
+[ext_resource type="Script" uid="uid://lnedy48l2ypa" path="res://ui/menus/details_button_glint.gd" id="19_glint"]
+[ext_resource type="Shader" uid="uid://x7kfob735iy4" path="res://ui/shaders/video_crt_vignette.gdshader" id="20_cxjfc"]
+[ext_resource type="VideoStream" uid="uid://moy0oldxebxp" path="res://ui/menus/TutorialVideos/rogue-speed-kill.ogv" id="21_13y34"]
+[ext_resource type="VideoStream" uid="uid://bqswm13k4hk74" path="res://ui/menus/TutorialVideos/tntthetower.ogv" id="23_3j1g4"]
+[ext_resource type="Texture2D" uid="uid://cflhtxprd6wqy" path="res://assets/sprites/discord.png" id="23_skcmf"]
+[ext_resource type="Texture2D" uid="uid://dyuspphjrgp3" path="res://assets/sprites/Unit Hut Sprites/Waypointbutton.png" id="24_4gg0h"]
+[ext_resource type="VideoStream" uid="uid://c0b8ywkshnw8e" path="res://ui/menus/TutorialVideos/nocritKill.ogv" id="25_8xhr7"]
+[ext_resource type="VideoStream" uid="uid://0ufmcwjxjorl" path="res://ui/menus/TutorialVideos/critKill.ogv" id="26_skcmf"]
 
-[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_h223f"]
-load_path = "res://.godot/imported/yellowRibbon.png-09bcf83ea2813e222f33f6b54a4d0238.ctex"
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_xv1rc"]
+load_path = "res://.godot/imported/redRibbon.png-90b6e7918d814724569d6c97274908d1.ctex"
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_f72sp"]
+texture = SubResource("CompressedTexture2D_xv1rc")
+texture_margin_left = 112.0
+texture_margin_right = 112.0
+expand_margin_left = 10.0
+expand_margin_top = 10.0
+expand_margin_right = 10.0
+expand_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_pn4ol"]
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
+texture = ExtResource("4_l3r6a")
+texture_margin_left = 100.0
+texture_margin_right = 100.0
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_u0fm7"]
-texture = SubResource("CompressedTexture2D_h223f")
-texture_margin_left = 10.0
-texture_margin_right = 10.0
+texture = ExtResource("4_l3r6a")
+texture_margin_left = 112.0
+texture_margin_right = 112.0
+expand_margin_left = 20.0
+expand_margin_top = 20.0
+expand_margin_right = 20.0
+expand_margin_bottom = 20.0
 
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_vuv8w"]
-content_margin_left = 20.0
-content_margin_right = 20.0
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_4p04u"]
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
 texture = ExtResource("5_1kjlq")
-expand_margin_left = 30.0
-expand_margin_top = 30.0
-expand_margin_right = 30.0
-expand_margin_bottom = 30.0
+texture_margin_left = 100.0
+texture_margin_right = 100.0
+expand_margin_left = 10.0
+expand_margin_top = 10.0
+expand_margin_right = 10.0
+expand_margin_bottom = 10.0
 
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_l3r6a"]
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_13y34"]
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
 texture = ExtResource("5_1kjlq")
+texture_margin_left = 100.0
+texture_margin_right = 100.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_8dpw5"]
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
+texture = ExtResource("5_1kjlq")
+expand_margin_left = 20.0
+expand_margin_top = 20.0
+expand_margin_right = 20.0
+expand_margin_bottom = 20.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_xmuii"]
+texture = ExtResource("7_cxjfc")
+expand_margin_top = 10.0
+expand_margin_right = 10.0
+expand_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_0lxgr"]
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
+texture = ExtResource("7_cxjfc")
+modulate_color = Color(1, 1, 1, 0.27450982)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_xok0b"]
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
+texture = ExtResource("7_cxjfc")
+expand_margin_left = 20.0
+expand_margin_top = 20.0
+expand_margin_right = 20.0
+expand_margin_bottom = 20.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_cxjfc"]
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
+texture = ExtResource("7_cxjfc")
+expand_margin_left = 20.0
+expand_margin_top = 20.0
+expand_margin_right = 20.0
+expand_margin_bottom = 20.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_820nw"]
+texture = ExtResource("12_0lxgr")
+texture_margin_left = 25.0
+texture_margin_top = 40.0
+texture_margin_right = 25.0
+texture_margin_bottom = 25.0
+expand_margin_left = 10.0
+expand_margin_top = 10.0
+expand_margin_right = 10.0
+expand_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_ovmky"]
+texture = ExtResource("12_0lxgr")
+texture_margin_left = 25.0
+texture_margin_top = 40.0
+texture_margin_right = 25.0
+texture_margin_bottom = 25.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_mfjjd"]
+texture = ExtResource("12_0lxgr")
+texture_margin_left = 25.0
+texture_margin_top = 40.0
+texture_margin_right = 25.0
+texture_margin_bottom = 40.0
+expand_margin_left = 20.0
+expand_margin_top = 40.0
+expand_margin_right = 20.0
+expand_margin_bottom = 20.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_scrolltint"]
+bg_color = Color(0, 0, 0, 0.5)
+corner_radius_top_left = 40
+corner_radius_top_right = 40
+corner_radius_bottom_right = 40
+corner_radius_bottom_left = 40
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_3j1g4"]
+texture = ExtResource("4_l3r6a")
+texture_margin_left = 110.0
+texture_margin_right = 110.0
+expand_margin_left = 10.0
+expand_margin_top = 10.0
+expand_margin_right = 10.0
+expand_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_4gg0h"]
+texture = ExtResource("4_l3r6a")
+texture_margin_left = 110.0
+texture_margin_right = 110.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_8xhr7"]
+texture = ExtResource("4_l3r6a")
+texture_margin_left = 110.0
+texture_margin_right = 110.0
+expand_margin_left = 20.0
+expand_margin_top = 20.0
+expand_margin_right = 20.0
+expand_margin_bottom = 20.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_1dyi0"]
+content_margin_bottom = 25.0
+texture = ExtResource("4_j3y0t")
+texture_margin_left = 25.0
+texture_margin_top = 40.0
+texture_margin_right = 25.0
+texture_margin_bottom = 40.0
+expand_margin_left = 10.0
+expand_margin_top = 10.0
+expand_margin_right = 10.0
+expand_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_xv1rc"]
+content_margin_bottom = 25.0
+texture = ExtResource("4_j3y0t")
+texture_margin_left = 25.0
+texture_margin_top = 40.0
+texture_margin_right = 25.0
+texture_margin_bottom = 40.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_skcmf"]
+content_margin_bottom = 25.0
+texture = ExtResource("4_j3y0t")
+texture_margin_left = 25.0
+texture_margin_top = 40.0
+texture_margin_right = 25.0
+texture_margin_bottom = 40.0
+expand_margin_left = 20.0
+expand_margin_top = 20.0
+expand_margin_right = 20.0
+expand_margin_bottom = 20.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vuv8w"]
 bg_color = Color(0, 0, 0, 0.7058824)
@@ -44,15 +229,140 @@ corner_radius_top_right = 40
 corner_radius_bottom_right = 40
 corner_radius_bottom_left = 40
 
-[node name="MainMenu" type="CanvasLayer" unique_id=1642001637 node_paths=PackedStringArray("main_screen", "session_screen", "play_button", "help_button", "back_button", "help_overlay", "help_close_button", "best_time_label", "permanent_entry", "sessions_container")]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1dyi0"]
+bg_color = Color(0, 0, 0, 0.8392157)
+corner_radius_top_left = 100
+corner_radius_top_right = 100
+corner_radius_bottom_right = 100
+corner_radius_bottom_left = 100
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_xv1rc"]
+shader = ExtResource("20_cxjfc")
+shader_parameter/enable_vignette = true
+shader_parameter/vignette_intensity = 2.5510001211724997
+shader_parameter/vignette_opacity = 1.0
+shader_parameter/enable_scanlines = true
+shader_parameter/scanline_count = 60.3750023928125
+shader_parameter/scanline_opacity = 0.3210000152475
+shader_parameter/enable_curvature = true
+shader_parameter/curvature_amount = 0.30000001192093
+
+[sub_resource type="VideoStreamTheora" id="VideoStreamTheora_k50mi"]
+file = "res://ui/menus/TutorialVideos/rogue slash.ogv"
+
+[sub_resource type="VideoStreamTheora" id="VideoStreamTheora_xmuii"]
+file = "res://ui/menus/TutorialVideos/rogue smash.ogv"
+
+[sub_resource type="VideoStreamTheora" id="VideoStreamTheora_0lxgr"]
+file = "res://ui/menus/TutorialVideos/rogue dash.ogv"
+
+[sub_resource type="VideoStreamTheora" id="VideoStreamTheora_f72sp"]
+file = "res://ui/menus/TutorialVideos/archer shoot.ogv"
+
+[sub_resource type="VideoStreamTheora" id="VideoStreamTheora_cxjfc"]
+file = "res://ui/menus/TutorialVideos/archer pierce.ogv"
+
+[sub_resource type="VideoStreamTheora" id="VideoStreamTheora_13y34"]
+file = "res://ui/menus/TutorialVideos/archer kick.ogv"
+
+[sub_resource type="VideoStreamTheora" id="VideoStreamTheora_xv1rc"]
+file = "res://ui/menus/TutorialVideos/Stack0.ogv"
+
+[sub_resource type="VideoStreamTheora" id="VideoStreamTheora_3j1g4"]
+file = "res://ui/menus/TutorialVideos/Stack1.ogv"
+
+[sub_resource type="VideoStreamTheora" id="VideoStreamTheora_4gg0h"]
+file = "res://ui/menus/TutorialVideos/stack2.ogv"
+
+[sub_resource type="VideoStreamTheora" id="VideoStreamTheora_8xhr7"]
+file = "res://ui/menus/TutorialVideos/knight slash.ogv"
+
+[sub_resource type="VideoStreamTheora" id="VideoStreamTheora_skcmf"]
+file = "res://ui/menus/TutorialVideos/knight thrust.ogv"
+
+[sub_resource type="VideoStreamTheora" id="VideoStreamTheora_xo4y4"]
+file = "res://ui/menus/TutorialVideos/knight spin.ogv"
+
+[sub_resource type="VideoStreamTheora" id="VideoStreamTheora_bkt3i"]
+file = "res://ui/menus/TutorialVideos/preparation.ogv"
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_fpotr"]
+texture = ExtResource("23_skcmf")
+expand_margin_left = 10.0
+expand_margin_top = 10.0
+expand_margin_right = 10.0
+expand_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_63puf"]
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
+texture = ExtResource("23_skcmf")
+modulate_color = Color(1, 1, 1, 0.27450982)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_k7pwe"]
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
+texture = ExtResource("23_skcmf")
+expand_margin_left = 20.0
+expand_margin_top = 20.0
+expand_margin_right = 20.0
+expand_margin_bottom = 20.0
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_f72sp"]
+load_path = "res://.godot/imported/blueRibbon.png-0a80558b19c17727abe13d02ba990ae2.ctex"
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_xo4y4"]
+texture = SubResource("CompressedTexture2D_f72sp")
+texture_margin_left = 110.0
+texture_margin_right = 110.0
+expand_margin_left = 10.0
+expand_margin_top = 10.0
+expand_margin_right = 10.0
+expand_margin_bottom = 10.0
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_cxjfc"]
+load_path = "res://.godot/imported/blueRibbon.png-0a80558b19c17727abe13d02ba990ae2.ctex"
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_bkt3i"]
+texture = SubResource("CompressedTexture2D_cxjfc")
+texture_margin_left = 110.0
+texture_margin_right = 110.0
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_13y34"]
+load_path = "res://.godot/imported/blueRibbon.png-0a80558b19c17727abe13d02ba990ae2.ctex"
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_k50mi"]
+texture = SubResource("CompressedTexture2D_13y34")
+texture_margin_left = 110.0
+texture_margin_right = 110.0
+expand_margin_left = 20.0
+expand_margin_top = 20.0
+expand_margin_right = 20.0
+expand_margin_bottom = 20.0
+
+[node name="MainMenu" type="CanvasLayer" unique_id=1642001637 node_paths=PackedStringArray("main_screen", "session_screen", "play_button", "help_button", "music_button", "sfx_button", "back_button", "discord_button", "help_overlay", "help_close_button", "combat_help_button", "unit_hut_help_button", "combat_help", "combat_help_close", "unit_hut_help", "unit_hut_help_close", "details_button", "best_time_label", "permanent_entry", "sessions_container")]
 script = ExtResource("1_1kjlq")
 main_screen = NodePath("MainScreen")
 session_screen = NodePath("sessionscreen")
 play_button = NodePath("MainScreen/Play")
 help_button = NodePath("MainScreen/Help")
+music_button = NodePath("MainScreen/soundbuttons/music")
+sfx_button = NodePath("MainScreen/soundbuttons/SFX")
 back_button = NodePath("sessionscreen/Back")
+discord_button = NodePath("sessionscreen/matchmaking/discord")
 help_overlay = NodePath("HelpScreen")
 help_close_button = NodePath("HelpScreen/Close")
+combat_help_button = NodePath("HelpScreen/CombatButton")
+unit_hut_help_button = NodePath("HelpScreen/UnitHutButton")
+combat_help = NodePath("CombatHelp")
+combat_help_close = NodePath("CombatHelp/CloseUpgrades")
+unit_hut_help = NodePath("UnitHutHelp")
+unit_hut_help_close = NodePath("UnitHutHelp/CloseUpgrades")
+details_button = NodePath("sessionscreen/DetailsButton")
 best_time_label = NodePath("MainScreen/bestTime")
 permanent_entry = NodePath("sessionscreen/SessionEntry")
 sessions_container = NodePath("sessionscreen/ScrollContainer/sessionScoll")
@@ -70,6 +380,22 @@ offset_right = 20.0
 offset_bottom = 20.0
 grow_horizontal = 2
 grow_vertical = 2
+pivot_offset_ratio = Vector2(0.5, 0.5)
+
+[node name="TextureRect" type="TextureRect" parent="MainScreen" unique_id=1917096471]
+z_index = -3
+layout_mode = 1
+anchors_preset = -1
+anchor_left = -23.550001
+anchor_top = -13.125001
+anchor_right = 24.887001
+anchor_bottom = 14.070001
+offset_left = 6.1035156e-05
+offset_top = 6.1035156e-05
+offset_right = -1278.48
+offset_bottom = -717.80005
+scale = Vector2(2.94, 2.94)
+texture = ExtResource("8_bkt3i")
 
 [node name="Title" type="Sprite2D" parent="MainScreen" unique_id=280138339]
 position = Vector2(25, -268.62)
@@ -78,30 +404,29 @@ texture = ExtResource("2_vuv8w")
 
 [node name="Play" type="Button" parent="MainScreen" unique_id=105342913]
 layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -204.0
-offset_top = -78.72
-offset_right = 204.0
-offset_bottom = 49.27983
+anchors_preset = -1
+anchor_left = -9.700001
+anchor_top = -2.7
+anchor_right = 10.700001
+anchor_bottom = 3.7000003
+offset_left = 204.00003
+offset_top = 64.0
+offset_right = -204.00003
+offset_bottom = -64.00018
 grow_horizontal = 2
 grow_vertical = 2
 scale = Vector2(2, 2)
 pivot_offset_ratio = Vector2(0.5, 0.5)
+theme = ExtResource("3_xv1rc")
 theme_override_colors/font_color = Color(0, 0, 0, 1)
 theme_override_colors/font_pressed_color = Color(0.15487596, 0.154876, 0.15487596, 1)
 theme_override_colors/font_hover_pressed_color = Color(0.16745102, 0.16745102, 0.16745102, 1)
 theme_override_fonts/font = ExtResource("3_w22xg")
 theme_override_font_sizes/font_size = 59
-theme_override_styles/normal = SubResource("StyleBoxTexture_u0fm7")
-theme_override_styles/pressed = SubResource("StyleBoxTexture_vuv8w")
-theme_override_styles/hover = SubResource("StyleBoxTexture_l3r6a")
+theme_override_styles/normal = SubResource("StyleBoxTexture_f72sp")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_pn4ol")
+theme_override_styles/hover = SubResource("StyleBoxTexture_u0fm7")
 text = "PLAY"
-icon = ExtResource("4_l3r6a")
-flat = true
 icon_alignment = 1
 expand_icon = true
 
@@ -112,10 +437,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -204.0
-offset_top = 144.58
-offset_right = 204.0
-offset_bottom = 272.5801
+offset_left = -183.0
+offset_top = 180.0
+offset_right = 183.22223
+offset_bottom = 308.00012
 grow_horizontal = 2
 grow_vertical = 2
 scale = Vector2(1.35, 1.35)
@@ -125,13 +450,10 @@ theme_override_colors/font_pressed_color = Color(0.15487596, 0.154876, 0.1548759
 theme_override_colors/font_hover_pressed_color = Color(0.16745102, 0.16745102, 0.16745102, 1)
 theme_override_fonts/font = ExtResource("3_w22xg")
 theme_override_font_sizes/font_size = 59
-theme_override_styles/normal = SubResource("StyleBoxTexture_u0fm7")
-theme_override_styles/pressed = SubResource("StyleBoxTexture_vuv8w")
-theme_override_styles/hover = SubResource("StyleBoxTexture_l3r6a")
-theme_override_styles/hover_pressed = SubResource("StyleBoxTexture_vuv8w")
+theme_override_styles/normal = SubResource("StyleBoxTexture_4p04u")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_13y34")
+theme_override_styles/hover = SubResource("StyleBoxTexture_8dpw5")
 text = "HELP"
-icon = ExtResource("5_1kjlq")
-flat = true
 icon_alignment = 1
 expand_icon = true
 
@@ -151,8 +473,97 @@ grow_vertical = 0
 theme_override_font_sizes/font_size = 50
 text = "10909"
 
+[node name="soundbuttons" type="Control" parent="MainScreen" unique_id=736471305]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -40.0
+offset_top = -40.0
+grow_horizontal = 0
+grow_vertical = 0
+
+[node name="music" type="Button" parent="MainScreen/soundbuttons" unique_id=1132698934]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 784.0
+offset_top = 258.0
+offset_right = 946.03284
+offset_bottom = 381.0
+grow_horizontal = 0
+grow_vertical = 0
+pivot_offset_ratio = Vector2(0.5, 0.5)
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_pressed_color = Color(0.15487596, 0.154876, 0.15487596, 1)
+theme_override_colors/font_hover_pressed_color = Color(0.16745102, 0.16745102, 0.16745102, 1)
+theme_override_fonts/font = ExtResource("3_w22xg")
+theme_override_font_sizes/font_size = 30
+theme_override_styles/normal = SubResource("StyleBoxTexture_xmuii")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_0lxgr")
+theme_override_styles/hover = SubResource("StyleBoxTexture_xok0b")
+toggle_mode = true
+text = "MUSIC"
+icon_alignment = 1
+expand_icon = true
+
+[node name="SFX" type="Button" parent="MainScreen/soundbuttons" unique_id=1757548880]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 784.0
+offset_top = 385.0
+offset_right = 946.03284
+offset_bottom = 508.0
+grow_horizontal = 0
+grow_vertical = 0
+pivot_offset_ratio = Vector2(0.5, 0.5)
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_pressed_color = Color(0.15487596, 0.154876, 0.15487596, 1)
+theme_override_colors/font_hover_pressed_color = Color(0.16745102, 0.16745102, 0.16745102, 1)
+theme_override_fonts/font = ExtResource("3_w22xg")
+theme_override_font_sizes/font_size = 30
+theme_override_styles/normal = SubResource("StyleBoxTexture_xmuii")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_0lxgr")
+theme_override_styles/hover = SubResource("StyleBoxTexture_cxjfc")
+toggle_mode = true
+text = "SFX
+"
+icon_alignment = 1
+expand_icon = true
+
+[node name="QuitButton" type="Button" parent="MainScreen" unique_id=1699363632]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = -915.0
+offset_top = 386.0
+offset_right = -717.0
+offset_bottom = 507.0
+grow_vertical = 0
+pivot_offset_ratio = Vector2(0.5, 0.5)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(0.15487596, 0.154876, 0.15487596, 1)
+theme_override_colors/font_hover_color = Color(0.6382641, 0.7776826, 1, 1)
+theme_override_colors/font_hover_pressed_color = Color(0.16745102, 0.16745102, 0.16745102, 1)
+theme_override_colors/font_outline_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("11_xmuii")
+theme_override_font_sizes/font_size = 40
+theme_override_styles/normal = SubResource("StyleBoxTexture_820nw")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_ovmky")
+theme_override_styles/hover = SubResource("StyleBoxTexture_mfjjd")
+text = "Quit"
+
 [node name="sessionscreen" type="Control" parent="." unique_id=1110293224]
-visible = false
 layout_mode = 3
 anchors_preset = 8
 anchor_left = 0.5
@@ -184,7 +595,7 @@ texture = ExtResource("6_u0fm7")
 expand_mode = 2
 stretch_mode = 1
 
-[node name="ScrollContainer" type="ScrollContainer" parent="sessionscreen" unique_id=4520773]
+[node name="ScrollTint" type="Panel" parent="sessionscreen" unique_id=1872657622]
 layout_mode = 1
 anchors_preset = 6
 anchor_left = 1.0
@@ -197,23 +608,32 @@ offset_right = -19.0
 offset_bottom = 554.0
 grow_horizontal = 0
 grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_scrolltint")
+
+[node name="ScrollContainer" type="ScrollContainer" parent="sessionscreen" unique_id=4520773]
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -986.0
+offset_top = -347.0
+offset_right = -19.0
+offset_bottom = 554.0
+grow_horizontal = 0
+grow_vertical = 2
 
 [node name="sessionScoll" type="VBoxContainer" parent="sessionscreen/ScrollContainer" unique_id=1831784551]
 layout_mode = 2
 
 [node name="Back" type="Button" parent="sessionscreen" unique_id=1912979261]
 layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -853.5
-offset_top = -524.0
-offset_right = -445.5
-offset_bottom = -396.0
-grow_horizontal = 2
-grow_vertical = 2
+offset_left = 126.0
+offset_top = 22.0
+offset_right = 534.0
+offset_bottom = 150.0
 scale = Vector2(1.35, 1.35)
 pivot_offset_ratio = Vector2(0.5, 0.5)
 theme_override_colors/font_color = Color(0, 0, 0, 1)
@@ -221,17 +641,33 @@ theme_override_colors/font_pressed_color = Color(0.15487596, 0.154876, 0.1548759
 theme_override_colors/font_hover_pressed_color = Color(0.16745102, 0.16745102, 0.16745102, 1)
 theme_override_fonts/font = ExtResource("3_h223f")
 theme_override_font_sizes/font_size = 83
-theme_override_styles/normal = SubResource("StyleBoxTexture_u0fm7")
-theme_override_styles/pressed = SubResource("StyleBoxTexture_vuv8w")
-theme_override_styles/hover = SubResource("StyleBoxTexture_l3r6a")
-theme_override_styles/hover_pressed = SubResource("StyleBoxTexture_vuv8w")
+theme_override_styles/normal = SubResource("StyleBoxTexture_3j1g4")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_4gg0h")
+theme_override_styles/hover = SubResource("StyleBoxTexture_8xhr7")
 text = "Back"
-icon = ExtResource("6_vuv8w")
-flat = true
 icon_alignment = 1
 expand_icon = true
 
-[node name="SessionEntry" parent="sessionscreen" unique_id=491276647 node_paths=PackedStringArray("status_label", "description_panel") instance=ExtResource("3_5ssi0")]
+[node name="TutorialButton" type="Button" parent="sessionscreen" unique_id=1517865838]
+layout_mode = 1
+offset_left = 107.0
+offset_top = 176.0
+offset_right = 552.71436
+offset_bottom = 297.0
+pivot_offset_ratio = Vector2(0.5, 0.5)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(0.15487596, 0.154876, 0.15487596, 1)
+theme_override_colors/font_hover_color = Color(0.6382641, 0.7776826, 1, 1)
+theme_override_colors/font_hover_pressed_color = Color(0.16745102, 0.16745102, 0.16745102, 1)
+theme_override_colors/font_outline_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("11_xmuii")
+theme_override_font_sizes/font_size = 40
+theme_override_styles/normal = SubResource("StyleBoxTexture_820nw")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_ovmky")
+theme_override_styles/hover = SubResource("StyleBoxTexture_mfjjd")
+text = "Tutorial"
+
+[node name="SessionEntry" parent="sessionscreen" unique_id=491276647 node_paths=PackedStringArray("status_label", "description_panel", "details_button", "detailed_stats_panel") instance=ExtResource("3_5ssi0")]
 layout_mode = 0
 offset_left = 11.0
 offset_top = 301.0
@@ -239,6 +675,8 @@ offset_right = 999.0
 offset_bottom = 1237.0
 status_label = NodePath("../DebugLabel")
 description_panel = NodePath("../Descriptionpanel")
+details_button = NodePath("../DetailsButton")
+detailed_stats_panel = NodePath("../DetailedStatsPanel")
 
 [node name="DebugLabel" type="Label" parent="sessionscreen" unique_id=1909427171]
 layout_mode = 1
@@ -256,6 +694,47 @@ grow_vertical = 0
 theme_override_font_sizes/font_size = 60
 horizontal_alignment = 1
 vertical_alignment = 2
+script = ExtResource("1_loading")
+
+[node name="DetailsButton" type="Button" parent="sessionscreen" unique_id=920369456]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 438.1427
+offset_top = -542.0
+offset_right = 883.8572
+offset_bottom = -411.0
+grow_vertical = 0
+scale = Vector2(0.7, 0.7)
+pivot_offset_ratio = Vector2(0.5, 0.5)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(0.15487596, 0.154876, 0.15487596, 1)
+theme_override_colors/font_hover_color = Color(0.6382641, 0.7776826, 1, 1)
+theme_override_colors/font_hover_pressed_color = Color(0.16745102, 0.16745102, 0.16745102, 1)
+theme_override_colors/font_outline_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("3_w22xg")
+theme_override_font_sizes/font_size = 40
+theme_override_styles/normal = SubResource("StyleBoxTexture_1dyi0")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_xv1rc")
+theme_override_styles/hover = SubResource("StyleBoxTexture_skcmf")
+text = "Character Details"
+
+[node name="GlintMask" type="Control" parent="sessionscreen/DetailsButton" unique_id=847213561 node_paths=PackedStringArray("bar")]
+anchors_preset = 0
+offset_right = 452.14288
+offset_bottom = 131.0
+mouse_filter = 2
+script = ExtResource("19_glint")
+bar = NodePath("Bar")
+
+[node name="Bar" type="ColorRect" parent="sessionscreen/DetailsButton/GlintMask" unique_id=847213562]
+visible = false
+layout_mode = 0
+offset_left = -40.0
+offset_bottom = 131.0
+mouse_filter = 2
+color = Color(1, 1, 1, 0.3)
 
 [node name="Descriptionpanel" type="Panel" parent="sessionscreen" unique_id=1856917082 node_paths=PackedStringArray("character_name_label", "character_health_label", "character_speed_label", "weight_label", "action1_name_label", "action1_damage_label", "action1_knockback_label", "action2_name_label", "action2_damage_label", "action2_knockback_label", "action3_name_label", "action3_damage_label", "action3_knockback_label")]
 layout_mode = 1
@@ -264,7 +743,7 @@ anchor_top = 1.0
 anchor_bottom = 1.0
 offset_left = 33.0
 offset_top = -435.0
-offset_right = 965.0
+offset_right = 940.0
 offset_bottom = -20.0
 grow_vertical = 0
 theme_override_styles/panel = SubResource("StyleBoxFlat_vuv8w")
@@ -274,15 +753,15 @@ character_name_label = NodePath("tagline")
 character_health_label = NodePath("HP")
 character_speed_label = NodePath("Speed")
 weight_label = NodePath("Weight")
-action1_name_label = NodePath("GridContainer/Jdescription")
-action1_damage_label = NodePath("GridContainer/JDMG")
-action1_knockback_label = NodePath("GridContainer/JKnock")
-action2_name_label = NodePath("GridContainer/Kdescription")
-action2_damage_label = NodePath("GridContainer/KDMG")
-action2_knockback_label = NodePath("GridContainer/KKnock")
-action3_name_label = NodePath("GridContainer/Ldescription")
-action3_damage_label = NodePath("GridContainer/LDMG")
-action3_knockback_label = NodePath("GridContainer/LKnock")
+action1_name_label = NodePath("Stats Grid/Jdescription")
+action1_damage_label = NodePath("Stats Grid/JDMG")
+action1_knockback_label = NodePath("Stats Grid/JKnock")
+action2_name_label = NodePath("Stats Grid/Kdescription")
+action2_damage_label = NodePath("Stats Grid/KDMG")
+action2_knockback_label = NodePath("Stats Grid/KKnock")
+action3_name_label = NodePath("Stats Grid/Ldescription")
+action3_damage_label = NodePath("Stats Grid/LDMG")
+action3_knockback_label = NodePath("Stats Grid/LKnock")
 
 [node name="tagline" type="Label" parent="sessionscreen/Descriptionpanel" unique_id=1431433381]
 layout_mode = 1
@@ -337,7 +816,7 @@ position = Vector2(-44, 25)
 scale = Vector2(0.865, 0.865)
 texture = ExtResource("14_o1ovh")
 
-[node name="GridContainer" type="GridContainer" parent="sessionscreen/Descriptionpanel" unique_id=553852979]
+[node name="Stats Grid" type="GridContainer" parent="sessionscreen/Descriptionpanel" unique_id=553852979]
 layout_mode = 0
 offset_left = 13.485
 offset_top = 222.0
@@ -347,28 +826,28 @@ theme_override_constants/h_separation = -20
 theme_override_constants/v_separation = -35
 columns = 4
 
-[node name="blank" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=1508261659]
+[node name="blank" type="Label" parent="sessionscreen/Descriptionpanel/Stats Grid" unique_id=1508261659]
 layout_mode = 2
 
-[node name="Jdescription" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=1529634795]
+[node name="Jdescription" type="Label" parent="sessionscreen/Descriptionpanel/Stats Grid" unique_id=1529634795]
 layout_mode = 2
 theme_override_font_sizes/font_size = 33
 text = "[ J ] Quickshot      
  "
 
-[node name="Kdescription" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=906320096]
+[node name="Kdescription" type="Label" parent="sessionscreen/Descriptionpanel/Stats Grid" unique_id=906320096]
 layout_mode = 2
 theme_override_font_sizes/font_size = 33
 text = "[ K ] Piercing Draw      
 "
 
-[node name="Ldescription" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=2027485568]
+[node name="Ldescription" type="Label" parent="sessionscreen/Descriptionpanel/Stats Grid" unique_id=2027485568]
 layout_mode = 2
 theme_override_font_sizes/font_size = 33
 text = "[ L ] Flying Boot
 "
 
-[node name="DMG" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=175260683]
+[node name="DMG" type="Label" parent="sessionscreen/Descriptionpanel/Stats Grid" unique_id=175260683]
 layout_mode = 2
 theme_override_font_sizes/font_size = 30
 text = "
@@ -376,7 +855,7 @@ DMG
 "
 vertical_alignment = 2
 
-[node name="JDMG" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=2123309565]
+[node name="JDMG" type="Label" parent="sessionscreen/Descriptionpanel/Stats Grid" unique_id=2123309565]
 layout_mode = 2
 theme_override_font_sizes/font_size = 30
 text = "DMG
@@ -384,7 +863,7 @@ text = "DMG
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="KDMG" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=1258449179]
+[node name="KDMG" type="Label" parent="sessionscreen/Descriptionpanel/Stats Grid" unique_id=1258449179]
 layout_mode = 2
 theme_override_font_sizes/font_size = 30
 text = "DMG
@@ -392,7 +871,7 @@ text = "DMG
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="LDMG" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=1543778753]
+[node name="LDMG" type="Label" parent="sessionscreen/Descriptionpanel/Stats Grid" unique_id=1543778753]
 layout_mode = 2
 theme_override_font_sizes/font_size = 30
 text = "DMG
@@ -400,7 +879,7 @@ text = "DMG
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="Knockback" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=47589134]
+[node name="Knockback" type="Label" parent="sessionscreen/Descriptionpanel/Stats Grid" unique_id=47589134]
 layout_mode = 2
 theme_override_font_sizes/font_size = 23
 text = "Knock
@@ -408,7 +887,7 @@ text = "Knock
 "
 vertical_alignment = 1
 
-[node name="JKnock" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=1818403863]
+[node name="JKnock" type="Label" parent="sessionscreen/Descriptionpanel/Stats Grid" unique_id=1818403863]
 layout_mode = 2
 theme_override_font_sizes/font_size = 30
 text = "DMG
@@ -416,7 +895,7 @@ text = "DMG
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="KKnock" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=1450037087]
+[node name="KKnock" type="Label" parent="sessionscreen/Descriptionpanel/Stats Grid" unique_id=1450037087]
 layout_mode = 2
 theme_override_font_sizes/font_size = 30
 text = "DMG
@@ -424,13 +903,428 @@ text = "DMG
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="LKnock" type="Label" parent="sessionscreen/Descriptionpanel/GridContainer" unique_id=1445056639]
+[node name="LKnock" type="Label" parent="sessionscreen/Descriptionpanel/Stats Grid" unique_id=1445056639]
 layout_mode = 2
 theme_override_font_sizes/font_size = 30
 text = "DMG
 "
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="DetailedStatsPanel" type="Panel" parent="sessionscreen" unique_id=1268402645 node_paths=PackedStringArray("knight_container", "archer_container", "rogue_container", "close_button")]
+visible = false
+z_index = 1
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -948.5
+offset_top = -520.0
+offset_right = 957.5
+offset_bottom = 538.0
+grow_horizontal = 2
+grow_vertical = 2
+pivot_offset_ratio = Vector2(0.5, 0.5)
+theme_override_styles/panel = SubResource("StyleBoxFlat_1dyi0")
+script = ExtResource("18_xv1rc")
+knight_container = NodePath("Knight")
+archer_container = NodePath("Archer")
+rogue_container = NodePath("Rogue")
+close_button = NodePath("Close")
+
+[node name="Rogue" type="Control" parent="sessionscreen/DetailedStatsPanel" unique_id=1035694971]
+visible = false
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Attack1" type="VideoStreamPlayer" parent="sessionscreen/DetailedStatsPanel/Rogue" unique_id=1589043188]
+z_index = 1
+material = SubResource("ShaderMaterial_xv1rc")
+layout_mode = 0
+offset_left = 1250.0
+offset_top = 100.0
+offset_right = 1896.0
+offset_bottom = 366.0
+stream = SubResource("VideoStreamTheora_k50mi")
+volume_db = -80.0
+autoplay = true
+loop = true
+
+[node name="Attack2" type="VideoStreamPlayer" parent="sessionscreen/DetailedStatsPanel/Rogue" unique_id=623869110]
+z_index = 1
+material = SubResource("ShaderMaterial_xv1rc")
+layout_mode = 0
+offset_left = 1250.0
+offset_top = 400.0
+offset_right = 1896.0
+offset_bottom = 666.0
+stream = SubResource("VideoStreamTheora_xmuii")
+volume_db = -80.0
+autoplay = true
+loop = true
+
+[node name="Attack3" type="VideoStreamPlayer" parent="sessionscreen/DetailedStatsPanel/Rogue" unique_id=368810675]
+z_index = 1
+material = SubResource("ShaderMaterial_xv1rc")
+layout_mode = 0
+offset_left = 1250.0
+offset_top = 700.0
+offset_right = 1896.0
+offset_bottom = 966.0
+stream = SubResource("VideoStreamTheora_0lxgr")
+volume_db = -80.0
+autoplay = true
+loop = true
+
+[node name="Label" type="Label" parent="sessionscreen/DetailedStatsPanel/Rogue" unique_id=901502392]
+layout_mode = 0
+offset_left = 64.0
+offset_top = 123.0
+offset_right = 1164.0
+offset_bottom = 543.0
+theme_override_font_sizes/font_size = 39
+text = "
+
+
+Musashi's unique ability provides sustain
+while out in the field, generating HP
+
+After a kill a timer will start.
+If you can execute another enemy in time
+you will recover 50 hp."
+
+[node name="attacksLabel" type="Label" parent="sessionscreen/DetailedStatsPanel/Rogue" unique_id=907050986]
+layout_mode = 0
+offset_left = 1044.0
+offset_top = 148.0
+offset_right = 1567.0
+offset_bottom = 888.0
+theme_override_font_sizes/font_size = 40
+text = "Attack 1:
+J or LMB
+
+
+
+Attack 2:
+K or RMB
+
+
+
+Attack 3:
+L or Space"
+
+[node name="SpeedKill" type="VideoStreamPlayer" parent="sessionscreen/DetailedStatsPanel/Rogue" unique_id=1586264631]
+material = SubResource("ShaderMaterial_xv1rc")
+layout_mode = 0
+offset_left = 35.000015
+offset_top = 651.0
+offset_right = 563.0
+offset_bottom = 919.0
+scale = Vector2(1.25, 1.25)
+stream = ExtResource("21_13y34")
+volume_db = -80.0
+autoplay = true
+loop = true
+
+[node name="Archer" type="Control" parent="sessionscreen/DetailedStatsPanel" unique_id=1393200991]
+visible = false
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Attack1" type="VideoStreamPlayer" parent="sessionscreen/DetailedStatsPanel/Archer" unique_id=1736542909]
+z_index = 1
+material = SubResource("ShaderMaterial_xv1rc")
+layout_mode = 0
+offset_left = 1600.0
+offset_top = 100.0
+offset_right = 1826.0
+offset_bottom = 308.0
+stream = SubResource("VideoStreamTheora_f72sp")
+volume_db = -80.0
+autoplay = true
+loop = true
+
+[node name="Attack2" type="VideoStreamPlayer" parent="sessionscreen/DetailedStatsPanel/Archer" unique_id=277385440]
+z_index = 1
+material = SubResource("ShaderMaterial_xv1rc")
+layout_mode = 0
+offset_left = 1600.0
+offset_top = 400.0
+offset_right = 1826.0
+offset_bottom = 608.0
+stream = SubResource("VideoStreamTheora_cxjfc")
+volume_db = -80.0
+autoplay = true
+loop = true
+
+[node name="Attack3" type="VideoStreamPlayer" parent="sessionscreen/DetailedStatsPanel/Archer" unique_id=1651442654]
+z_index = 1
+material = SubResource("ShaderMaterial_xv1rc")
+layout_mode = 0
+offset_left = 1600.0
+offset_top = 700.0
+offset_right = 1826.0
+offset_bottom = 908.0
+stream = SubResource("VideoStreamTheora_13y34")
+volume_db = -80.0
+autoplay = true
+loop = true
+
+[node name="Label" type="Label" parent="sessionscreen/DetailedStatsPanel/Archer" unique_id=1160777396]
+layout_mode = 0
+offset_left = 64.0
+offset_top = 123.0
+offset_right = 1164.0
+offset_bottom = 543.0
+theme_override_font_sizes/font_size = 39
+text = "Robins ideal position is laying down...
+suppressive fire at a distance.
+
+He has the unique ability to deal extra damage 
+with his arrows on                         hits.
+This incentivizes patient play and positioning youself well.
+
+His base damage is multiplied by 30% for each 
+consecutive hit, stacking twice for a total of 160%"
+
+[node name="consecutive" type="Label" parent="sessionscreen/DetailedStatsPanel/Archer/Label" unique_id=574870998]
+layout_mode = 0
+offset_left = 359.0
+offset_top = 227.0
+offset_right = 582.0
+offset_bottom = 281.0
+theme_override_colors/font_color = Color(0.97286814, 0.972868, 9.241105e-06, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 1, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 39
+text = "consecutive"
+
+[node name="attacksLabel" type="Label" parent="sessionscreen/DetailedStatsPanel/Archer" unique_id=1047491414]
+layout_mode = 0
+offset_left = 1370.0
+offset_top = 148.0
+offset_right = 1567.0
+offset_bottom = 888.0
+theme_override_font_sizes/font_size = 40
+text = "Attack 1:
+J or LMB
+
+
+
+Attack 2:
+K or RMB
+
+
+
+Attack 3:
+L or Space"
+
+[node name="stack0" type="VideoStreamPlayer" parent="sessionscreen/DetailedStatsPanel/Archer" unique_id=1205956784]
+material = SubResource("ShaderMaterial_xv1rc")
+layout_mode = 0
+offset_left = 100.0
+offset_top = 696.0
+offset_right = 538.0
+offset_bottom = 934.0
+scale = Vector2(0.5, 0.5)
+stream = SubResource("VideoStreamTheora_xv1rc")
+volume_db = -80.0
+autoplay = true
+loop = true
+
+[node name="stack1" type="VideoStreamPlayer" parent="sessionscreen/DetailedStatsPanel/Archer" unique_id=874946106]
+material = SubResource("ShaderMaterial_xv1rc")
+layout_mode = 0
+offset_left = 400.0
+offset_top = 696.0
+offset_right = 838.0
+offset_bottom = 934.0
+scale = Vector2(0.5, 0.5)
+stream = SubResource("VideoStreamTheora_3j1g4")
+volume_db = -80.0
+autoplay = true
+loop = true
+
+[node name="stack2" type="VideoStreamPlayer" parent="sessionscreen/DetailedStatsPanel/Archer" unique_id=648275472]
+material = SubResource("ShaderMaterial_xv1rc")
+layout_mode = 0
+offset_left = 700.0
+offset_top = 696.0
+offset_right = 1138.0
+offset_bottom = 934.0
+scale = Vector2(0.5, 0.5)
+stream = SubResource("VideoStreamTheora_4gg0h")
+volume_db = -80.0
+autoplay = true
+loop = true
+
+[node name="Label2" type="Label" parent="sessionscreen/DetailedStatsPanel/Archer" unique_id=1535483146]
+layout_mode = 0
+offset_left = 126.0
+offset_top = 812.0
+offset_right = 1051.0
+offset_bottom = 888.0
+theme_override_font_sizes/font_size = 40
+text = "0 Stack                1 Stack                 2 Stack"
+
+[node name="Knight" type="Control" parent="sessionscreen/DetailedStatsPanel" unique_id=1879829842]
+visible = false
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Attack1" type="VideoStreamPlayer" parent="sessionscreen/DetailedStatsPanel/Knight" unique_id=1657994444]
+z_index = 1
+material = SubResource("ShaderMaterial_xv1rc")
+layout_mode = 0
+offset_left = 1600.0
+offset_top = 100.0
+offset_right = 1826.0
+offset_bottom = 308.0
+stream = SubResource("VideoStreamTheora_8xhr7")
+volume_db = -80.0
+autoplay = true
+loop = true
+
+[node name="Attack2" type="VideoStreamPlayer" parent="sessionscreen/DetailedStatsPanel/Knight" unique_id=1722593175]
+z_index = 1
+material = SubResource("ShaderMaterial_xv1rc")
+layout_mode = 0
+offset_left = 1600.0
+offset_top = 400.0
+offset_right = 1826.0
+offset_bottom = 608.0
+stream = SubResource("VideoStreamTheora_skcmf")
+volume_db = -80.0
+autoplay = true
+loop = true
+
+[node name="Attack3" type="VideoStreamPlayer" parent="sessionscreen/DetailedStatsPanel/Knight" unique_id=1680519546]
+z_index = 1
+material = SubResource("ShaderMaterial_xv1rc")
+layout_mode = 0
+offset_left = 1600.0
+offset_top = 700.0
+offset_right = 1826.0
+offset_bottom = 908.0
+stream = SubResource("VideoStreamTheora_xo4y4")
+volume_db = -80.0
+autoplay = true
+loop = true
+
+[node name="Label" type="Label" parent="sessionscreen/DetailedStatsPanel/Knight" unique_id=64266641]
+layout_mode = 0
+offset_left = 64.0
+offset_top = 123.0
+offset_right = 1317.0
+offset_bottom = 576.0
+theme_override_font_sizes/font_size = 39
+text = "Arthur in all of his plate armor is best positioned in the heat of the battle
+
+His unique ability is Preparation. 
+By clicking on his armor he will lock into a 
+preparation stance for a few moments 
+activating a temporary buff
+
+During the duration of the buff Arthur
+receives a 50% damage reduction and small speed boost."
+
+[node name="attacksLabel" type="Label" parent="sessionscreen/DetailedStatsPanel/Knight" unique_id=2072090428]
+layout_mode = 0
+offset_left = 1370.0
+offset_top = 148.0
+offset_right = 1567.0
+offset_bottom = 888.0
+theme_override_font_sizes/font_size = 40
+text = "Attack 1:
+J or LMB
+
+
+
+Attack 2:
+K or RMB
+
+
+
+Attack 3:
+L or Space"
+
+[node name="Preparation" type="VideoStreamPlayer" parent="sessionscreen/DetailedStatsPanel/Knight" unique_id=1609711500]
+material = SubResource("ShaderMaterial_xv1rc")
+layout_mode = 0
+offset_left = 212.0
+offset_top = 699.00006
+offset_right = 466.0
+offset_bottom = 967.00006
+scale = Vector2(1.25, 1.25)
+stream = SubResource("VideoStreamTheora_bkt3i")
+volume_db = -80.0
+autoplay = true
+loop = true
+
+[node name="Close" type="Button" parent="sessionscreen/DetailedStatsPanel" unique_id=537590349]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = 397.01202
+offset_right = 208.0
+offset_bottom = 506.19836
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(1.35, 1.35)
+pivot_offset_ratio = Vector2(0.5, 0.5)
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_pressed_color = Color(0.15487596, 0.154876, 0.15487596, 1)
+theme_override_colors/font_hover_pressed_color = Color(0.16745102, 0.16745102, 0.16745102, 1)
+theme_override_fonts/font = ExtResource("3_h223f")
+theme_override_font_sizes/font_size = 83
+theme_override_styles/normal = SubResource("StyleBoxTexture_3j1g4")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_4gg0h")
+theme_override_styles/hover = SubResource("StyleBoxTexture_8xhr7")
+text = "Close"
+icon_alignment = 1
+expand_icon = true
+
+[node name="matchmaking" type="Control" parent="sessionscreen" unique_id=915155329]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -40.0
+offset_bottom = 40.0
+grow_horizontal = 0
+
+[node name="discord" type="Button" parent="sessionscreen/matchmaking" unique_id=25950473]
+layout_mode = 0
+offset_left = -65.0
+offset_top = 45.0
+offset_right = 27.0
+offset_bottom = 132.0
+theme_override_styles/normal = SubResource("StyleBoxTexture_fpotr")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_63puf")
+theme_override_styles/hover = SubResource("StyleBoxTexture_k7pwe")
+
+[node name="Label" type="Label" parent="sessionscreen/matchmaking" unique_id=1133974006]
+layout_mode = 0
+offset_left = -678.0
+offset_top = 47.0
+offset_right = 18.0
+offset_bottom = 188.0
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9254902)
+theme_override_constants/shadow_offset_x = 8
+theme_override_constants/shadow_offset_y = 9
+theme_override_constants/shadow_outline_size = 15
+theme_override_font_sizes/font_size = 50
+text = "              Find a partner -->
+Open Sessions "
 
 [node name="HelpScreen" type="Control" parent="." unique_id=1526978676]
 visible = false
@@ -469,6 +1363,143 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
+offset_left = -548.0
+offset_top = 294.0
+offset_right = -140.0
+offset_bottom = 422.0
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(1.35, 1.35)
+pivot_offset_ratio = Vector2(0.5, 0.5)
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_pressed_color = Color(0.15487596, 0.154876, 0.15487596, 1)
+theme_override_colors/font_hover_pressed_color = Color(0.16745102, 0.16745102, 0.16745102, 1)
+theme_override_fonts/font = ExtResource("3_h223f")
+theme_override_font_sizes/font_size = 83
+theme_override_styles/normal = SubResource("StyleBoxTexture_xo4y4")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_bkt3i")
+theme_override_styles/hover = SubResource("StyleBoxTexture_k50mi")
+text = "Close"
+icon_alignment = 1
+expand_icon = true
+
+[node name="CombatButton" type="Button" parent="HelpScreen" unique_id=888187436]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 400.0
+offset_top = -528.0
+offset_right = 856.0
+offset_bottom = -400.0
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(1.35, 1.35)
+pivot_offset_ratio = Vector2(0.5, 0.5)
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_pressed_color = Color(0.15487596, 0.154876, 0.15487596, 1)
+theme_override_colors/font_hover_pressed_color = Color(0.16745102, 0.16745102, 0.16745102, 1)
+theme_override_fonts/font = ExtResource("3_w22xg")
+theme_override_font_sizes/font_size = 50
+theme_override_styles/normal = SubResource("StyleBoxTexture_3j1g4")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_4gg0h")
+theme_override_styles/hover = SubResource("StyleBoxTexture_8xhr7")
+text = "Combat"
+icon_alignment = 1
+expand_icon = true
+
+[node name="UnitHutButton" type="Button" parent="HelpScreen" unique_id=28176844]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 400.0
+offset_top = -321.0
+offset_right = 856.0
+offset_bottom = -193.0
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(1.35, 1.35)
+pivot_offset_ratio = Vector2(0.5, 0.5)
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_pressed_color = Color(0.15487596, 0.154876, 0.15487596, 1)
+theme_override_colors/font_hover_pressed_color = Color(0.16745102, 0.16745102, 0.16745102, 1)
+theme_override_fonts/font = ExtResource("3_w22xg")
+theme_override_font_sizes/font_size = 50
+theme_override_styles/normal = SubResource("StyleBoxTexture_3j1g4")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_4gg0h")
+theme_override_styles/hover = SubResource("StyleBoxTexture_8xhr7")
+text = "Unit Hut
+"
+icon_alignment = 1
+expand_icon = true
+
+[node name="Label" type="Label" parent="HelpScreen" unique_id=1619281180]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -938.0
+offset_top = -548.5
+offset_right = 268.0
+offset_bottom = 372.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 45
+text = "WASD to move, (J or LMB), (K or RMB) and (L or Space) for attacks.
+If you hold SHIFT you can maintain your facing direction.
+
+Dont let the bad guys kill the castle
+
+Inside the castle the Monk will heal you and you can  purchase some upgrades from the blacksmith.
+
+There are 6 enemy towers. Destroy them all with TNT to become a true legend of the Kingdom."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="UnitHutHelp" type="Control" parent="." unique_id=527797505]
+visible = false
+layout_mode = 3
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ColorRect" type="ColorRect" parent="UnitHutHelp" unique_id=1577413176]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -1004.5
+offset_top = -601.5
+offset_right = 1004.5
+offset_bottom = 601.5
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.08, 0.08, 0.08, 0.78039217)
+
+[node name="CloseUpgrades" type="Button" parent="UnitHutHelp" unique_id=575543605]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
 offset_left = -204.0
 offset_top = 364.0
 offset_right = 204.0
@@ -482,17 +1513,15 @@ theme_override_colors/font_pressed_color = Color(0.15487596, 0.154876, 0.1548759
 theme_override_colors/font_hover_pressed_color = Color(0.16745102, 0.16745102, 0.16745102, 1)
 theme_override_fonts/font = ExtResource("3_h223f")
 theme_override_font_sizes/font_size = 83
-theme_override_styles/normal = SubResource("StyleBoxTexture_u0fm7")
-theme_override_styles/pressed = SubResource("StyleBoxTexture_vuv8w")
-theme_override_styles/hover = SubResource("StyleBoxTexture_l3r6a")
-theme_override_styles/hover_pressed = SubResource("StyleBoxTexture_vuv8w")
-text = "Close"
-icon = ExtResource("6_vuv8w")
-flat = true
+theme_override_styles/normal = SubResource("StyleBoxTexture_xo4y4")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_bkt3i")
+theme_override_styles/hover = SubResource("StyleBoxTexture_k50mi")
+text = "Back
+"
 icon_alignment = 1
 expand_icon = true
 
-[node name="Label" type="Label" parent="HelpScreen" unique_id=1619281180]
+[node name="upgradesLabel" type="Label" parent="UnitHutHelp" unique_id=356408126]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -500,18 +1529,194 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -938.0
-offset_top = -457.0
-offset_right = 938.0
+offset_top = -528.0
+offset_right = 236.0
 offset_bottom = 332.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_font_sizes/font_size = 50
-text = "WSAD to move, J, K and L for attacks, hold shift to maintain your facing direction.
+theme_override_font_sizes/font_size = 40
+text = "In the main castle you can purchase TNT.
 
-Dont let the bad guys kill the castle 
+Once you have a TNT take it to an enemy tower to destroy it
 
-When you attack a flow bar will fill, if you press the attack button again when it is in the green you will execute the attack immediately and deal full damage, this is important for DPS. (The L attack is a double flow check)
+Once an enemy tower is destroyed a nearby ruined unit hut will be available for rebuilding.
 
-The blacksmith to the right when you start will sell upgrades, use J to purchase the left one and K to purchase the right one."
+Each Unit Hut has 3 unit slots.  Purchase a unit to fill each slot. Once all slots are filled you can start upgrading the units.
+
+
+Clicking the flag button allows you to move your troops!"
 horizontal_alignment = 1
 autowrap_mode = 2
+
+[node name="TowerKill" type="VideoStreamPlayer" parent="UnitHutHelp" unique_id=359497816]
+z_index = 1
+material = SubResource("ShaderMaterial_xv1rc")
+layout_mode = 0
+offset_left = 279.0
+offset_top = -459.0
+offset_right = 925.0
+offset_bottom = 37.0
+stream = ExtResource("23_3j1g4")
+volume_db = -80.0
+autoplay = true
+loop = true
+
+[node name="flag button" type="TextureRect" parent="UnitHutHelp" unique_id=1947689473]
+layout_mode = 0
+offset_left = -628.0
+offset_top = 235.0
+offset_right = -278.0
+offset_bottom = 585.0
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("24_4gg0h")
+
+[node name="CombatHelp" type="Control" parent="." unique_id=1548412975]
+visible = false
+layout_mode = 3
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ColorRect" type="ColorRect" parent="CombatHelp" unique_id=218739272]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -1004.5
+offset_top = -601.5
+offset_right = 1004.5
+offset_bottom = 601.5
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.08, 0.08, 0.08, 0.78039217)
+
+[node name="CloseUpgrades" type="Button" parent="CombatHelp" unique_id=1732132143]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -204.0
+offset_top = 364.0
+offset_right = 204.0
+offset_bottom = 492.0
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(1.35, 1.35)
+pivot_offset_ratio = Vector2(0.5, 0.5)
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_pressed_color = Color(0.15487596, 0.154876, 0.15487596, 1)
+theme_override_colors/font_hover_pressed_color = Color(0.16745102, 0.16745102, 0.16745102, 1)
+theme_override_fonts/font = ExtResource("3_h223f")
+theme_override_font_sizes/font_size = 83
+theme_override_styles/normal = SubResource("StyleBoxTexture_xo4y4")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_bkt3i")
+theme_override_styles/hover = SubResource("StyleBoxTexture_k50mi")
+text = "Back
+"
+icon_alignment = 1
+expand_icon = true
+
+[node name="upgradesLabel" type="Label" parent="CombatHelp" unique_id=1946995570]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -938.0
+offset_top = -528.0
+offset_right = 290.0
+offset_bottom = 332.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 40
+text = "Each playable character uses a flow bar for their main attacks
+
+When you first press the attack button your character will get into a ready stance and start filling a yellow bar.
+
+Once the yellow bar reaches the green section press the attack button again to execute a                    attack!
+The L attack is a double flow check.
+As food depletes the green section gets smaller, purchase food in the castle.
+
+Critical attacks are important for DPS, finishing the attack early and dealing extra damage."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="critical" type="Label" parent="CombatHelp/upgradesLabel" unique_id=1978205291]
+layout_mode = 0
+offset_left = 709.0
+offset_top = 350.0
+offset_right = 887.0
+offset_bottom = 405.0
+theme_override_colors/font_color = Color(1, 1, 0, 1)
+theme_override_font_sizes/font_size = 40
+text = "CRITICAL"
+
+[node name="coins" type="Label" parent="CombatHelp/upgradesLabel" unique_id=444054196]
+layout_mode = 0
+offset_left = 191.0
+offset_top = 776.0
+offset_right = 1073.0
+offset_bottom = 831.0
+theme_override_colors/font_color = Color(0, 1, 0, 1)
+theme_override_font_sizes/font_size = 40
+text = "Some enemies give more coin for a critical kill"
+
+[node name="nocritkill" type="VideoStreamPlayer" parent="CombatHelp" unique_id=1881031108]
+z_index = 1
+material = SubResource("ShaderMaterial_xv1rc")
+layout_mode = 0
+offset_left = 500.0
+offset_top = -457.0
+offset_right = 858.0
+offset_bottom = -153.0
+stream = ExtResource("25_8xhr7")
+volume_db = -80.0
+autoplay = true
+loop = true
+
+[node name="critical" type="Label" parent="CombatHelp/nocritkill" unique_id=1677979911]
+layout_mode = 0
+offset_left = 46.0
+offset_top = 320.0
+offset_right = 303.0
+offset_bottom = 375.0
+theme_override_font_sizes/font_size = 40
+text = "no crit"
+horizontal_alignment = 1
+
+[node name="critkill" type="VideoStreamPlayer" parent="CombatHelp" unique_id=143337660]
+z_index = 1
+material = SubResource("ShaderMaterial_xv1rc")
+layout_mode = 0
+offset_left = 500.0
+offset_top = 50.0
+offset_right = 858.0
+offset_bottom = 354.0
+stream = ExtResource("26_skcmf")
+volume_db = -80.0
+autoplay = true
+loop = true
+
+[node name="critical" type="Label" parent="CombatHelp/critkill" unique_id=1477369863]
+layout_mode = 0
+offset_left = 46.0
+offset_top = 320.0
+offset_right = 303.0
+offset_bottom = 375.0
+theme_override_colors/font_color = Color(1, 1, 0, 1)
+theme_override_font_sizes/font_size = 40
+text = "CRITICAL HIT!"
+horizontal_alignment = 1

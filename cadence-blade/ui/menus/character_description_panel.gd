@@ -25,6 +25,11 @@ const CHARACTER_KEYS: Array[String] = ["red_knight", "green_archer", "rogue"]
 ## e.g. slot 0 = RedKnight.tscn, slot 1 = GreenArcher.tscn.
 @export var character_scenes: Array[PackedScene] = []
 
+## Seconds for the panel to fade in when it first appears.
+const FADE_DURATION: float = 0.25
+
+var _fade_tween: Tween
+
 # ── Character header labels ────────────────────────────────────────────────────
 
 @export_group("Character Header Labels")
@@ -80,7 +85,7 @@ func populate(character_key: String) -> void:
 	var idx: int = CHARACTER_KEYS.find(character_key)
 	if idx < 0 or idx >= character_scenes.size() or character_scenes[idx] == null:
 		push_warning("CharacterDescriptionPanel: no scene assigned for key '%s'" % character_key)
-		show()
+		_appear()
 		return
 
 	var root: Node = character_scenes[idx].instantiate()
@@ -89,12 +94,25 @@ func populate(character_key: String) -> void:
 	if ch == null:
 		push_warning("CharacterDescriptionPanel: no get_character_stats() found in '%s' scene." % character_key)
 		root.free()
-		show()
+		_appear()
 		return
 
 	_fill_from_stats(ch.get_character_stats(), character_key)
 	root.free()
+	_appear()
+
+
+## Show the panel, fading it in from transparent the first time it appears.
+## Re-selecting while already visible leaves it fully opaque (no re-fade flash).
+func _appear() -> void:
+	if visible and modulate.a >= 1.0:
+		return
+	if _fade_tween != null and _fade_tween.is_running():
+		_fade_tween.kill()
+	modulate.a = 0.0
 	show()
+	_fade_tween = create_tween()
+	_fade_tween.tween_property(self, "modulate:a", 1.0, FADE_DURATION)
 
 
 ## Recursively searches the node tree for the first node that has get_character_stats().

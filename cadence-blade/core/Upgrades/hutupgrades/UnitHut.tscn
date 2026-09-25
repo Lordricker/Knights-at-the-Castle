@@ -28,6 +28,7 @@
 [ext_resource type="PackedScene" uid="uid://cpd64pvdjjqjo" path="res://core/Upgrades/hutupgrades/HutUnits/priestLvl4.tscn" id="15_74ns0"]
 [ext_resource type="PackedScene" uid="uid://cday2xabeduay" path="res://core/Upgrades/hutupgrades/HutUnits/priestLvl5.tscn" id="16_g01ma"]
 [ext_resource type="Texture2D" uid="uid://fiuntjjxv3qv" path="res://assets/sprites/Unit Hut Sprites/PriestIcon1.png" id="22_6gt5i"]
+[ext_resource type="Texture2D" uid="uid://dyuspphjrgp3" path="res://assets/sprites/Unit Hut Sprites/Waypointbutton.png" id="29_rioqo"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_aqwxy"]
 atlas = ExtResource("1_42k4p")
@@ -60,6 +61,23 @@ animations = [{
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_asjxp"]
 size = Vector2(104, 56)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_rioqo"]
+texture = ExtResource("29_rioqo")
+expand_margin_left = 10.0
+expand_margin_top = 10.0
+expand_margin_right = 10.0
+expand_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_lhpmk"]
+texture = ExtResource("29_rioqo")
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_0jh1k"]
+texture = ExtResource("29_rioqo")
+expand_margin_left = 20.0
+expand_margin_top = 20.0
+expand_margin_right = 20.0
+expand_margin_bottom = 20.0
 
 [node name="unitHut" type="Node2D" unique_id=1349244791]
 script = ExtResource("1_iig6c")
@@ -431,3 +449,13 @@ theme_override_font_sizes/font_size = 50
 text = "Build
 Cost"
 horizontal_alignment = 1
+
+[node name="WaypointButton" type="Button" parent="." unique_id=396252750]
+offset_left = -163.0
+offset_top = 69.0
+offset_right = 195.0
+offset_bottom = 427.0
+scale = Vector2(0.1, 0.1)
+theme_override_styles/normal = SubResource("StyleBoxTexture_rioqo")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_lhpmk")
+theme_override_styles/hover = SubResource("StyleBoxTexture_0jh1k")

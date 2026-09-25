@@ -47,6 +47,10 @@ extends Node
 @export_group("Enemy Projectile Scenes")
 ## Drag Fireball.tscn here so the joiner can display visual-only fireballs.
 @export var enemy_fireball_scene: PackedScene
+## Drag arrow.tscn here so the joiner can display visual-only enemy arrows
+## (black/green enemy archers). Without this the joiner only sees enemy arrows
+## when a local player also happens to be the Green Archer.
+@export var enemy_arrow_scene: PackedScene
 
 @export_group("Enemy Towers")
 ## The towers that are active at the very start of the round (typically 2).
@@ -83,18 +87,40 @@ const _HEARTBEAT_INTERVAL: float = 5.0
 ## Maps player slot (1 = host, 2 = joiner) to character key ("red_knight" etc.).
 ## Used so respawn always uses the correct spawn point for that character.
 var _slot_char: Dictionary = {}
-## On host: the joiner's CharacterBase node (receives input_override each frame).
-var _joiner_char_node: Node = null
-var _state_snapshot_timer: float = 0.0
-const _STATE_SNAPSHOT_INTERVAL: float = 1.0 / 20.0
-const _FLOW_STATE_SNAPSHOT_INTERVAL: float = 1.0 / 30.0
-## Joiner: target positions received from state snapshots, keyed by player_slot int.
-## Remote characters interpolate toward these; the locally owned joiner slot
-## only uses them for server correction.
+## On host: joiner puppets keyed by player_slot (2, 3). On a joiner: the other
+## players' display puppets keyed by slot (host = 1, plus the other joiner).
+var _peer_char_nodes: Dictionary = {}
+## Snapshot cadence in physics ticks. Both are exact divisors of the 60 Hz physics
+## rate, so every interval covers a whole number of ticks of motion — which is what
+## lets the receiver reconstruct velocity exactly. A wall-clock accumulator would
+## emit alternating 3- and 4-tick intervals while reporting a constant duration,
+## baking a permanent ~16% velocity error into every interpolated segment.
+const _STATE_TICK_STRIDE: int = 3  # 20 Hz, host -> joiners
+const _JPOS_TICK_STRIDE: int = 1   # 60 Hz, joiner -> host
+## Joiner: latest server position per player_slot. Kept as the respawn anchor for
+## revive(); frame-to-frame motion comes from _remote_interp instead.
 var _char_net_targets: Dictionary = {}
-const _REMOTE_MOVE_SPEED: float = 600.0
-const _OWNED_RECONCILE_BLEND: float = 12.0
-const _OWNED_RECONCILE_SNAP_DISTANCE: float = 96.0
+
+## Interpolation buffer per remote slot. Populated on the host from "jpos" and on a
+## joiner from the "c" section of "state".
+var _remote_interp: Dictionary = {}
+## Joiner: one clock for the host's whole stream. Players and enemies ride the same
+## packet, so sharing a clock keeps them in consistent relative time.
+var _host_clock: NetClock = null
+## Host: one clock per joiner slot — each link has its own latency.
+var _jpos_clocks: Dictionary = {}
+## Per-slot facing debounce state: {"applied": float, "pending": float, "since": float}
+var _facing_state: Dictionary = {}
+
+## Interpolation delay for the host's 20 Hz state stream (~1.7 snapshot intervals).
+const _INTERP_DELAY_STATE: float = 0.085
+## Interpolation delay for the joiner's 60 Hz jpos stream. Deliberately much tighter
+## than the state delay: the host-side puppet is not cosmetic. Enemy detection zones
+## overlap it, so delaying it widens the window where a joiner can be hit after
+## dodging out of range.
+const _INTERP_DELAY_JPOS: float = 0.040
+## A remote puppet only flips facing after the new direction has held this long.
+const _FACING_DEBOUNCE: float = 0.08
 ## Host: tracks per-slot flow active state from last frame to detect transitions.
 ## When flow goes true→false, a reliable "flow_done" packet is sent immediately.
 var _prev_flow_states: Dictionary = {}
@@ -102,17 +128,29 @@ var _joiner_last_input_seq: int = -1
 var _next_input_seq: int = 0
 var _last_acked_input_seq: int = -1
 var _pending_inputs: Array[Dictionary] = []
-## Host: true while the joiner's character is standing in the monk healing zone.
-var _joiner_in_monk_zone: bool = false
-## Host: heal rate (HP/sec) to apply to the joiner puppet while in the monk zone.
+## Host: per-joiner-slot flag, true while that joiner's puppet is in the monk zone.
+var _joiner_monk_zones: Dictionary = {}
+## Host: heal rate (HP/sec) to apply to a joiner puppet while in the monk zone.
 var _joiner_heal_rate: float = 5.0
+## Host/solo: real time accumulated toward the next Flow-pip decay tick.
+var _flow_decay_accum: float = 0.0
+## Seconds between automatic Flow-pip losses.
+const _FLOW_DECAY_INTERVAL: float = 120.0
 
 
 # ── Lifecycle ─────────────────────────────────────────────────────────────────
 
 func _ready() -> void:
 	add_to_group(&"run_manager")
+	# Run last in the physics phase so snapshots sample positions AFTER every
+	# character and enemy has moved this tick. Players are add_child'ed to the level
+	# after this node, so default priority would capture last tick's positions.
+	process_physics_priority = 100
 	GameManager.change_state(GameManager.GameState.PLAYING)
+	# Start every run with an empty shared coin pool (host and joiner each reset
+	# their own; pickups and purchases stay in lockstep via packets thereafter).
+	GameManager.reset_coins()
+	GameManager.reset_kills()
 
 	_spawn_players.call_deferred()
 
@@ -138,16 +176,18 @@ func _ready() -> void:
 		WebRTCManager.packet_received.connect(_on_packet_received)
 		if GameManager.is_host:
 			GameManager.joiner_left.connect(_on_joiner_left)
-			# Re-enter hosting if WebRTC is idle (e.g. after a restart following a
-			# joiner-timeout, so the session stays joinable in the lobby).
-			if WebRTCManager.state == WebRTCManager.State.IDLE:
-				WebRTCManager.host_session(GameManager.session_id)
+			# Idempotently (re-)arm signaling for every joiner slot that isn't already
+			# connected, so slots stay joinable mid-run (and survive a scene reload).
+			WebRTCManager.host_session(GameManager.session_id)
 
 
 func _process(delta: float) -> void:
 	if _game_over:
 		return
 	time_elapsed += delta
+	# Flow-pip decay is host-authoritative (and runs in solo, where this peer is host).
+	if GameManager.is_host:
+		_tick_flow_decay(delta)
 	if GameManager.is_host and GameManager.session_id != "":
 		# Heartbeat: update Firebase so lobby shows live run duration.
 		_heartbeat_timer += delta
@@ -168,46 +208,130 @@ func _process(delta: float) -> void:
 			if _flow_prev and not _flow_now:
 				WebRTCManager.send_reliable({"t": "flow_done", "slot": _slot2})
 			_prev_flow_states[_slot2] = _flow_now
-		# Use a time-based snapshot cadence so network updates stay stable even if
-		# the host render framerate fluctuates. Flow-active attacks get a faster rate.
-		_state_snapshot_timer += delta
-		var snapshot_interval: float = _FLOW_STATE_SNAPSHOT_INTERVAL if _any_flow_active() else _STATE_SNAPSHOT_INTERVAL
-		while _state_snapshot_timer >= snapshot_interval:
-			_state_snapshot_timer -= snapshot_interval
-			_broadcast_state()
-		# Apply monk healing to the joiner's puppet so the healed HP is included in
-		# the next state snapshot (rather than the joiner healing locally and being
-		# overwritten by the next snapshot). Emit health_changed so the host's
-		# HP bar for the joiner's puppet redraws in real time.
-		if _joiner_in_monk_zone and _joiner_char_node != null and is_instance_valid(_joiner_char_node):
-			if "health" in _joiner_char_node and "max_health" in _joiner_char_node:
-				var _jc_dead: bool = bool(_joiner_char_node.get("is_dead")) if "is_dead" in _joiner_char_node else false
-				if not _jc_dead:
-					var _jc_new_hp: float = minf(_joiner_char_node.health + _joiner_heal_rate * delta, _joiner_char_node.max_health)
-					if _jc_new_hp != _joiner_char_node.health:
-						_joiner_char_node.health = _jc_new_hp
-						if _joiner_char_node.has_signal(&"health_changed"):
-							_joiner_char_node.emit_signal(&"health_changed", _jc_new_hp, _joiner_char_node.max_health)
-	elif not GameManager.is_host and GameManager.session_id != "":
-		# Joiner sends own character's position and animation every frame.
-		_send_joiner_pos()
-		# Remote characters (host slot 1) move toward host snapshots.
-		# Joiner's own character (slot 2) owns its position — no host correction applied.
-		for player_root in _players:
-			var ch: Node = _resolve_character(player_root)
-			if ch == null:
+		# Apply monk healing to each joiner puppet standing in the zone so the healed
+		# HP is included in the next state snapshot (rather than the joiner healing
+		# locally and being overwritten). Emit health_changed so the host's HP bar
+		# for that puppet redraws in real time.
+		for jslot in _joiner_monk_zones.keys():
+			if not bool(_joiner_monk_zones[jslot]):
 				continue
-			var slot: int = int(ch.get("player_slot")) if "player_slot" in ch else 1
-			if _is_locally_owned_slot(slot):
-				continue  # Joiner owns its own character's position entirely.
-			if not _char_net_targets.has(slot):
+			var jc: Node = _peer_char_nodes.get(jslot)
+			if jc == null or not is_instance_valid(jc):
 				continue
-			var target: Vector2 = _char_net_targets[slot]
-			var dist: float = ch.global_position.distance_to(target)
-			if dist > 300.0:
-				ch.global_position = target  # teleport if too far off
-			else:
-				ch.global_position = ch.global_position.move_toward(target, _REMOTE_MOVE_SPEED * delta)
+			if not ("health" in jc and "max_health" in jc):
+				continue
+			var _jc_dead: bool = bool(jc.get("is_dead")) if "is_dead" in jc else false
+			if _jc_dead:
+				continue
+			var _jc_new_hp: float = minf(jc.health + _joiner_heal_rate * delta, jc.max_health)
+			if _jc_new_hp != jc.health:
+				jc.health = _jc_new_hp
+				if jc.has_signal(&"health_changed"):
+					jc.emit_signal(&"health_changed", _jc_new_hp, jc.max_health)
+
+	# Remote entities are interpolated on BOTH sides — the host puppets joiners just
+	# as joiners puppet the host. Each peer's own character is never touched here.
+	if GameManager.session_id != "":
+		_advance_net_clocks(delta)
+		_update_remote_characters()
+
+
+## Sends are driven from the physics tick, not the render frame, so packet
+## timestamps line up exactly with when positions actually change and the send rate
+## no longer scales with framerate.
+func _physics_process(_delta: float) -> void:
+	if _game_over or GameManager.session_id == "":
+		return
+	var pf: int = int(Engine.get_physics_frames())
+	if GameManager.is_host:
+		if pf % _STATE_TICK_STRIDE == 0:
+			_broadcast_state(pf)
+	elif pf % _JPOS_TICK_STRIDE == 0:
+		_send_joiner_pos(pf)
+
+
+## Sender simulation time for a physics-frame index. Identical on both peers.
+static func net_time_for_frame(pf: int) -> float:
+	return float(pf) / float(Engine.physics_ticks_per_second)
+
+
+## Monotonic local clock used to timestamp packet arrivals.
+static func local_now() -> float:
+	return float(Time.get_ticks_usec()) / 1000000.0
+
+
+## Advances every inbound playback clock exactly once per frame. This must be the
+## only caller of NetClock.advance() — running a clock twice in a frame plays the
+## buffer back at double speed and starves it permanently.
+func _advance_net_clocks(delta: float) -> void:
+	var now: float = local_now()
+	if _host_clock != null:
+		_host_clock.advance(delta, now)
+	for s in _jpos_clocks:
+		(_jpos_clocks[s] as NetClock).advance(delta, now)
+
+
+## Interpolates every remote puppet to its playback time, and on a joiner the enemies
+## too (off the same clock, so a player and the enemy they are fighting stay in
+## consistent relative time). Iterates _peer_char_nodes because that holds exactly
+## the non-owned characters on both host and joiner.
+func _update_remote_characters() -> void:
+	for slot in _peer_char_nodes:
+		var ch: Node = _peer_char_nodes[slot]
+		if ch == null or not is_instance_valid(ch):
+			continue
+		if "is_dead" in ch and bool(ch.get("is_dead")):
+			continue
+		var buf: NetInterp = _remote_interp.get(slot)
+		var clk: NetClock = _jpos_clocks.get(slot) if GameManager.is_host else _host_clock
+		if buf == null or clk == null or not buf.has_data or not clk.started:
+			continue
+		ch.global_position = buf.sample(clk.play_time)
+
+	if not GameManager.is_host and spawner != null and _host_clock != null \
+			and _host_clock.started and spawner.has_method("update_enemy_interpolation"):
+		spawner.update_enemy_interpolation(_host_clock.play_time)
+
+
+## Revives a character, restoring the invariants a remote puppet has to keep.
+##
+## revive() clears is_dead and calls set_physics_process(true), which for a networked
+## puppet undoes _spawn_peer_char's setup in two damaging ways: the puppet starts
+## simulating locally, and it becomes eligible for interpolation again while its buffer
+## still holds pre-death samples — which immediately yanks it back to where it died.
+## Slot is used to tell a puppet from the locally-owned character.
+func _revive_character(ch: Node, slot: int, at: Vector2) -> void:
+	if ch == null or not ch.has_method(&"revive"):
+		return
+	ch.revive(at)
+	if not _peer_char_nodes.has(slot):
+		return  # Locally-owned character: revive() left it correctly simulating.
+	var buf: NetInterp = _remote_interp.get(slot)
+	if buf != null:
+		buf.clear()
+	ch.set_physics_process(false)
+	_facing_state.erase(slot)
+
+
+## Applies a remote peer's facing with a short debounce. Facing comes from a clean
+## -1/0/1 input axis, so the flicker is a sampling artifact (a fast direction tap
+## aliased against the packet cadence), not sensor noise — a short hold swallows the
+## double-flip without visibly delaying a genuine turnaround.
+func _apply_remote_facing(key: int, node: Node, f: float) -> void:
+	if node == null or not ("facing" in node):
+		return
+	var now: float = local_now()
+	var st: Dictionary = _facing_state.get(key, {"applied": f, "pending": f, "since": now})
+	if f != float(st["pending"]):
+		st["pending"] = f
+		st["since"] = now
+	if f != float(st["applied"]) and now - float(st["since"]) >= _FACING_DEBOUNCE:
+		st["applied"] = f
+		if node.get("facing") != f:
+			node.set("facing", f)
+			if node.has_method("_apply_facing"):
+				node.call("_apply_facing")
+	_facing_state[key] = st
 
 
 # ── Castle resolution ─────────────────────────────────────────────────────────
@@ -225,14 +349,14 @@ func _resolve_castle(node: Node) -> Node:
 	return null
 
 
-## Searches the scene tree for a CastleInside node (has on_upgrade_offers method).
-## Uses a recursive search so CastleInside can be nested at any depth in the level.
+## Searches the scene tree for the CastleInside node (blacksmith / TNT shop logic).
+## Uses a recursive search so it can be nested at any depth in the level.
 func _find_castle_inside() -> Node:
 	var scene := get_tree().current_scene
 	if scene == null:
 		return null
 	for child in scene.find_children("*", "", true, false):
-		if child.has_method("on_upgrade_offers"):
+		if child is CastleInside:
 			return child
 	return null
 
@@ -309,7 +433,7 @@ func _spawn_players_networked() -> void:
 		return
 
 	var own_char: String = GameManager.my_character
-	var own_slot: int = 1 if GameManager.is_host else 2
+	var own_slot: int = GameManager.my_slot
 	_slot_char[own_slot] = own_char
 
 	if not char_scenes.has(own_char):
@@ -331,9 +455,12 @@ func _spawn_players_networked() -> void:
 	WebRTCManager.send_reliable({"t": "hello", "char": own_char, "slot": own_slot})
 
 
-## Spawn a peer's character: either the joiner's char (on host) or the host's display
-## char (on joiner). slot 1 = host char, slot 2 = joiner char.
+## Spawn a peer's character. On the host every non-local slot (2, 3) is a position
+## puppet driven by that joiner's "jpos" packets. On a joiner every other slot
+## (host = 1, plus the other joiner) is a display puppet driven by state snapshots.
 func _spawn_peer_char(char_key: String, slot: int) -> void:
+	if _peer_char_nodes.has(slot) and is_instance_valid(_peer_char_nodes[slot]):
+		return  # already spawned (duplicate hello / peer_joined)
 	var char_scenes: Dictionary = _char_scene_map()
 	if not char_scenes.has(char_key):
 		push_warning("RunManager: no scene for character '%s'" % char_key)
@@ -349,21 +476,24 @@ func _spawn_peer_char(char_key: String, slot: int) -> void:
 		return
 
 	ch.set("player_slot", slot)
+	ch.set_physics_process(false)
+	_peer_char_nodes[slot] = ch
+	_remote_interp[slot] = NetInterp.new()
+	if GameManager.is_host:
+		var jclk := NetClock.new()
+		jclk.delay = _INTERP_DELAY_JPOS
+		_jpos_clocks[slot] = jclk
 
-	if GameManager.is_host and slot == 2:
-		# Host: joiner's character is a position puppet.
-		# Position is set directly from "jpos" packets; attacks are locked so only the joiner
-		# side runs flow bars, then sends resolved hits via "flow_fire" / "melee_hit" packets.
+	if GameManager.is_host:
+		# Host: joiner's character is a position puppet. Attacks are locked so only
+		# the joiner side runs flow bars, then sends resolved hits via
+		# "flow_fire" / "melee_hit" packets.
 		ch.set("attacks_locked", true)
-		ch.set_physics_process(false)
-		_joiner_char_node = ch
-		print("RunManager: joiner char (%s) spawned as slot 2 position puppet" % char_key)
-		# Flush all alive enemies so joiner's screen populates immediately.
+		print("RunManager: joiner char (%s) spawned as slot %d position puppet" % [char_key, slot])
+		# Flush all alive enemies to just this joiner so their screen populates.
 		if spawner != null and spawner.has_method("send_all_alive_to_joiner"):
-			spawner.send_all_alive_to_joiner()
+			spawner.send_all_alive_to_joiner(slot)
 	else:
-		# Joiner: host char display — no physics, positions driven by state snapshots.
-		ch.set_physics_process(false)
 		print("RunManager: peer char (%s) spawned as slot %d display" % [char_key, slot])
 
 
@@ -435,15 +565,7 @@ func _sample_respawn_delay() -> float:
 
 
 func _is_locally_owned_slot(slot: int) -> bool:
-	return GameManager.session_id != "" and not GameManager.is_host and slot == 2
-
-
-func _any_flow_active() -> bool:
-	for player_root in _players:
-		var ch: Node = _resolve_character(player_root)
-		if ch != null and "_flow_active" in ch and bool(ch.get("_flow_active")):
-			return true
-	return false
+	return GameManager.session_id != "" and not GameManager.is_host and slot == GameManager.my_slot
 
 
 func _trim_acked_inputs(ack_seq: int) -> void:
@@ -466,10 +588,11 @@ func _on_castle_died() -> void:
 	# Only the host can trigger game-over (it is the sole simulation authority).
 	if GameManager.session_id != "" and not GameManager.is_host:
 		return
-	# In multiplayer, broadcast game-over to the joiner.
+	# In multiplayer, broadcast game-over (with the podium standings) to the joiners.
+	var standings: Array = _build_standings()
 	if GameManager.session_id != "":
-		WebRTCManager.send_reliable({"t": "gameover", "elapsed": time_elapsed})
-	_trigger_game_over(time_elapsed)
+		WebRTCManager.send_reliable({"t": "gameover", "elapsed": time_elapsed, "podium": standings})
+	_trigger_game_over(time_elapsed, standings)
 
 
 # ── Multiplayer packet handling ───────────────────────────────────────────────
@@ -482,6 +605,14 @@ func _on_packet_received(data: Dictionary) -> void:
 			_on_hello_packet(data)
 		"hello_ack":
 			_on_hello_ack_packet(data)
+		"world_sync":
+			_on_world_sync_packet(data)
+		"hello_reject":
+			_on_hello_reject_packet(data)
+		"peer_joined":
+			_on_peer_joined_packet(data)
+		"peer_left":
+			_on_peer_left_packet(data)
 		"jpos":
 			# Joiner sent its position and animation — apply to the host puppet.
 			if GameManager.is_host:
@@ -501,7 +632,7 @@ func _on_packet_received(data: Dictionary) -> void:
 		"state":
 			_apply_state_snapshot(data)
 		"gameover":
-			_trigger_game_over(float(data.get("elapsed", time_elapsed)))
+			_trigger_game_over(float(data.get("elapsed", time_elapsed)), data.get("podium", []))
 		"restart":
 			# Host has restarted — joiner reloads to match.
 			if not GameManager.is_host:
@@ -510,11 +641,7 @@ func _on_packet_received(data: Dictionary) -> void:
 			# Host collected a coin — add to all joiner-side players (shared pool) and remove display coin.
 			if not GameManager.is_host:
 				var v: int = int(data.get("v", 1))
-				for player_root in _players:
-					var ch: Node = _resolve_character(player_root)
-					if ch != null and ch.has_method("add_coins"):
-						ch.add_coins(v)
-						break  # add once — HUD connects to first player only
+				GameManager.add_coins(v)
 				# Remove the joiner-side display coin.
 				var coin_id: int = int(data.get("coin_id", -1))
 				if coin_id >= 0:
@@ -543,10 +670,10 @@ func _on_packet_received(data: Dictionary) -> void:
 				var scene := get_tree().current_scene
 				if scene != null and scene.has_method("spawn_display_coin"):
 					scene.call("spawn_display_coin", data)
-		"upgrade_offers":
-			# Host rolled new shop offers — joiner updates their displayed options.
-			if not GameManager.is_host and castle_inside != null and castle_inside.has_method("on_upgrade_offers"):
-				castle_inside.call("on_upgrade_offers", data)
+		"stat_pips":
+			# Host broadcast a slot's pip snapshot — apply it to that character.
+			if not GameManager.is_host:
+				_apply_stat_pips_packet(data)
 		"upgrade_buy":
 			# Joiner wants to buy an upgrade — host validates and applies.
 			if GameManager.is_host and castle_inside != null and castle_inside.has_method("on_upgrade_buy"):
@@ -559,6 +686,21 @@ func _on_packet_received(data: Dictionary) -> void:
 			# Host rejected joiner's buy request (insufficient coins).
 			if not GameManager.is_host and castle_inside != null and castle_inside.has_method("on_upgrade_denied"):
 				castle_inside.call("on_upgrade_denied", data)
+		"chest_open_req":
+			# Joiner touched a treasure chest — host rolls the reward, applies the
+			# pip to that slot's character, and broadcasts "chest_opened".
+			if GameManager.is_host:
+				_route_chest_open_req(data)
+		"chest_opened":
+			# Host opened a treasure chest — joiner plays the same open visual and
+			# frees its copy. The pip arrives via the "stat_pips" snapshot.
+			if not GameManager.is_host:
+				_route_chest_opened(data)
+		"weasel":
+			# Host's weasel stole a stat pip — joiner mirrors the icon + self-buff.
+			# The victim's pip loss arrives separately via the "stat_pips" snapshot.
+			if not GameManager.is_host:
+				_route_weasel_packet(data)
 		"tnt_buy":
 			# Joiner wants to buy TNT — host validates, deducts, and spawns.
 			if GameManager.is_host and castle_inside != null and castle_inside.has_method("on_tnt_buy"):
@@ -572,23 +714,21 @@ func _on_packet_received(data: Dictionary) -> void:
 			if not GameManager.is_host and castle_inside != null and castle_inside.has_method("on_tnt_denied"):
 				castle_inside.call("on_tnt_denied", data)
 		"monk_zone":
-			# Joiner entered or exited the monk healing zone — host tracks this and
-			# applies the same healing rate to the joiner's puppet each frame so the
-			# state snapshot reflects the healed HP (local joiner healing would be
+			# A joiner entered or exited the monk healing zone — host tracks this per
+			# slot and applies the heal rate to that puppet each frame so the state
+			# snapshot reflects the healed HP (local joiner healing would be
 			# overwritten by the snapshot otherwise).
 			if GameManager.is_host:
-				_joiner_in_monk_zone = int(data.get("in", 0)) == 1
-				if _joiner_in_monk_zone and castle_inside != null and "heal_per_second" in castle_inside:
+				var mz_slot: int = int(data.get("_from", 2))
+				_joiner_monk_zones[mz_slot] = int(data.get("in", 0)) == 1
+				if bool(_joiner_monk_zones[mz_slot]) and castle_inside != null and "heal_per_second" in castle_inside:
 					_joiner_heal_rate = float(castle_inside.get("heal_per_second"))
-		"request_upgrade_offers":
-			# Joiner entered blacksmith zone with no cached offers — send current ones.
-			if GameManager.is_host and castle_inside != null and castle_inside.has_method("on_request_upgrade_offers"):
-				castle_inside.call("on_request_upgrade_offers")
 		"hit_fx":
 			# Host entity was hit — restart its hit particles, play the hit sound, and
 			# spawn a damage number on the joiner.
 			if not GameManager.is_host:
 				var node := get_tree().current_scene.get_node_or_null(NodePath(data.get("p", "")))
+				var fs: bool = int(data.get("fs", 0)) == 1
 				if node != null:
 					if "hit_particles" in node:
 						var p := node.get("hit_particles") as CPUParticles2D
@@ -596,73 +736,211 @@ func _on_packet_received(data: Dictionary) -> void:
 							p.restart()
 					if node.has_method("_play_weapon_hit_sound"):
 						var wt: WeaponType.WeaponType = int(data.get("wt", WeaponType.WeaponType.SWORD)) as WeaponType.WeaponType
-						var fs: bool = int(data.get("fs", 0)) == 1
 						node._play_weapon_hit_sound(wt, fs)
+						if fs and node is Node2D:
+							FXManager.flow_crit(self, node as Node2D)
 				if data.has("dmg"):
 					var hit_pos := Vector2(float(data.get("dx", 0.0)), float(data.get("dy", 0.0)))
-					DamageNumber.spawn_at(get_tree().current_scene, hit_pos, float(data["dmg"]))
+					DamageNumber.spawn_at(get_tree().current_scene, hit_pos, float(data["dmg"]), fs)
 
 
-## Host: joiner disconnected mid-run — remove their puppet and continue solo.
-func _on_joiner_left() -> void:
+## Host: a joiner disconnected mid-run — remove their puppet, free the slot, and
+## tell the remaining joiner so their display puppet disappears too.
+func _on_joiner_left(slot: int) -> void:
+	if _despawn_peer_slot(slot):
+		WebRTCManager.send_reliable({"t": "peer_left", "slot": slot})
+	print("RunManager: joiner slot %d left — puppet removed" % slot)
+
+
+## Remove a peer slot's puppet and all per-slot bookkeeping. Returns true if a
+## puppet was actually removed.
+func _despawn_peer_slot(slot: int) -> bool:
+	if slot <= 1:
+		return false
+	var removed := false
 	var i := _players.size() - 1
 	while i >= 0:
 		var player_root: Node = _players[i]
 		var ch: Node = _resolve_character(player_root)
-		var slot: int = int(ch.get("player_slot")) if ch != null and "player_slot" in ch else 1
-		if slot == 2:
+		var s: int = int(ch.get("player_slot")) if ch != null and "player_slot" in ch else 1
+		if s == slot:
 			_players.remove_at(i)
 			if is_instance_valid(player_root):
 				player_root.queue_free()
+			removed = true
 		i -= 1
-	_joiner_char_node = null
-	_joiner_in_monk_zone = false
-	_slot_char.erase(2)
-	_char_net_targets.erase(2)
-	_prev_flow_states.erase(2)
-	print("RunManager: joiner left — puppet removed, continuing solo")
+	_peer_char_nodes.erase(slot)
+	_joiner_monk_zones.erase(slot)
+	_slot_char.erase(slot)
+	GameManager.clear_kills_for(slot)
+	_char_net_targets.erase(slot)
+	_prev_flow_states.erase(slot)
+	_remote_interp.erase(slot)
+	_jpos_clocks.erase(slot)
+	_facing_state.erase(slot)
+	return removed
 
 
-## Host receives "hello" from joiner — spawn the joiner's character and reply.
+## Host receives "hello" from a joiner — spawn its puppet, send back the host char
+## plus every already-connected peer, and tell the other joiner a new peer joined.
 func _on_hello_packet(data: Dictionary) -> void:
 	if not GameManager.is_host:
-		# Shouldn't happen, but safe-guard.
 		return
 	var char_key: String = data.get("char", "")
-	var slot: int = int(data.get("slot", 2))
+	var from_slot: int = int(data.get("_from", data.get("slot", 2)))
 	if char_key.is_empty():
 		push_warning("RunManager: received hello packet with no char key")
 		return
-	print("RunManager HOST: got hello from joiner char=%s slot=%d" % [char_key, slot])
-	_spawn_peer_char(char_key, slot)
-	# Tell the joiner our character so they can spawn our display.
-	WebRTCManager.send_reliable({"t": "hello_ack", "char": GameManager.my_character, "slot": 1})
+	# Reject a character that is already taken by another slot.
+	for s in _slot_char:
+		if int(s) != from_slot and String(_slot_char[s]) == char_key:
+			WebRTCManager.send_reliable_to(from_slot, {"t": "hello_reject", "reason": "char_taken"})
+			return
+	print("RunManager HOST: hello from slot %d char=%s" % [from_slot, char_key])
+	_spawn_peer_char(char_key, from_slot)
+	# Reply to this joiner: host char + all other already-connected peers.
+	var peers: Dictionary = {"1": GameManager.my_character}
+	for s in _slot_char:
+		var si: int = int(s)
+		if si != 1 and si != from_slot:
+			peers[str(si)] = _slot_char[s]
+	WebRTCManager.send_reliable_to(from_slot, {"t": "hello_ack", "peers": peers})
+	# Catch this joiner up on everything that happened before they connected.
+	_send_world_sync(from_slot)
+	# Tell the other joiner(s) that a new peer joined so they spawn a display puppet.
+	WebRTCManager.send_reliable({"t": "peer_joined", "slot": from_slot, "char": char_key})
 
 
-## Joiner receives "hello_ack" from host — spawn the host's display character.
+## Host: send a mid-run joiner the current world state.
+##
+## Every world event (tower destroyed, hut built, unit hired or upgraded, tower
+## archer bought) is broadcast exactly once at the moment it happens, so a peer that
+## connects later has no way to learn about any of it. This replays STATE rather than
+## those original events, because the event handlers also charge coins and play
+## one-shot effects — a late joiner must not be billed for purchases made before they
+## arrived, nor watch a tower explode that fell ten minutes ago.
+##
+## Not covered here: treasure chests dropped by towers already destroyed (chest
+## open/closed state is not currently tracked), and enemies, which arrive separately
+## via EnemySpawner.send_all_alive_to_joiner().
+func _send_world_sync(to_slot: int) -> void:
+	var towers: Array = []
+	for tower in get_tree().get_nodes_in_group(&"enemy_towers"):
+		if "is_destroyed" in tower and bool(tower.get("is_destroyed")):
+			towers.append(str(tower.name))
+
+	var huts: Array = []
+	for hut in get_tree().get_nodes_in_group(&"unit_huts"):
+		if hut.has_method(&"build_snapshot"):
+			huts.append(hut.call(&"build_snapshot"))
+
+	var castle_state: Dictionary = {}
+	if castle_inside != null and castle_inside.has_method(&"build_snapshot"):
+		castle_state = castle_inside.call(&"build_snapshot")
+
+	WebRTCManager.send_reliable_to(to_slot, {
+		"t":      "world_sync",
+		"towers": towers,
+		"huts":   huts,
+		"castle": castle_state,
+		"coins":  GameManager.coin_balance,
+	})
+	print("RunManager HOST: world_sync -> slot %d (%d destroyed tower(s), %d hut(s))"
+		% [to_slot, towers.size(), huts.size()])
+
+
+## Joiner: adopt the host's world state on join.
+func _on_world_sync_packet(data: Dictionary) -> void:
+	if GameManager.is_host:
+		return
+	var towers: Array = data.get("towers", [])
+	for tower in get_tree().get_nodes_in_group(&"enemy_towers"):
+		if towers.has(str(tower.name)) and tower.has_method(&"apply_destroyed_snapshot"):
+			tower.call(&"apply_destroyed_snapshot")
+
+	var huts: Array = data.get("huts", [])
+	for hd in huts:
+		if not (hd is Dictionary):
+			continue
+		var hid: int = int((hd as Dictionary).get("hut_id", -1))
+		for hut in get_tree().get_nodes_in_group(&"unit_huts"):
+			if "hut_id" in hut and int(hut.get("hut_id")) == hid and hut.has_method(&"apply_snapshot"):
+				hut.call(&"apply_snapshot", hd)
+				break
+
+	if castle_inside != null and castle_inside.has_method(&"apply_snapshot"):
+		castle_inside.call(&"apply_snapshot", data.get("castle", {}))
+
+	GameManager.set_coins(int(data.get("coins", GameManager.coin_balance)))
+	print("RunManager JOINER: applied world_sync (%d tower(s), %d hut(s))"
+		% [towers.size(), huts.size()])
+
+
+## Joiner receives "hello_ack" — spawn the host and every other peer as display puppets.
 func _on_hello_ack_packet(data: Dictionary) -> void:
 	if GameManager.is_host:
 		return
-	var char_key: String = data.get("char", "")
-	var slot: int = int(data.get("slot", 1))
-	if char_key.is_empty():
-		push_warning("RunManager: received hello_ack packet with no char key")
+	var peers: Dictionary = data.get("peers", {})
+	if peers.is_empty():
+		# Back-compat: old single-field form.
+		var ck: String = data.get("char", "")
+		if not ck.is_empty():
+			_spawn_peer_char(ck, int(data.get("slot", 1)))
 		return
-	print("RunManager JOINER: got hello_ack from host char=%s slot=%d" % [char_key, slot])
+	for s in peers:
+		var si: int = int(s)
+		if si == GameManager.my_slot:
+			continue
+		_spawn_peer_char(String(peers[s]), si)
+
+
+## Joiner receives "peer_joined" — another joiner connected; spawn their display puppet.
+func _on_peer_joined_packet(data: Dictionary) -> void:
+	if GameManager.is_host:
+		return
+	var slot: int = int(data.get("slot", 0))
+	var char_key: String = data.get("char", "")
+	if slot == GameManager.my_slot or slot <= 0 or char_key.is_empty():
+		return
+	print("RunManager JOINER: peer_joined slot %d char=%s" % [slot, char_key])
 	_spawn_peer_char(char_key, slot)
 
 
-## Host: apply received joiner position and animation to the puppet character.
-func _apply_joiner_pos(data: Dictionary) -> void:
-	if _joiner_char_node == null:
+## Joiner receives "peer_left" — another joiner dropped; remove their display puppet.
+func _on_peer_left_packet(data: Dictionary) -> void:
+	if GameManager.is_host:
 		return
-	_joiner_char_node.global_position = Vector2(float(data.get("x", 0.0)), float(data.get("y", 0.0)))
-	var f: float = float(data.get("f", 1.0))
-	if "facing" in _joiner_char_node and _joiner_char_node.get("facing") != f:
-		_joiner_char_node.set("facing", f)
-		if _joiner_char_node.has_method("_apply_facing"):
-			_joiner_char_node.call("_apply_facing")
-	var anim_spr := _joiner_char_node.get("animated_sprite") as AnimatedSprite2D
+	_despawn_peer_slot(int(data.get("slot", 0)))
+
+
+## Joiner receives "hello_reject" — the host refused our character. Back to menu.
+func _on_hello_reject_packet(_data: Dictionary) -> void:
+	if GameManager.is_host:
+		return
+	push_warning("RunManager: host rejected hello — returning to menu")
+	GameManager.leave_session()
+
+
+## Host: apply a joiner's received position and animation to its puppet character.
+func _apply_joiner_pos(data: Dictionary) -> void:
+	var from_slot: int = int(data.get("_from", 2))
+	var jc: Node = _peer_char_nodes.get(from_slot)
+	if jc == null or not is_instance_valid(jc):
+		return
+	var pos := Vector2(float(data.get("x", 0.0)), float(data.get("y", 0.0)))
+	var buf: NetInterp = _remote_interp.get(from_slot)
+	var clk: NetClock = _jpos_clocks.get(from_slot)
+	if buf != null and clk != null and data.has("pf"):
+		var ts: float = net_time_for_frame(int(data["pf"]))
+		clk.on_packet(ts, local_now())
+		buf.push(ts, pos)
+	else:
+		# Peer predates timestamped jpos — fall back to the old hard snap.
+		jc.global_position = pos
+	_apply_remote_facing(from_slot, jc, float(data.get("f", 1.0)))
+	# Animation stays immediate: the flow-attack windup pause frame is time-critical
+	# and is not a position, so it must not ride the interpolation delay.
+	var anim_spr := jc.get("animated_sprite") as AnimatedSprite2D
 	if anim_spr != null:
 		var anim: StringName = data.get("an", &"")
 		var is_paused: bool = int(data.get("sp", 0)) == 1
@@ -678,7 +956,7 @@ func _apply_joiner_pos(data: Dictionary) -> void:
 
 ## Joiner broadcasts its own character's world position and animation state every frame.
 ## The host applies this directly to the puppet node — no physics simulation on host side.
-func _send_joiner_pos() -> void:
+func _send_joiner_pos(pf: int) -> void:
 	for player_root in _players:
 		var ch: Node = _resolve_character(player_root)
 		if ch == null:
@@ -694,6 +972,7 @@ func _send_joiner_pos() -> void:
 		var anim_spr := ch.get("animated_sprite") as AnimatedSprite2D
 		WebRTCManager.send_unreliable({
 			"t":  "jpos",
+			"pf": pf,
 			"x":  ch.global_position.x,
 			"y":  ch.global_position.y,
 			"f":  ch.get("facing") if "facing" in ch else 1.0,
@@ -707,7 +986,7 @@ func _send_joiner_pos() -> void:
 ## Host builds and sends a state snapshot to the joiner.
 ## Character positions are keyed by player_slot ("1" or "2") so ordering in _players
 ## does not need to match between host and joiner.
-func _broadcast_state() -> void:
+func _broadcast_state(pf: int) -> void:
 	var char_data: Dictionary = {}
 	for player_root in _players:
 		var ch: Node = _resolve_character(player_root)
@@ -762,6 +1041,10 @@ func _broadcast_state() -> void:
 					"hp": enemy.health if "health" in enemy else 0.0,
 					"f":  enemy.get("facing") if "facing" in enemy else 1.0,
 				}
+				# max_health can change at runtime (weasel doubles it on an hp steal),
+				# so the joiner needs it to draw the health-bar ratio correctly.
+				if "max_health" in enemy:
+					ed["mh"] = enemy.max_health
 				# Only add animation key when non-default to keep packet small.
 				# Absence of "a" means "running" on the joiner side.
 				var e_spr := enemy.get("animated_sprite") as AnimatedSprite2D
@@ -771,6 +1054,7 @@ func _broadcast_state() -> void:
 
 	WebRTCManager.send_unreliable({
 		"t":        "state",
+		"pf":       pf,
 		"c":        char_data,
 		"e":        enemy_data,
 		"ack":      _joiner_last_input_seq,
@@ -791,6 +1075,18 @@ func _apply_state_snapshot(data: Dictionary) -> void:
 	if spawner != null and "time_elapsed" in spawner:
 		spawner.time_elapsed = time_elapsed
 
+	# One sender timestamp drives players and enemies alike, so they stay in
+	# consistent relative time on the joiner's screen.
+	var snap_ts: float = -1.0
+	if data.has("pf"):
+		snap_ts = net_time_for_frame(int(data["pf"]))
+		# Created here rather than in _spawn_peer_char: snapshots start arriving before
+		# the host's puppet exists, and enemies ride this same clock.
+		if _host_clock == null:
+			_host_clock = NetClock.new()
+			_host_clock.delay = _INTERP_DELAY_STATE
+		_host_clock.on_packet(snap_ts, local_now())
+
 	# Update character positions and facing.
 	# char_data is keyed by player_slot string ("1" or "2") so ordering doesn't matter.
 	var char_data: Dictionary = data.get("c", {})
@@ -809,12 +1105,18 @@ func _apply_state_snapshot(data: Dictionary) -> void:
 		_char_net_targets[slot_int] = Vector2(
 			float(cd.get("x", ch.global_position.x)),
 			float(cd.get("y", ch.global_position.y)))
+		# Remote slots also feed the interpolation buffer; the locally-owned slot
+		# keeps the target only as a revive anchor.
+		if not is_local and snap_ts >= 0.0:
+			var rbuf: NetInterp = _remote_interp.get(slot_int)
+			if rbuf != null:
+				rbuf.push(snap_ts, _char_net_targets[slot_int])
 		# Sync HP — emit health_changed so both the sprite bar and any HUD bar update.
 		if cd.has("hp") and "health" in ch:
 			var new_hp: float = float(cd["hp"])
 			var max_hp: float = ch.max_health if "max_health" in ch else 100.0
 			if "is_dead" in ch and bool(ch.get("is_dead")) and new_hp > 0.0 and ch.has_method(&"revive"):
-				ch.revive(_char_net_targets[int(slot_str)])
+				_revive_character(ch, slot_int, _char_net_targets[slot_int])
 			elif "is_dead" in ch and not bool(ch.get("is_dead")) and new_hp <= 0.0 and ch.has_method(&"die"):
 				ch.die()
 			if ch.health != new_hp:
@@ -824,13 +1126,9 @@ func _apply_state_snapshot(data: Dictionary) -> void:
 		# Only HP is taken from the host (authoritative on damage and death).
 		if is_local:
 			continue
-		# Sync facing.
-		if cd.has("f") and "facing" in ch:
-			var f := float(cd["f"])
-			if ch.get("facing") != f:
-				ch.set("facing", f)
-				if ch.has_method("_apply_facing"):
-					ch.call("_apply_facing")
+		# Sync facing (debounced so an aliased direction tap does not double-flip).
+		if cd.has("f"):
+			_apply_remote_facing(slot_int, ch, float(cd["f"]))
 		# Sync animation — play only when it changes to avoid resetting mid-loop.
 		# Also sync the frame and paused state so attack windups display correctly.
 		if cd.has("an"):
@@ -890,11 +1188,24 @@ func _apply_state_snapshot(data: Dictionary) -> void:
 
 	# Route enemy positions to spawner for lerp application.
 	if spawner != null and spawner.has_method("apply_enemy_state"):
-		spawner.apply_enemy_state(data.get("e", {}))
+		spawner.apply_enemy_state(data.get("e", {}), snap_ts)
+
+
+## Podium standings, best first: [{"slot": int, "ch": String, "k": int}]. Covers every
+## player still in the run (a joiner who left drops off, see _despawn_peer_slot).
+## Built on the host and shipped in the "gameover" packet — joiners never track kills.
+func _build_standings() -> Array:
+	var slots: Array = []
+	for s in _slot_char:
+		slots.append(int(s))
+	var standings: Array = []
+	for slot in GameManager.rank_by_kills(slots):
+		standings.append({"slot": slot, "ch": String(_slot_char[slot]), "k": GameManager.kills_of(slot)})
+	return standings
 
 
 ## Final common path for ending the run on both host and joiner.
-func _trigger_game_over(elapsed: float) -> void:
+func _trigger_game_over(elapsed: float, standings: Array = []) -> void:
 	if _game_over:
 		return
 	_game_over = true
@@ -909,7 +1220,7 @@ func _trigger_game_over(elapsed: float) -> void:
 	GameManager.change_state(GameManager.GameState.GAME_OVER)
 
 	if game_over_screen != null and game_over_screen.has_method(&"show_screen"):
-		game_over_screen.show_screen(elapsed)
+		game_over_screen.show_screen(elapsed, standings, _char_scene_map())
 	elif game_over_screen == null:
 		push_warning("RunManager: no GameOverScreen assigned.")
 
@@ -919,6 +1230,13 @@ func _on_player_died(player: Node) -> void:
 		return
 	if GameManager.session_id != "" and not GameManager.is_host:
 		return
+
+	# Death penalty: lose one random pip among HP / Attack / Speed for this player.
+	var dead_char: Node = _resolve_character(player)
+	if dead_char != null and dead_char.has_method(&"remove_random_stat_pip"):
+		var lost: String = dead_char.remove_random_stat_pip()
+		if lost != "" and GameManager.is_host and GameManager.session_id != "":
+			_broadcast_stat_pips_for(dead_char)
 
 	if spawn_points.is_empty():
 		push_warning("RunManager: spawn_points is empty — player cannot respawn. Add Marker2D children and assign them in the Inspector.")
@@ -946,7 +1264,7 @@ func _respawn_player(player: Node) -> void:
 		return
 
 	if character != null and character.has_method(&"revive"):
-		character.revive(point.global_position)
+		_revive_character(character, slot, point.global_position)
 		print("RunManager: revived player '%s' (slot %d) at %s" % [player.name, slot, point.global_position])
 	elif player.has_method(&"revive"):
 		player.revive(point.global_position)
@@ -955,18 +1273,124 @@ func _respawn_player(player: Node) -> void:
 		push_warning("RunManager: player '%s' has no revive() method." % player.name)
 
 
+# ── Stat pips (host-authoritative sync) ───────────────────────────────────────
+
+## Returns the spawned character whose player_slot == slot, or null.
+func _character_for_slot(slot: int) -> Node:
+	for player_root in _players:
+		var ch: Node = _resolve_character(player_root)
+		if ch != null:
+			var s: int = int(ch.get("player_slot")) if "player_slot" in ch else 1
+			if s == slot:
+				return ch
+	return null
+
+
+## Finds a spawned treasure chest by node name (chests are named after the tower
+## that dropped them, so host and joiner copies share a name).
+func _find_treasure_chest(chest_name: String) -> Node:
+	if chest_name == "":
+		return null
+	for node in get_tree().get_nodes_in_group(&"treasure_chests"):
+		if str(node.name) == chest_name:
+			return node
+	return null
+
+
+## Host: a joiner asked to open a treasure chest.
+func _route_chest_open_req(data: Dictionary) -> void:
+	var chest: Node = _find_treasure_chest(str(data.get("chest", "")))
+	if chest != null and chest.has_method(&"on_open_request"):
+		chest.call(&"on_open_request", int(data.get("_from", 2)))
+
+
+## Joiner: the host opened a treasure chest — play the matching visual.
+func _route_chest_opened(data: Dictionary) -> void:
+	var chest: Node = _find_treasure_chest(str(data.get("chest", "")))
+	if chest != null and chest.has_method(&"on_opened_remote"):
+		chest.call(&"on_opened_remote", str(data.get("cat", "attack")))
+
+
+## Finds a spawned weasel by its networked node name (the spawner's "En<id>" root).
+func _find_weasel(weasel_name: String) -> Node:
+	if weasel_name == "":
+		return null
+	for w in get_tree().get_nodes_in_group(&"weasels"):
+		if str(w.name) == weasel_name:
+			return w
+		if w.owner != null and str(w.owner.name) == weasel_name:
+			return w
+	return null
+
+
+## Joiner: route a "weasel" packet to the matching weasel node.
+func _route_weasel_packet(data: Dictionary) -> void:
+	var w: Node = _find_weasel(str(data.get("name", "")))
+	if w == null:
+		return
+	if str(data.get("sub", "")) == "stole" and w.has_method(&"on_stole_remote"):
+		w.call(&"on_stole_remote", str(data.get("cat", "")))
+
+
+## Host: broadcast one character's pip snapshot to the joiners.
+func _broadcast_stat_pips_for(character: Node) -> void:
+	if character == null or not "stat_pips" in character:
+		return
+	var slot: int = int(character.get("player_slot")) if "player_slot" in character else 1
+	WebRTCManager.send_reliable({
+		"t":    "stat_pips",
+		"slot": slot,
+		"pips": (character.get("stat_pips") as Dictionary).duplicate(),
+	})
+
+
+## Joiner: apply a "stat_pips" packet to the matching character.
+func _apply_stat_pips_packet(data: Dictionary) -> void:
+	var slot: int = int(data.get("slot", -1))
+	var pips: Dictionary = data.get("pips", {})
+	if slot < 0 or pips.is_empty():
+		return
+	var ch: Node = _character_for_slot(slot)
+	if ch != null and ch.has_method(&"set_stat_pips"):
+		ch.set_stat_pips(pips)
+
+
+## Host/solo: every _FLOW_DECAY_INTERVAL, drop one Flow pip from every player.
+func _tick_flow_decay(delta: float) -> void:
+	_flow_decay_accum += delta
+	if _flow_decay_accum < _FLOW_DECAY_INTERVAL:
+		return
+	_flow_decay_accum -= _FLOW_DECAY_INTERVAL
+	for player_root in _players:
+		var ch: Node = _resolve_character(player_root)
+		if ch == null or not "stat_pips" in ch:
+			continue
+		var pips: Dictionary = ch.get("stat_pips")
+		var flow: int = int(pips.get("flow", 0))
+		if flow <= 0:
+			continue
+		pips["flow"] = flow - 1
+		if ch.has_method(&"_apply_stat_pips"):
+			ch.call(&"_apply_stat_pips")
+		if GameManager.is_host and GameManager.session_id != "":
+			_broadcast_stat_pips_for(ch)
+
+
 ## Joiner: spawn a visual-only enemy arrow from an "enemy_arrow" packet.
 ## No damage, no collision — purely visual.
 func _spawn_display_enemy_arrow(data: Dictionary) -> void:
-	# Try player characters first (archer player has arrow_scene).
-	var scene: PackedScene
-	for player_root in _players:
-		var ch := _resolve_character(player_root)
-		if ch != null and "arrow_scene" in ch:
-			var found := ch.get("arrow_scene") as PackedScene
-			if found != null:
-				scene = found
-				break
+	# Use the directly-exported scene first (most reliable — the joiner does not
+	# populate alive_enemy_map, and a player archer may not exist).
+	var scene: PackedScene = enemy_arrow_scene
+	# Then try player characters (archer player has arrow_scene).
+	if scene == null:
+		for player_root in _players:
+			var ch := _resolve_character(player_root)
+			if ch != null and "arrow_scene" in ch:
+				var found := ch.get("arrow_scene") as PackedScene
+				if found != null:
+					scene = found
+					break
 	# Fall back to spawner's alive enemy instances (one may be a black_archer).
 	if scene == null and spawner != null and "alive_enemy_map" in spawner:
 		for eid in spawner.alive_enemy_map:
@@ -1049,6 +1473,9 @@ func _spawn_display_arrow(data: Dictionary) -> void:
 			if found != null:
 				scene = found
 				break
+	# Same arrow.tscn — safe last-resort so a host archer's shots always render.
+	if scene == null:
+		scene = enemy_arrow_scene
 	if scene == null:
 		return
 	var arrow := scene.instantiate() as Arrow
@@ -1079,6 +1506,11 @@ func _spawn_display_arrow(data: Dictionary) -> void:
 ## Sent via reliable channel so it arrives even if a state snapshot is delayed.
 func _apply_flow_done(data: Dictionary) -> void:
 	var slot: int = int(data.get("slot", 0))
+	# Never touch the locally-owned character's flow bar from a network packet — it
+	# runs its flow entirely locally, and stopping only the bar (not _flow_active)
+	# would freeze it mid-attack. Mirrors the is_local guard in _apply_state_snapshot.
+	if _is_locally_owned_slot(slot):
+		return
 	for player_root in _players:
 		var ch: Node = _resolve_character(player_root)
 		if ch == null:
@@ -1098,9 +1530,12 @@ func _apply_flow_done(data: Dictionary) -> void:
 ## Host: joiner resolved a ranged attack — fire the real damaging arrow.
 ## The joiner already rendered a local visual/tracking arrow so no display packet is sent back.
 func _handle_flow_fire(data: Dictionary) -> void:
-	if not GameManager.is_host or _joiner_char_node == null:
+	if not GameManager.is_host:
 		return
-	var scene := _joiner_char_node.get("arrow_scene") as PackedScene
+	var shooter: Node = _peer_char_nodes.get(int(data.get("_from", 2)))
+	if shooter == null or not is_instance_valid(shooter):
+		return
+	var scene := shooter.get("arrow_scene") as PackedScene
 	if scene == null:
 		return
 	var arrow := scene.instantiate() as Arrow
@@ -1114,8 +1549,9 @@ func _handle_flow_fire(data: Dictionary) -> void:
 	var is_pierce: bool  = int(data.get("pi", 0)) == 1
 	var flow_suc : bool  = int(data.get("s", 0)) == 1
 	var kbf_key: String  = "pierce_knockback_force" if is_pierce else "arrow_knockback_force"
-	var kbf: float = float(_joiner_char_node.get(kbf_key)) if kbf_key in _joiner_char_node else 200.0
+	var kbf: float = float(shooter.get(kbf_key)) if kbf_key in shooter else 200.0
 	arrow.configure(pos, dir, spd, dmg, kbf, flow_suc)
+	arrow.shooter_slot = int(data.get("_from", 2))
 	if is_pierce:
 		arrow.pierce = true
 	if combo_hits >= 2:
@@ -1123,6 +1559,25 @@ func _handle_flow_fire(data: Dictionary) -> void:
 	elif combo_hits == 1:
 		arrow.set_combo_color(arrow.combo_color_1)
 	get_tree().current_scene.call_deferred("add_child", arrow)
+
+	# Relay a visual-only copy to every OTHER joiner. The host's own archer broadcasts
+	# an "arrow" packet when it fires, but a joiner's shot only ever reached the host,
+	# so a third player saw the archer fire nothing. The shooter is skipped because it
+	# already spawned its own local tracking arrow.
+	var from_slot: int = int(data.get("_from", 2))
+	for slot in _peer_char_nodes:
+		if int(slot) == from_slot:
+			continue
+		WebRTCManager.send_reliable_to(int(slot), {
+			"t":  "arrow",
+			"x":  pos.x,
+			"y":  pos.y,
+			"dx": dir.x,
+			"dy": dir.y,
+			"sp": spd,
+			"pi": 1 if is_pierce else 0,
+			"cc": combo_hits,
+		})
 
 
 ## Host: joiner's melee hitbox struck an enemy — look it up by spawn_id and apply the hit.
@@ -1143,7 +1598,6 @@ func _handle_melee_hit(data: Dictionary) -> void:
 	var kb_src := Vector2(float(data.get("kbx", 0.0)), float(data.get("kby", 0.0)))
 	var s : bool = int(data.get("s", 0)) == 1
 	var wt: WeaponType.WeaponType = int(data.get("wt", WeaponType.WeaponType.SWORD)) as WeaponType.WeaponType
-	if enemy.has_method("take_damage"):
-		enemy.take_damage(dmg, s, wt)
+	EnemyBase.player_hit(enemy, int(data.get("_from", 2)), dmg, s, wt)
 	if enemy.has_method("apply_knockback"):
 		enemy.apply_knockback(kb_src, kbf)

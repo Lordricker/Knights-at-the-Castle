@@ -14,7 +14,7 @@ point_count = 2
 
 [node name="Arrow" type="Area2D" unique_id=373780750]
 z_index = 2
-collision_layer = 0
+collision_layer = 32
 collision_mask = 2
 script = ExtResource("1_arrow")
 lifetime = 1.0

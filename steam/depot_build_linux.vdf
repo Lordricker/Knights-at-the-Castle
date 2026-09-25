@@ -1,0 +1,13 @@
+// UNUSED: the demo ships Windows-only and Linux/Steam Deck players run it under
+// Proton. Kept for the day a Linux depot exists — create the depot in Steamworks,
+// put its id here and in app_build_demo.vdf's Depots block.
+"DepotBuild"
+{
+	"DepotID" "5224942"
+	"FileMapping"
+	{
+		"LocalPath" "demo_linux/*"
+		"DepotPath" "."
+		"recursive" "1"
+	}
+}

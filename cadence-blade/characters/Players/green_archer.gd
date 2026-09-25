@@ -41,9 +41,15 @@ enum AttackState {
 	KICK_WINDUP,
 	KICK_PAUSED,
 	KICK_FINISH,
+	## Shared state: a new attack's flow bar is filling while the previous swing's
+	## *_FINISH animation keeps playing. The previous attack is interrupted only
+	## when this bar resolves (see _commit_interrupt).
+	INTERRUPT_WINDUP,
 }
 
 var attack_state: AttackState = AttackState.NONE
+## Input action ("action1/2/3") of the attack currently overlapping in INTERRUPT_WINDUP.
+var _pending_interrupt_action: StringName = &""
 var _current_attack_damage_multiplier: float = 1.0
 ## Whether the current attack is a pierce shot.
 var _current_attack_is_pierce: bool = false
@@ -256,15 +262,17 @@ func _update_animation(dir_x: float, dir_y: float) -> void:
 # ── Attack input ──────────────────────────────────────────────────────────────
 
 func _handle_attack_input() -> void:
+	if _try_begin_interrupt():
+		return
 	match attack_state:
 		AttackState.NONE:
 			if not attacks_locked:
 				if _action_just_pressed("action1"):
-					_begin_shoot(false)
+					_begin_shoot(false, false)
 				elif _action_just_pressed("action2"):
-					_begin_shoot(true)
+					_begin_shoot(true, false)
 				elif _action_just_pressed("action3"):
-					_begin_kick()
+					_begin_kick(false)
 		AttackState.SHOOT_WINDUP:
 			_handle_flow_attempt(&"action1")
 		AttackState.SHOOT_PAUSED:
@@ -277,21 +285,72 @@ func _handle_attack_input() -> void:
 			_handle_flow_attempt(&"action3")
 		AttackState.KICK_PAUSED:
 			_handle_flow_attempt(&"action3")
+		AttackState.INTERRUPT_WINDUP:
+			_handle_flow_attempt(_pending_interrupt_action)
 
 
-func _begin_kick() -> void:
-	attack_state = AttackState.KICK_WINDUP
+## True while an attack's *_FINISH animation is playing.
+func _is_finish_state(s: AttackState) -> bool:
+	return (s == AttackState.SHOOT_FINISH
+			or s == AttackState.PIERCE_FINISH
+			or s == AttackState.KICK_FINISH)
+
+
+## After a SUCCESS swing's white linger elapses, a fresh attack press starts that
+## attack's flow bar right away while the current swing keeps playing. The current
+## swing is cut off only when the new bar resolves. Returns true if started.
+func _try_begin_interrupt() -> bool:
+	if attacks_locked or not _is_finish_state(attack_state):
+		return false
+	if not flow_finish_interruptible():
+		return false
+	if _action_just_pressed("action1"):
+		_reset_attack_runtime_state()
+		_pending_interrupt_action = &"action1"
+		_begin_shoot(false, true)
+		return true
+	if _action_just_pressed("action2"):
+		_reset_attack_runtime_state()
+		_pending_interrupt_action = &"action2"
+		_begin_shoot(true, true)
+		return true
+	if _action_just_pressed("action3"):
+		_reset_attack_runtime_state()
+		_pending_interrupt_action = &"action3"
+		_begin_kick(true)
+		return true
+	return false
+
+
+## Disables the kick hitbox and clears per-swing runtime bookkeeping.
+## Does NOT touch flow state (callers clear the bar via _stop_flow() when needed).
+func _reset_attack_runtime_state() -> void:
+	_current_attack_damage_multiplier = 1.0
+	_kick_flow_checks_completed = 0
+	_attack_invincible = false
+	_kick_lunge_active = false
+	_set_kick_hitbox(false)
+
+
+func _begin_kick(as_interrupt: bool) -> void:
 	_current_attack_damage_multiplier = 1.0
 	_kick_flow_checks_completed = 0
 	_kick_lunge_active = false
-	_stop_flow()
-	animated_sprite.play("kick")
-	animated_sprite.frame = 0
+	if aim_pointer != null:
+		aim_pointer.hide()
+	if as_interrupt:
+		# Previous swing keeps playing; only the kick's flow bar runs for now.
+		attack_state = AttackState.INTERRUPT_WINDUP
+		_start_kick_flow_check(true, true)
+	else:
+		attack_state = AttackState.KICK_WINDUP
+		_stop_flow()
+		animated_sprite.play("kick")
+		animated_sprite.frame = 0
+		_start_kick_flow_check(false)
 
-	_start_kick_flow_check(false)
 
-
-func _start_kick_flow_check(allow_immediate: bool = false) -> void:
+func _start_kick_flow_check(allow_immediate: bool = false, is_interrupt: bool = false) -> void:
 	var _half := _sample_window_half(kick_flow_window_size_curve,
 		kick_flow_window_half_size, kick_flow_window_curve_max_time)
 
@@ -299,9 +358,13 @@ func _start_kick_flow_check(allow_immediate: bool = false) -> void:
 		func(mult: float):
 			_current_attack_damage_multiplier = minf(_current_attack_damage_multiplier, mult)
 			_kick_flow_checks_completed += 1
+			if is_interrupt:
+				# First interrupt check resolved: previous swing ends, kick takes over.
+				_pending_interrupt_action = &""
 			if _kick_flow_checks_completed < KICK_FLOW_CHECK_COUNT:
 				# Pause at the pause frame and wait for the next check
 				attack_state = AttackState.KICK_PAUSED
+				animated_sprite.play("kick")
 				animated_sprite.frame = KICK_PAUSE_FRAME
 				animated_sprite.pause()
 				# Schedule the next flow check on the next idle so we don't nest callbacks
@@ -309,8 +372,8 @@ func _start_kick_flow_check(allow_immediate: bool = false) -> void:
 				return
 			# All checks complete: proceed to finish the kick animation (resume from pause)
 			attack_state = AttackState.KICK_FINISH
-			animated_sprite.frame = KICK_PAUSE_FRAME
-			animated_sprite.play("kick"),
+			animated_sprite.play("kick")
+			animated_sprite.frame = KICK_PAUSE_FRAME,
 		kick_flow_fill_duration, kick_flow_miss_multiplier,
 		kick_flow_window_center, _half, kick_flow_window_random_range)
 
@@ -319,9 +382,8 @@ func _start_kick_flow_check(allow_immediate: bool = false) -> void:
 		_flow_can_resolve = true
 
 
-func _begin_shoot(is_pierce: bool) -> void:
+func _begin_shoot(is_pierce: bool, as_interrupt: bool) -> void:
 	_current_attack_is_pierce = is_pierce
-	attack_state = AttackState.PIERCE_WINDUP if is_pierce else AttackState.SHOOT_WINDUP
 	_current_attack_damage_multiplier = 1.0
 	_aim_angle_deg = 0.0
 	_aim_mouse_active = false
@@ -329,47 +391,65 @@ func _begin_shoot(is_pierce: bool) -> void:
 	if aim_pointer != null:
 		aim_pointer.rotation = 0.0
 		aim_pointer.show()
-	_stop_flow()
-	animated_sprite.play("shoot")
-	animated_sprite.frame = 0
+
+	var _half: float
+	var _fill_dur: float
+	var _miss_mult: float
+	var _w_center: float
+	var _w_rand: float
+	var _action_name: StringName
+	var _finish_state: AttackState
 	if is_pierce:
-		var _ph := _sample_window_half(
-				pierce_flow_window_size_curve,
-				pierce_flow_window_half_size,
-				pierce_flow_window_curve_max_time)
-		_start_flow(&"action2",
-			func(mult: float):
-				_current_attack_damage_multiplier = mult
-				attack_state = AttackState.PIERCE_FINISH
-				animated_sprite.play("shoot")
-				animated_sprite.frame = SHOOT_PAUSE_FRAME
-				_queue_fire_arrow(true),
-			pierce_flow_fill_duration, pierce_flow_miss_multiplier,
-			pierce_flow_window_center, _ph, pierce_flow_window_random_range)
+		_half = _sample_window_half(pierce_flow_window_size_curve,
+				pierce_flow_window_half_size, pierce_flow_window_curve_max_time)
+		_fill_dur = pierce_flow_fill_duration
+		_miss_mult = pierce_flow_miss_multiplier
+		_w_center = pierce_flow_window_center
+		_w_rand = pierce_flow_window_random_range
+		_action_name = &"action2"
+		_finish_state = AttackState.PIERCE_FINISH
 	else:
-		var _sh := _sample_window_half(
-				shoot_flow_window_size_curve,
-				shoot_flow_window_half_size,
-				shoot_flow_window_curve_max_time)
-		_start_flow(&"action1",
-			func(mult: float):
-				_current_attack_damage_multiplier = mult
-				attack_state = AttackState.SHOOT_FINISH
-				animated_sprite.play("shoot")
-				animated_sprite.frame = SHOOT_PAUSE_FRAME
-				_queue_fire_arrow(false),
-			shoot_flow_fill_duration, shoot_flow_miss_multiplier,
-			shoot_flow_window_center, _sh, shoot_flow_window_random_range)
+		_half = _sample_window_half(shoot_flow_window_size_curve,
+				shoot_flow_window_half_size, shoot_flow_window_curve_max_time)
+		_fill_dur = shoot_flow_fill_duration
+		_miss_mult = shoot_flow_miss_multiplier
+		_w_center = shoot_flow_window_center
+		_w_rand = shoot_flow_window_random_range
+		_action_name = &"action1"
+		_finish_state = AttackState.SHOOT_FINISH
+
+	var on_res := func(mult: float) -> void:
+		_current_attack_damage_multiplier = mult
+		_pending_interrupt_action = &""
+		attack_state = _finish_state
+		animated_sprite.play("shoot")
+		animated_sprite.frame = SHOOT_PAUSE_FRAME
+		_queue_fire_arrow(is_pierce)
+
+	if as_interrupt:
+		# Previous swing keeps playing; only this shot's flow bar runs for now.
+		attack_state = AttackState.INTERRUPT_WINDUP
+		start_interrupt_flow(_action_name, on_res, _fill_dur, _miss_mult,
+			_w_center, _half, _w_rand)
+	else:
+		attack_state = AttackState.PIERCE_WINDUP if is_pierce else AttackState.SHOOT_WINDUP
+		_stop_flow()
+		animated_sprite.play("shoot")
+		animated_sprite.frame = 0
+		_start_flow(_action_name, on_res, _fill_dur, _miss_mult,
+			_w_center, _half, _w_rand)
 
 
 # ── AnimatedSprite2D signal handlers ─────────────────────────────────────────
 
 func _on_frame_changed() -> void:
 	var f: int = animated_sprite.frame
-	if attack_state != AttackState.NONE:
-		# I-frames: 2 frames after the active attack's pause frame, for the rest of the swing.
-		var pause_frame := _current_attack_pause_frame()
-		if pause_frame >= 0 and f >= pause_frame + 2:
+	if attack_state != AttackState.NONE and attack_state != AttackState.INTERRUPT_WINDUP:
+		# I-frames: from the attack's first active frame, for the rest of the swing.
+		# (During INTERRUPT_WINDUP the frame belongs to the previous swing's
+		# animation, so it must not drive the new attack's i-frame timing.)
+		var iframe_start := _current_attack_iframe_start_frame()
+		if iframe_start >= 0 and f >= iframe_start:
 			_attack_invincible = true
 	match attack_state:
 		AttackState.SHOOT_WINDUP:
@@ -427,21 +507,32 @@ func _on_animation_finished() -> void:
 	match attack_state:
 		AttackState.SHOOT_FINISH, AttackState.PIERCE_FINISH:
 			attack_state = AttackState.NONE
-			_current_attack_damage_multiplier = 1.0
-			_attack_invincible = false
+			_reset_attack_runtime_state()
 			if aim_pointer != null:
 				aim_pointer.hide()
 			_stop_flow()
 			animated_sprite.play("idle")
 		AttackState.KICK_FINISH:
 			attack_state = AttackState.NONE
-			_current_attack_damage_multiplier = 1.0
-			_kick_flow_checks_completed = 0
-			_attack_invincible = false
-			_kick_lunge_active = false
+			_reset_attack_runtime_state()
 			_stop_flow()
-			_set_kick_hitbox(false)
 			animated_sprite.play("idle")
+		AttackState.NONE:
+			pass
+		_:
+			# Attack animation ended while still in a windup / paused / interrupt
+			# state — the normal pause→resolve path was skipped (frame-skip on a lag
+			# spike, or external interference). If a flow bar is still live, leave it
+			# for _update_flow to resolve; otherwise force a clean idle so the archer
+			# never hangs mid-swing.
+			if not is_flow_busy():
+				attack_state = AttackState.NONE
+				_pending_interrupt_action = &""
+				_reset_attack_runtime_state()
+				if aim_pointer != null:
+					aim_pointer.hide()
+				_stop_flow()
+				animated_sprite.play("idle")
 
 
 # ── Arrow firing ──────────────────────────────────────────────────────────────
@@ -456,13 +547,17 @@ func _is_shooting_state() -> bool:
 			or attack_state == AttackState.PIERCE_FINISH
 
 
-## Returns the pause frame for whichever attack is currently active, or -1 if none.
-func _current_attack_pause_frame() -> int:
+## First frame of the swing proper — where the hitbox/lunge goes live and the
+## i-frame window opens. The kick's active window starts on KICK_LUNGE_START_FRAME,
+## only one frame past its pause frame, so it can't use the two-frame offset the
+## other attacks happen to fit; that gap let enemies knock the archer out of his
+## own lunge on its first frame.
+func _current_attack_iframe_start_frame() -> int:
 	if _is_shooting_state():
-		return SHOOT_PAUSE_FRAME
+		return SHOOT_PAUSE_FRAME + 2
 	match attack_state:
 		AttackState.KICK_WINDUP, AttackState.KICK_PAUSED, AttackState.KICK_FINISH:
-			return KICK_PAUSE_FRAME
+			return KICK_LUNGE_START_FRAME
 		_:
 			return -1
 
@@ -484,8 +579,11 @@ func _update_aim_pointer(delta: float) -> void:
 	if aim_pointer == null or not _is_shooting_state():
 		return
 	# Only arm mouse-aim while still in windup, and only once the cursor actually moves —
-	# this keeps a stationary mouse from ever overriding a player using W/S.
+	# this keeps a stationary mouse from ever overriding a player using W/S. Never arm it
+	# on a touchscreen: dragging the virtual joystick also emulates mouse motion at the
+	# touch position, which would otherwise hijack aim away from the joystick's y-axis.
 	if _is_windup_state() and not _aim_mouse_active \
+			and not GameManager.is_touch_device() \
 			and get_viewport().get_mouse_position() != _aim_mouse_start_pos:
 		_aim_mouse_active = true
 	var target_deg: float
@@ -558,6 +656,7 @@ func _queue_fire_arrow(is_pierce: bool) -> void:
 	# Damage = (base + upgrade bonus) * flow_multiplier * combo_multiplier
 	var dmg := (base_dmg + attack_bonus) * _current_attack_damage_multiplier * _combo_multiplier()
 	arrow.configure(global_position, _aim_direction(), base_speed, dmg, base_kb, flow_success)
+	arrow.shooter_slot = player_slot
 	if is_pierce:
 		arrow.pierce = true
 	# Apply combo particle color before adding to tree.
@@ -613,24 +712,19 @@ func get_character_stats() -> Dictionary:
 
 func die() -> void:
 	attack_state = AttackState.NONE
-	_current_attack_damage_multiplier = 1.0
-	_kick_flow_checks_completed = 0
-	_attack_invincible = false
-	_kick_lunge_active = false
+	_pending_interrupt_action = &""
+	_reset_attack_runtime_state()
 	_combo_hits = 0
 	if aim_pointer != null:
 		aim_pointer.hide()
 	_stop_flow()
-	_set_kick_hitbox(false)
 	super()
 
 
 func revive(at: Vector2) -> void:
 	attack_state = AttackState.NONE
-	_current_attack_damage_multiplier = 1.0
-	_kick_flow_checks_completed = 0
-	_attack_invincible = false
-	_kick_lunge_active = false
+	_pending_interrupt_action = &""
+	_reset_attack_runtime_state()
 	_combo_hits = 0
 	if aim_pointer != null:
 		aim_pointer.hide()
@@ -659,11 +753,23 @@ func _set_kick_hitbox(enabled: bool) -> void:
 	kick_hitbox.set_deferred(&"monitorable", enabled)
 
 
+## Knockback force for the attack in progress. The archer's only melee is the kick.
+## Read by HurtBox when forwarding a joiner's hit on a hurtbox-only enemy.
+func _get_current_knockback_force() -> float:
+	return kick_knockback_force
+
+
+## Whether the attack in progress landed its flow window. Read by HurtBox so
+## hurtbox-routed hits (dragon, skeleton knight) get the same crit FX/audio as
+## body_entered hits.
+func _get_current_flow_success() -> bool:
+	return _current_attack_damage_multiplier >= 1.0
+
+
 func _on_kick_hit_body(body: Node2D) -> void:
 	var flow_success: bool = _current_attack_damage_multiplier >= 1.0
 	var dmg: float = (kick_damage + attack_bonus) * _current_attack_damage_multiplier
-	if body.has_method("take_damage"):
-		body.take_damage(dmg, flow_success, kick_weapon_type)
+	EnemyBase.player_hit(body, player_slot, dmg, flow_success, kick_weapon_type)
 	if body.has_method("apply_knockback"):
 		body.apply_knockback(global_position, kick_knockback_force)
 	if GameManager.session_id != "" and not GameManager.is_host:
@@ -692,10 +798,10 @@ func _get_run_elapsed() -> float:
 	return 0.0
 
 
-func _sample_window_half(curve: Curve, default_half: float, curve_max_time: float) -> float:
-	if curve == null:
-		return default_half
-	var t := clampf(_get_run_elapsed() / maxf(curve_max_time, 1.0), 0.0, 1.0)
-	var half := curve.sample_baked(t)
-	half = clampf(half, 0.0, default_half)
+## Returns the window half-size for this attack frame. The window now steps with
+## the player's Flow pips: full size at 5 pips, shrinking 20% per lost pip and
+## fully closed (no green window) at 0 pips. `curve` / `curve_max_time` are
+## retained for signature compatibility but no longer used.
+func _sample_window_half(_curve: Curve, default_half: float, _curve_max_time: float) -> float:
+	var half := default_half * get_flow_window_scale()
 	return 0.0 if half < 0.005 else half

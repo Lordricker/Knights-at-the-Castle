@@ -6,12 +6,14 @@
 [ext_resource type="Texture2D" uid="uid://dvnkegprvdxot" path="res://assets/sprites/UI/RestartButton.png" id="4_kwc50"]
 [ext_resource type="Texture2D" uid="uid://cukrmkf3jrgb8" path="res://assets/sprites/UI/QuitButton.png" id="5_o2lis"]
 [ext_resource type="Texture2D" uid="uid://l3lo806r4s2q" path="res://assets/sprites/UI/Cog.png" id="5_olkg6"]
+[ext_resource type="Texture2D" uid="uid://dhbd4b2du8g4x" path="res://assets/sprites/UI/HUD/pause.png" id="6_4jjo0"]
 [ext_resource type="FontFile" uid="uid://di588hyvkxc6w" path="res://assets/fonts/LATINWD.TTF" id="6_kwc50"]
 [ext_resource type="Texture2D" uid="uid://dcpm4pu8pp4k0" path="res://assets/sprites/UI/jButton.png" id="7_p3vm3"]
 [ext_resource type="Script" uid="uid://bidv0hafp4icx" path="res://ui/menus/hidenontouchscreen.gd" id="8_5uuaq"]
 [ext_resource type="Texture2D" uid="uid://grdosi1mtfpf" path="res://assets/sprites/UI/kButton.png" id="9_5mn0o"]
 [ext_resource type="Texture2D" uid="uid://diam66u6tlex8" path="res://assets/sprites/UI/jButtonpressed.png" id="10_6gxmt"]
 [ext_resource type="Texture2D" uid="uid://bsg4yjiyid0si" path="res://assets/sprites/UI/lButton.png" id="10_cxhb7"]
+[ext_resource type="Texture2D" uid="uid://jvx1ijcrsh3y" path="res://level/backgroundSprites/Podium.png" id="11_iwjhm"]
 [ext_resource type="Texture2D" uid="uid://18dwykgyg5fi" path="res://assets/sprites/UI/kButtonpressed.png" id="12_olkg6"]
 [ext_resource type="PackedScene" uid="uid://dmr0fcamx7t56" path="res://addons/virtual_joystick/virtual_joystick_scene.tscn" id="13_gv4gi"]
 [ext_resource type="Texture2D" uid="uid://c64gob7ecs2ve" path="res://assets/sprites/UI/lButtonpressed.png" id="14_hk13k"]
@@ -19,20 +21,137 @@
 [ext_resource type="Texture2D" uid="uid://cg85gm1scmvng" path="res://assets/sprites/UI/shiftButtonpressed.png" id="16_m6r7j"]
 [ext_resource type="PackedScene" uid="uid://yano1wyv4epm" path="res://ui/hud/CastleHPBar.tscn" id="17_castlehp"]
 [ext_resource type="Script" uid="uid://dub62vx7qvtek" path="res://ui/hud/night_overlay.gd" id="18_nightovl"]
+[ext_resource type="Texture2D" uid="uid://de3sdhy0soq3w" path="res://assets/sprites/UI/HUD/heart.png" id="20_3i4ml"]
+[ext_resource type="Texture2D" uid="uid://o7etctmfkctf" path="res://assets/sprites/UI/HUD/pipcontainer.png" id="21_b6qa6"]
+[ext_resource type="Texture2D" uid="uid://ewmj2vdkifla" path="res://assets/sprites/UI/HUD/pips.png" id="22_4jjo0"]
+[ext_resource type="Texture2D" uid="uid://c6sg71t132q30" path="res://assets/sprites/UI/swordicon.png" id="23_580hc"]
+[ext_resource type="Texture2D" uid="uid://ch4pnhgqpck2u" path="res://assets/sprites/UI/HUD/speed.png" id="24_1anpe"]
+[ext_resource type="Texture2D" uid="uid://c4y3i1spaikvg" path="res://assets/sprites/UI/flowicon.png" id="25_7h5cm"]
+[ext_resource type="Script" uid="uid://6tol21dv3655" path="res://ui/hud/stat_pips_display.gd" id="26_statpip"]
+[ext_resource type="Shader" uid="uid://x7kfob735iy4" path="res://ui/shaders/video_crt_vignette.gdshader" id="28_7h5cm"]
+[ext_resource type="VideoStream" uid="uid://moy0oldxebxp" path="res://ui/menus/TutorialVideos/rogue-speed-kill.ogv" id="29_bx7c4"]
+[ext_resource type="Texture2D" uid="uid://bxiea3eu0sstp" path="res://assets/sprites/UI/redRibbon.png" id="30_iwjhm"]
+[ext_resource type="Texture2D" uid="uid://bquhir6adwuev" path="res://assets/sprites/UI/TutorialMan.png" id="31_bx7c4"]
+[ext_resource type="Script" uid="uid://cj3auj8djqcq6" path="res://ui/hud/podium_place.gd" id="32_podplace"]
 
-[node name="HUD" type="CanvasLayer" unique_id=263715054 node_paths=PackedStringArray("hud_timer_label", "hud_coins_label", "hud_best_time_label", "session_id_label", "castle_hp_bar", "game_over_control", "game_over_label", "game_over_time_label", "restart_button", "quit_button", "in_game_quit_button", "settings_control", "settings_button", "music_slider", "sfx_slider", "close_settings_button")]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vcaa5"]
+bg_color = Color(0.1711, 0.2269533, 0.59, 0.65882355)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_42jby"]
+shader = ExtResource("28_7h5cm")
+shader_parameter/enable_vignette = true
+shader_parameter/vignette_intensity = 2.5510001211724997
+shader_parameter/vignette_opacity = 1.0
+shader_parameter/enable_scanlines = true
+shader_parameter/scanline_count = 60.3750023928125
+shader_parameter/scanline_opacity = 0.3210000152475
+shader_parameter/enable_curvature = true
+shader_parameter/curvature_amount = 0.30000001192093
+
+[sub_resource type="VideoStreamTheora" id="VideoStreamTheora_s3fgb"]
+file = "res://ui/menus/TutorialVideos/rogue slash.ogv"
+
+[sub_resource type="VideoStreamTheora" id="VideoStreamTheora_r7ei8"]
+file = "res://ui/menus/TutorialVideos/rogue smash.ogv"
+
+[sub_resource type="VideoStreamTheora" id="VideoStreamTheora_1vjvk"]
+file = "res://ui/menus/TutorialVideos/rogue dash.ogv"
+
+[sub_resource type="VideoStreamTheora" id="VideoStreamTheora_jsqx1"]
+file = "res://ui/menus/TutorialVideos/archer shoot.ogv"
+
+[sub_resource type="VideoStreamTheora" id="VideoStreamTheora_jcg5v"]
+file = "res://ui/menus/TutorialVideos/archer pierce.ogv"
+
+[sub_resource type="VideoStreamTheora" id="VideoStreamTheora_a3ham"]
+file = "res://ui/menus/TutorialVideos/archer kick.ogv"
+
+[sub_resource type="VideoStreamTheora" id="VideoStreamTheora_qku8m"]
+file = "res://ui/menus/TutorialVideos/Stack0.ogv"
+
+[sub_resource type="VideoStreamTheora" id="VideoStreamTheora_kp2y5"]
+file = "res://ui/menus/TutorialVideos/Stack1.ogv"
+
+[sub_resource type="VideoStreamTheora" id="VideoStreamTheora_pe0un"]
+file = "res://ui/menus/TutorialVideos/stack2.ogv"
+
+[sub_resource type="VideoStreamTheora" id="VideoStreamTheora_5a12h"]
+file = "res://ui/menus/TutorialVideos/knight slash.ogv"
+
+[sub_resource type="VideoStreamTheora" id="VideoStreamTheora_abunw"]
+file = "res://ui/menus/TutorialVideos/knight thrust.ogv"
+
+[sub_resource type="VideoStreamTheora" id="VideoStreamTheora_t658m"]
+file = "res://ui/menus/TutorialVideos/knight spin.ogv"
+
+[sub_resource type="VideoStreamTheora" id="VideoStreamTheora_mdygu"]
+file = "res://ui/menus/TutorialVideos/preparation.ogv"
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_3evvp"]
+texture = ExtResource("30_iwjhm")
+texture_margin_left = 110.0
+texture_margin_right = 110.0
+expand_margin_left = 10.0
+expand_margin_top = 10.0
+expand_margin_right = 10.0
+expand_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_snu2i"]
+texture = ExtResource("30_iwjhm")
+texture_margin_left = 110.0
+texture_margin_right = 110.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_nq1ju"]
+texture = ExtResource("30_iwjhm")
+texture_margin_left = 110.0
+texture_margin_right = 110.0
+expand_margin_left = 20.0
+expand_margin_top = 20.0
+expand_margin_right = 20.0
+expand_margin_bottom = 20.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_iwjhm"]
+bg_color = Color(0, 0, 0, 0.77254903)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+
+[node name="HUD" type="CanvasLayer" unique_id=263715054 node_paths=PackedStringArray("hud_timer_label", "hud_coins_label", "hud_best_time_label", "session_id_label", "castle_hp_bar", "game_over_control", "game_over_label", "game_over_time_label", "restart_button", "quit_button", "in_game_quit_button", "podium_first", "podium_second", "podium_third", "pause_button", "pause_control", "pause_resume_button", "pause_restart_button", "pause_quit_button", "pause_details_button", "pause_details_panel", "pause_details_close_button", "pause_knight_container", "pause_archer_container", "pause_rogue_container", "tutorial_pause_control", "tutorial_panel_label", "tutorial_advance_button", "tutorial_stat_highlight", "settings_control", "settings_button", "music_slider", "sfx_slider", "close_settings_button")]
 script = ExtResource("1_imuuq")
 hud_timer_label = NodePath("Control/Time")
 hud_coins_label = NodePath("Control/Coins")
 hud_best_time_label = NodePath("Control/Highscore")
 session_id_label = NodePath("Control/SessionID")
-castle_hp_bar = NodePath("Control/CastleHPBar/VerticalHealthBar")
+castle_hp_bar = NodePath("Control/castlehpcontrol/CastleHPBar/VerticalHealthBar")
 game_over_control = NodePath("Control/gameoverscreen")
 game_over_label = NodePath("Control/gameoverscreen/FallenText")
 game_over_time_label = NodePath("Control/gameoverscreen/FinalTime")
 restart_button = NodePath("Control/gameoverscreen/Restart")
 quit_button = NodePath("Control/gameoverscreen/Quit")
 in_game_quit_button = NodePath("Control/Quits")
+podium_first = NodePath("Control/gameoverscreen/Podium/FirstPlace")
+podium_second = NodePath("Control/gameoverscreen/Podium/SecondPlace")
+podium_third = NodePath("Control/gameoverscreen/Podium/ThirdPlace")
+pause_button = NodePath("Control/Pause")
+pause_control = NodePath("Control/PauseMenu")
+pause_resume_button = NodePath("Control/PauseMenu/Panel/VBox/Buttons/Resume")
+pause_restart_button = NodePath("Control/PauseMenu/Panel/VBox/Buttons/Restart")
+pause_quit_button = NodePath("Control/PauseMenu/Panel/VBox/Buttons/Quit")
+pause_details_button = NodePath("Control/PauseMenu/Panel/VBox/Buttons/CharacterDetails")
+pause_details_panel = NodePath("Control/PauseMenu/DetailedStatsPanel")
+pause_details_close_button = NodePath("Control/PauseMenu/DetailedStatsPanel/Close")
+pause_knight_container = NodePath("Control/PauseMenu/DetailedStatsPanel/Knight")
+pause_archer_container = NodePath("Control/PauseMenu/DetailedStatsPanel/Archer")
+pause_rogue_container = NodePath("Control/PauseMenu/DetailedStatsPanel/Rogue")
+tutorial_pause_control = NodePath("Control/TutorialPause")
+tutorial_panel_label = NodePath("Control/TutorialPause/TutorialPanel/Label")
+tutorial_advance_button = NodePath("Control/TutorialPause/AdvanceCatcher")
+tutorial_stat_highlight = NodePath("Control/TutorialPause/StatHighlight")
 settings_control = NodePath("Control/Settingscanvas")
 settings_button = NodePath("Control/Settings")
 music_slider = NodePath("Control/Settingscanvas/musicslider")
@@ -113,9 +232,9 @@ layout_mode = 1
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -628.0
+offset_left = -775.0
 offset_top = -19.0
-offset_right = -120.0
+offset_right = -267.0
 offset_bottom = 189.0
 grow_horizontal = 0
 scale = Vector2(0.5, 0.5)
@@ -123,14 +242,29 @@ layout_direction = 2
 icon = ExtResource("5_o2lis")
 flat = true
 
+[node name="Pause" type="Button" parent="Control" unique_id=28595673]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -470.0
+offset_top = -12.0
+offset_right = -412.0
+offset_bottom = 46.0
+grow_horizontal = 0
+scale = Vector2(2, 2)
+layout_direction = 2
+icon = ExtResource("6_4jjo0")
+flat = true
+
 [node name="Settings" type="Button" parent="Control" unique_id=1408419615]
 layout_mode = 1
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -394.0
+offset_left = -541.0
 offset_top = 1.0
-offset_right = -316.0
+offset_right = -463.0
 offset_bottom = 79.0
 grow_horizontal = 0
 layout_direction = 2
@@ -142,12 +276,24 @@ position = Vector2(164.13, 36.435)
 scale = Vector2(2.5, 2.5)
 texture = ExtResource("3_kwc50")
 
-[node name="CastleHPBar" parent="Control" unique_id=2044778259 instance=ExtResource("17_castlehp")]
-position = Vector2(1856, 787)
+[node name="castlehpcontrol" type="Control" parent="Control" unique_id=1960843010]
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -40.0
+offset_top = -20.0
+offset_bottom = 20.0
+grow_horizontal = 0
+grow_vertical = 2
+
+[node name="CastleHPBar" parent="Control/castlehpcontrol" unique_id=2044778259 instance=ExtResource("17_castlehp")]
+position = Vector2(-10.000002, 244)
 scale = Vector2(1.5, 5.065)
 
 [node name="gameoverscreen" type="Control" parent="Control" unique_id=39879618]
-visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -232,6 +378,77 @@ theme_override_fonts/font = ExtResource("6_kwc50")
 theme_override_font_sizes/font_size = 50
 text = "The Castle Has Fallen"
 
+[node name="Podium" type="TextureRect" parent="Control/gameoverscreen" unique_id=271415363]
+layout_mode = 0
+offset_left = 99.0
+offset_top = 492.0
+offset_right = 588.0
+offset_bottom = 850.0
+texture = ExtResource("11_iwjhm")
+
+[node name="FirstPlace" type="Control" parent="Control/gameoverscreen/Podium" unique_id=899999344 node_paths=PackedStringArray("kills_label", "character_sprite")]
+anchors_preset = 0
+offset_left = 213.0
+offset_top = 126.0
+offset_right = 253.0
+offset_bottom = 166.0
+script = ExtResource("32_podplace")
+kills_label = NodePath("Label")
+character_sprite = NodePath("Character")
+
+[node name="Character" type="AnimatedSprite2D" parent="Control/gameoverscreen/Podium/FirstPlace" unique_id=1100000001]
+position = Vector2(20, 20)
+scale = Vector2(2, 2)
+
+[node name="Label" type="Label" parent="Control/gameoverscreen/Podium/FirstPlace" unique_id=436744063]
+layout_mode = 0
+offset_top = -71.905
+offset_right = 40.0
+offset_bottom = -48.905
+text = "Kills - 0"
+
+[node name="SecondPlace" type="Control" parent="Control/gameoverscreen/Podium" unique_id=1431204648 node_paths=PackedStringArray("kills_label", "character_sprite")]
+anchors_preset = 0
+offset_left = 99.0
+offset_top = 174.0
+offset_right = 139.0
+offset_bottom = 214.0
+script = ExtResource("32_podplace")
+kills_label = NodePath("Label")
+character_sprite = NodePath("Character")
+
+[node name="Character" type="AnimatedSprite2D" parent="Control/gameoverscreen/Podium/SecondPlace" unique_id=1100000002]
+position = Vector2(20, 20)
+scale = Vector2(2, 2)
+
+[node name="Label" type="Label" parent="Control/gameoverscreen/Podium/SecondPlace" unique_id=1133147577]
+layout_mode = 0
+offset_top = -71.905
+offset_right = 40.0
+offset_bottom = -48.905
+text = "Kills - 0"
+
+[node name="ThirdPlace" type="Control" parent="Control/gameoverscreen/Podium" unique_id=1296999080 node_paths=PackedStringArray("kills_label", "character_sprite")]
+anchors_preset = 0
+offset_left = 329.0
+offset_top = 221.0
+offset_right = 369.0
+offset_bottom = 261.0
+script = ExtResource("32_podplace")
+kills_label = NodePath("Label")
+character_sprite = NodePath("Character")
+
+[node name="Character" type="AnimatedSprite2D" parent="Control/gameoverscreen/Podium/ThirdPlace" unique_id=1100000003]
+position = Vector2(20, 20)
+scale = Vector2(2, 2)
+
+[node name="Label" type="Label" parent="Control/gameoverscreen/Podium/ThirdPlace" unique_id=525098045]
+layout_mode = 0
+offset_top = -71.905
+offset_right = 40.0
+offset_bottom = -48.905
+text = "Kills - 0"
+
 [node name="Virtual joystick left" parent="Control" unique_id=255085118 instance=ExtResource("13_gv4gi")]
 layout_mode = 1
 offset_left = 52.0
@@ -246,7 +463,7 @@ action_right = "move_right"
 action_up = "move_up"
 action_down = "move_down"
 
-[node name="Control" type="Control" parent="Control" unique_id=1875255656]
+[node name="Controls" type="Control" parent="Control" unique_id=1875255656]
 layout_mode = 1
 anchors_preset = 3
 anchor_left = 1.0
@@ -259,28 +476,28 @@ grow_horizontal = 0
 grow_vertical = 0
 script = ExtResource("8_5uuaq")
 
-[node name="Jbutton" type="TouchScreenButton" parent="Control/Control" unique_id=1195568340]
+[node name="Jbutton" type="TouchScreenButton" parent="Control/Controls" unique_id=1195568340]
 position = Vector2(-600, -157)
 scale = Vector2(0.5, 0.5)
 texture_normal = ExtResource("7_p3vm3")
 texture_pressed = ExtResource("10_6gxmt")
 action = "action1"
 
-[node name="Kbutton" type="TouchScreenButton" parent="Control/Control" unique_id=708063580]
+[node name="Kbutton" type="TouchScreenButton" parent="Control/Controls" unique_id=708063580]
 position = Vector2(-400, -157)
 scale = Vector2(0.5, 0.5)
 texture_normal = ExtResource("9_5mn0o")
 texture_pressed = ExtResource("12_olkg6")
 action = "action2"
 
-[node name="Lbutton" type="TouchScreenButton" parent="Control/Control" unique_id=1561218012]
+[node name="Lbutton" type="TouchScreenButton" parent="Control/Controls" unique_id=1561218012]
 position = Vector2(-200, -157)
 scale = Vector2(0.5, 0.5)
 texture_normal = ExtResource("10_cxhb7")
 texture_pressed = ExtResource("14_hk13k")
 action = "action3"
 
-[node name="shiftbutton" type="TouchScreenButton" parent="Control/Control" unique_id=1878120617]
+[node name="shiftbutton" type="TouchScreenButton" parent="Control/Controls" unique_id=1878120617]
 position = Vector2(-414, -991.00006)
 scale = Vector2(1.25, 1.25)
 texture_normal = ExtResource("15_uyo40")
@@ -357,3 +574,779 @@ offset_right = -1.25
 offset_bottom = 58.125
 theme_override_font_sizes/font_size = 30
 text = "MUSIC"
+
+[node name="Stats" type="Control" parent="Control" unique_id=798372917]
+layout_mode = 1
+anchors_preset = 0
+offset_left = 9.0
+offset_top = 67.0
+offset_right = 49.0
+offset_bottom = 107.0
+script = ExtResource("26_statpip")
+hp_pip_color = Color(0.83603525, 0.40438166, 0.28153208, 1)
+attack_pip_color = Color(0.9169502, 0.68870944, 0.39955893, 1)
+flow_pip_color = Color(0.285155, 0.4385398, 0.2681413, 1)
+
+[node name="GridContainer" type="GridContainer" parent="Control/Stats" unique_id=1696979414]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 48.33
+
+[node name="HP" type="Control" parent="Control/Stats/GridContainer" unique_id=1171043420]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+
+[node name="image" type="TextureRect" parent="Control/Stats/GridContainer/HP" unique_id=290848513]
+layout_mode = 0
+offset_right = 82.0
+offset_bottom = 72.0
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("20_3i4ml")
+
+[node name="pipcontainer" type="TextureRect" parent="Control/Stats/GridContainer/HP" unique_id=401772584]
+layout_mode = 0
+offset_left = 43.708
+offset_top = 5.196
+offset_right = 99.70801
+offset_bottom = 12.196014
+scale = Vector2(3, 3)
+texture = ExtResource("21_b6qa6")
+
+[node name="pip" type="TextureRect" parent="Control/Stats/GridContainer/HP/pipcontainer" unique_id=62524787]
+layout_mode = 0
+offset_right = 11.0
+offset_bottom = 7.000001
+texture = ExtResource("22_4jjo0")
+
+[node name="pip2" type="TextureRect" parent="Control/Stats/GridContainer/HP/pipcontainer" unique_id=153590885]
+layout_mode = 0
+offset_left = 11.000004
+offset_right = 22.000004
+offset_bottom = 7.000001
+texture = ExtResource("22_4jjo0")
+
+[node name="pip3" type="TextureRect" parent="Control/Stats/GridContainer/HP/pipcontainer" unique_id=282216743]
+layout_mode = 0
+offset_left = 22.0
+offset_right = 33.0
+offset_bottom = 7.000001
+texture = ExtResource("22_4jjo0")
+
+[node name="pip4" type="TextureRect" parent="Control/Stats/GridContainer/HP/pipcontainer" unique_id=588687458]
+layout_mode = 0
+offset_left = 33.0
+offset_right = 44.0
+offset_bottom = 7.000001
+texture = ExtResource("22_4jjo0")
+
+[node name="pip5" type="TextureRect" parent="Control/Stats/GridContainer/HP/pipcontainer" unique_id=1252133619]
+layout_mode = 0
+offset_left = 44.0
+offset_right = 55.0
+offset_bottom = 7.000001
+texture = ExtResource("22_4jjo0")
+
+[node name="Attack" type="Control" parent="Control/Stats/GridContainer" unique_id=775463155]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+
+[node name="image" type="TextureRect" parent="Control/Stats/GridContainer/Attack" unique_id=1638756363]
+layout_mode = 0
+offset_right = 82.0
+offset_bottom = 72.0
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("23_580hc")
+
+[node name="pipcontainer" type="TextureRect" parent="Control/Stats/GridContainer/Attack" unique_id=799584387]
+layout_mode = 0
+offset_left = 43.708
+offset_top = 5.196
+offset_right = 99.70801
+offset_bottom = 12.196014
+scale = Vector2(3, 3)
+texture = ExtResource("21_b6qa6")
+
+[node name="pip" type="TextureRect" parent="Control/Stats/GridContainer/Attack/pipcontainer" unique_id=1010921967]
+layout_mode = 0
+offset_right = 11.0
+offset_bottom = 7.000001
+texture = ExtResource("22_4jjo0")
+
+[node name="pip2" type="TextureRect" parent="Control/Stats/GridContainer/Attack/pipcontainer" unique_id=1312115292]
+layout_mode = 0
+offset_left = 11.000004
+offset_right = 22.000004
+offset_bottom = 7.000001
+texture = ExtResource("22_4jjo0")
+
+[node name="pip3" type="TextureRect" parent="Control/Stats/GridContainer/Attack/pipcontainer" unique_id=257425001]
+layout_mode = 0
+offset_left = 22.0
+offset_right = 33.0
+offset_bottom = 7.000001
+texture = ExtResource("22_4jjo0")
+
+[node name="pip4" type="TextureRect" parent="Control/Stats/GridContainer/Attack/pipcontainer" unique_id=973680424]
+layout_mode = 0
+offset_left = 33.0
+offset_right = 44.0
+offset_bottom = 7.000001
+texture = ExtResource("22_4jjo0")
+
+[node name="pip5" type="TextureRect" parent="Control/Stats/GridContainer/Attack/pipcontainer" unique_id=2086574390]
+layout_mode = 0
+offset_left = 44.0
+offset_right = 55.0
+offset_bottom = 7.000001
+texture = ExtResource("22_4jjo0")
+
+[node name="Speed" type="Control" parent="Control/Stats/GridContainer" unique_id=649093788]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+
+[node name="image" type="TextureRect" parent="Control/Stats/GridContainer/Speed" unique_id=1014114229]
+layout_mode = 0
+offset_top = 1.9999999
+offset_right = 101.0
+offset_bottom = 74.0
+scale = Vector2(0.4, 0.4)
+texture = ExtResource("24_1anpe")
+
+[node name="pipcontainer" type="TextureRect" parent="Control/Stats/GridContainer/Speed" unique_id=241905428]
+layout_mode = 0
+offset_left = 43.708
+offset_top = 5.196
+offset_right = 99.70801
+offset_bottom = 12.196014
+scale = Vector2(3, 3)
+texture = ExtResource("21_b6qa6")
+
+[node name="pip" type="TextureRect" parent="Control/Stats/GridContainer/Speed/pipcontainer" unique_id=894841471]
+layout_mode = 0
+offset_right = 11.0
+offset_bottom = 7.000001
+texture = ExtResource("22_4jjo0")
+
+[node name="pip2" type="TextureRect" parent="Control/Stats/GridContainer/Speed/pipcontainer" unique_id=1981240561]
+layout_mode = 0
+offset_left = 11.000004
+offset_right = 22.000004
+offset_bottom = 7.000001
+texture = ExtResource("22_4jjo0")
+
+[node name="pip3" type="TextureRect" parent="Control/Stats/GridContainer/Speed/pipcontainer" unique_id=479586885]
+layout_mode = 0
+offset_left = 22.0
+offset_right = 33.0
+offset_bottom = 7.000001
+texture = ExtResource("22_4jjo0")
+
+[node name="pip4" type="TextureRect" parent="Control/Stats/GridContainer/Speed/pipcontainer" unique_id=1685059412]
+layout_mode = 0
+offset_left = 33.0
+offset_right = 44.0
+offset_bottom = 7.000001
+texture = ExtResource("22_4jjo0")
+
+[node name="pip5" type="TextureRect" parent="Control/Stats/GridContainer/Speed/pipcontainer" unique_id=2146938861]
+layout_mode = 0
+offset_left = 44.0
+offset_right = 55.0
+offset_bottom = 7.000001
+texture = ExtResource("22_4jjo0")
+
+[node name="Flow" type="Control" parent="Control/Stats/GridContainer" unique_id=1800076007]
+layout_mode = 2
+
+[node name="image" type="TextureRect" parent="Control/Stats/GridContainer/Flow" unique_id=1152122365]
+layout_mode = 0
+offset_right = 82.0
+offset_bottom = 72.0
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("25_7h5cm")
+
+[node name="pipcontainer" type="TextureRect" parent="Control/Stats/GridContainer/Flow" unique_id=1919124460]
+layout_mode = 0
+offset_left = 43.708
+offset_top = 5.196
+offset_right = 99.70801
+offset_bottom = 12.196014
+scale = Vector2(3, 3)
+texture = ExtResource("21_b6qa6")
+
+[node name="pip" type="TextureRect" parent="Control/Stats/GridContainer/Flow/pipcontainer" unique_id=2142074734]
+layout_mode = 0
+offset_right = 11.0
+offset_bottom = 7.000001
+texture = ExtResource("22_4jjo0")
+
+[node name="pip2" type="TextureRect" parent="Control/Stats/GridContainer/Flow/pipcontainer" unique_id=1565674813]
+layout_mode = 0
+offset_left = 11.000004
+offset_right = 22.000004
+offset_bottom = 7.000001
+texture = ExtResource("22_4jjo0")
+
+[node name="pip3" type="TextureRect" parent="Control/Stats/GridContainer/Flow/pipcontainer" unique_id=2109679508]
+layout_mode = 0
+offset_left = 22.0
+offset_right = 33.0
+offset_bottom = 7.000001
+texture = ExtResource("22_4jjo0")
+
+[node name="pip4" type="TextureRect" parent="Control/Stats/GridContainer/Flow/pipcontainer" unique_id=1302035295]
+layout_mode = 0
+offset_left = 33.0
+offset_right = 44.0
+offset_bottom = 7.000001
+texture = ExtResource("22_4jjo0")
+
+[node name="pip5" type="TextureRect" parent="Control/Stats/GridContainer/Flow/pipcontainer" unique_id=931546341]
+layout_mode = 0
+offset_left = 44.0
+offset_right = 55.0
+offset_bottom = 7.000001
+texture = ExtResource("22_4jjo0")
+
+[node name="PauseMenu" type="Control" parent="Control" unique_id=691748815]
+process_mode = 2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="DetailedStatsPanel" type="Panel" parent="Control/PauseMenu" unique_id=797671296]
+visible = false
+z_index = 1
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -948.5
+offset_top = -520.0
+offset_right = 957.5
+offset_bottom = 538.0
+grow_horizontal = 2
+grow_vertical = 2
+pivot_offset_ratio = Vector2(0.5, 0.5)
+theme_override_styles/panel = SubResource("StyleBoxFlat_vcaa5")
+
+[node name="Rogue" type="Control" parent="Control/PauseMenu/DetailedStatsPanel" unique_id=1625053884]
+visible = false
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Attack1" type="VideoStreamPlayer" parent="Control/PauseMenu/DetailedStatsPanel/Rogue" unique_id=663864529]
+z_index = 1
+material = SubResource("ShaderMaterial_42jby")
+layout_mode = 0
+offset_left = 1250.0
+offset_top = 100.0
+offset_right = 1896.0
+offset_bottom = 366.0
+stream = SubResource("VideoStreamTheora_s3fgb")
+volume_db = -80.0
+autoplay = true
+loop = true
+
+[node name="Attack2" type="VideoStreamPlayer" parent="Control/PauseMenu/DetailedStatsPanel/Rogue" unique_id=1958858694]
+z_index = 1
+material = SubResource("ShaderMaterial_42jby")
+layout_mode = 0
+offset_left = 1250.0
+offset_top = 400.0
+offset_right = 1896.0
+offset_bottom = 666.0
+stream = SubResource("VideoStreamTheora_r7ei8")
+volume_db = -80.0
+autoplay = true
+loop = true
+
+[node name="Attack3" type="VideoStreamPlayer" parent="Control/PauseMenu/DetailedStatsPanel/Rogue" unique_id=1200785433]
+z_index = 1
+material = SubResource("ShaderMaterial_42jby")
+layout_mode = 0
+offset_left = 1250.0
+offset_top = 700.0
+offset_right = 1896.0
+offset_bottom = 966.0
+stream = SubResource("VideoStreamTheora_1vjvk")
+volume_db = -80.0
+autoplay = true
+loop = true
+
+[node name="Label" type="Label" parent="Control/PauseMenu/DetailedStatsPanel/Rogue" unique_id=683378380]
+layout_mode = 0
+offset_left = 64.0
+offset_top = 123.0
+offset_right = 1164.0
+offset_bottom = 543.0
+theme_override_font_sizes/font_size = 39
+text = "
+
+
+Musashi's unique ability provides sustain
+while out in the field, generating HP
+
+After a kill a timer will start.
+If you can execute another enemy in time
+you will recover 50 hp."
+
+[node name="attacksLabel" type="Label" parent="Control/PauseMenu/DetailedStatsPanel/Rogue" unique_id=888322134]
+layout_mode = 0
+offset_left = 1044.0
+offset_top = 148.0
+offset_right = 1567.0
+offset_bottom = 888.0
+theme_override_font_sizes/font_size = 40
+text = "Attack 1:
+J or LMB
+
+
+
+Attack 2:
+K or RMB
+
+
+
+Attack 3:
+L or Space"
+
+[node name="SpeedKill" type="VideoStreamPlayer" parent="Control/PauseMenu/DetailedStatsPanel/Rogue" unique_id=335735745]
+material = SubResource("ShaderMaterial_42jby")
+layout_mode = 0
+offset_left = 35.000015
+offset_top = 651.0
+offset_right = 563.0
+offset_bottom = 919.0
+scale = Vector2(1.25, 1.25)
+stream = ExtResource("29_bx7c4")
+volume_db = -80.0
+autoplay = true
+loop = true
+
+[node name="Archer" type="Control" parent="Control/PauseMenu/DetailedStatsPanel" unique_id=1737493920]
+visible = false
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Attack1" type="VideoStreamPlayer" parent="Control/PauseMenu/DetailedStatsPanel/Archer" unique_id=1722256544]
+z_index = 1
+material = SubResource("ShaderMaterial_42jby")
+layout_mode = 0
+offset_left = 1600.0
+offset_top = 100.0
+offset_right = 1826.0
+offset_bottom = 308.0
+stream = SubResource("VideoStreamTheora_jsqx1")
+volume_db = -80.0
+autoplay = true
+loop = true
+
+[node name="Attack2" type="VideoStreamPlayer" parent="Control/PauseMenu/DetailedStatsPanel/Archer" unique_id=2115452116]
+z_index = 1
+material = SubResource("ShaderMaterial_42jby")
+layout_mode = 0
+offset_left = 1600.0
+offset_top = 400.0
+offset_right = 1826.0
+offset_bottom = 608.0
+stream = SubResource("VideoStreamTheora_jcg5v")
+volume_db = -80.0
+autoplay = true
+loop = true
+
+[node name="Attack3" type="VideoStreamPlayer" parent="Control/PauseMenu/DetailedStatsPanel/Archer" unique_id=665869628]
+z_index = 1
+material = SubResource("ShaderMaterial_42jby")
+layout_mode = 0
+offset_left = 1600.0
+offset_top = 700.0
+offset_right = 1826.0
+offset_bottom = 908.0
+stream = SubResource("VideoStreamTheora_a3ham")
+volume_db = -80.0
+autoplay = true
+loop = true
+
+[node name="Label" type="Label" parent="Control/PauseMenu/DetailedStatsPanel/Archer" unique_id=1498773559]
+layout_mode = 0
+offset_left = 64.0
+offset_top = 123.0
+offset_right = 1164.0
+offset_bottom = 543.0
+theme_override_font_sizes/font_size = 39
+text = "Robins ideal position is laying down...
+suppressive fire at a distance.
+
+He has the unique ability to deal extra damage 
+with his arrows on                         hits.
+This incentivizes patient play and positioning youself well.
+
+His base damage is multiplied by 30% for each 
+consecutive hit, stacking twice for a total of 160%"
+
+[node name="consecutive" type="Label" parent="Control/PauseMenu/DetailedStatsPanel/Archer/Label" unique_id=206560313]
+layout_mode = 0
+offset_left = 359.0
+offset_top = 227.0
+offset_right = 582.0
+offset_bottom = 281.0
+theme_override_colors/font_color = Color(0.97286814, 0.972868, 9.241105e-06, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 1, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 39
+text = "consecutive"
+
+[node name="attacksLabel" type="Label" parent="Control/PauseMenu/DetailedStatsPanel/Archer" unique_id=879586093]
+layout_mode = 0
+offset_left = 1370.0
+offset_top = 148.0
+offset_right = 1567.0
+offset_bottom = 888.0
+theme_override_font_sizes/font_size = 40
+text = "Attack 1:
+J or LMB
+
+
+
+Attack 2:
+K or RMB
+
+
+
+Attack 3:
+L or Space"
+
+[node name="stack0" type="VideoStreamPlayer" parent="Control/PauseMenu/DetailedStatsPanel/Archer" unique_id=2002449460]
+material = SubResource("ShaderMaterial_42jby")
+layout_mode = 0
+offset_left = 100.0
+offset_top = 696.0
+offset_right = 538.0
+offset_bottom = 934.0
+scale = Vector2(0.5, 0.5)
+stream = SubResource("VideoStreamTheora_qku8m")
+volume_db = -80.0
+autoplay = true
+loop = true
+
+[node name="stack1" type="VideoStreamPlayer" parent="Control/PauseMenu/DetailedStatsPanel/Archer" unique_id=1250181329]
+material = SubResource("ShaderMaterial_42jby")
+layout_mode = 0
+offset_left = 400.0
+offset_top = 696.0
+offset_right = 838.0
+offset_bottom = 934.0
+scale = Vector2(0.5, 0.5)
+stream = SubResource("VideoStreamTheora_kp2y5")
+volume_db = -80.0
+autoplay = true
+loop = true
+
+[node name="stack2" type="VideoStreamPlayer" parent="Control/PauseMenu/DetailedStatsPanel/Archer" unique_id=108530340]
+material = SubResource("ShaderMaterial_42jby")
+layout_mode = 0
+offset_left = 700.0
+offset_top = 696.0
+offset_right = 1138.0
+offset_bottom = 934.0
+scale = Vector2(0.5, 0.5)
+stream = SubResource("VideoStreamTheora_pe0un")
+volume_db = -80.0
+autoplay = true
+loop = true
+
+[node name="Label2" type="Label" parent="Control/PauseMenu/DetailedStatsPanel/Archer" unique_id=497706355]
+layout_mode = 0
+offset_left = 126.0
+offset_top = 812.0
+offset_right = 1051.0
+offset_bottom = 888.0
+theme_override_font_sizes/font_size = 40
+text = "0 Stack                1 Stack                 2 Stack"
+
+[node name="Knight" type="Control" parent="Control/PauseMenu/DetailedStatsPanel" unique_id=2140710316]
+visible = false
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Attack1" type="VideoStreamPlayer" parent="Control/PauseMenu/DetailedStatsPanel/Knight" unique_id=892291637]
+z_index = 1
+material = SubResource("ShaderMaterial_42jby")
+layout_mode = 0
+offset_left = 1600.0
+offset_top = 100.0
+offset_right = 1826.0
+offset_bottom = 308.0
+stream = SubResource("VideoStreamTheora_5a12h")
+volume_db = -80.0
+autoplay = true
+loop = true
+
+[node name="Attack2" type="VideoStreamPlayer" parent="Control/PauseMenu/DetailedStatsPanel/Knight" unique_id=1420633257]
+z_index = 1
+material = SubResource("ShaderMaterial_42jby")
+layout_mode = 0
+offset_left = 1600.0
+offset_top = 400.0
+offset_right = 1826.0
+offset_bottom = 608.0
+stream = SubResource("VideoStreamTheora_abunw")
+volume_db = -80.0
+autoplay = true
+loop = true
+
+[node name="Attack3" type="VideoStreamPlayer" parent="Control/PauseMenu/DetailedStatsPanel/Knight" unique_id=679756899]
+z_index = 1
+material = SubResource("ShaderMaterial_42jby")
+layout_mode = 0
+offset_left = 1600.0
+offset_top = 700.0
+offset_right = 1826.0
+offset_bottom = 908.0
+stream = SubResource("VideoStreamTheora_t658m")
+volume_db = -80.0
+autoplay = true
+loop = true
+
+[node name="Label" type="Label" parent="Control/PauseMenu/DetailedStatsPanel/Knight" unique_id=1166747288]
+layout_mode = 0
+offset_left = 64.0
+offset_top = 123.0
+offset_right = 1317.0
+offset_bottom = 576.0
+theme_override_font_sizes/font_size = 39
+text = "Arthur in all of his plate armor is best positioned in the heat of the battle
+
+His unique ability is Preparation. 
+By clicking on his armor he will lock into a 
+preparation stance for a few moments 
+activating a temporary buff
+
+During the duration of the buff Arthur
+receives a 50% damage reduction and small speed boost."
+
+[node name="attacksLabel" type="Label" parent="Control/PauseMenu/DetailedStatsPanel/Knight" unique_id=1993490159]
+layout_mode = 0
+offset_left = 1370.0
+offset_top = 148.0
+offset_right = 1567.0
+offset_bottom = 888.0
+theme_override_font_sizes/font_size = 40
+text = "Attack 1:
+J or LMB
+
+
+
+Attack 2:
+K or RMB
+
+
+
+Attack 3:
+L or Space"
+
+[node name="Preparation" type="VideoStreamPlayer" parent="Control/PauseMenu/DetailedStatsPanel/Knight" unique_id=2039807721]
+material = SubResource("ShaderMaterial_42jby")
+layout_mode = 0
+offset_left = 212.0
+offset_top = 699.00006
+offset_right = 466.0
+offset_bottom = 967.00006
+scale = Vector2(1.25, 1.25)
+stream = SubResource("VideoStreamTheora_mdygu")
+volume_db = -80.0
+autoplay = true
+loop = true
+
+[node name="Close" type="Button" parent="Control/PauseMenu/DetailedStatsPanel" unique_id=1155257784]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = 397.01202
+offset_right = 208.0
+offset_bottom = 506.19836
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(1.35, 1.35)
+pivot_offset_ratio = Vector2(0.5, 0.5)
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_pressed_color = Color(0.15487596, 0.154876, 0.15487596, 1)
+theme_override_colors/font_hover_pressed_color = Color(0.16745102, 0.16745102, 0.16745102, 1)
+theme_override_fonts/font = ExtResource("1_4d6w6")
+theme_override_font_sizes/font_size = 83
+theme_override_styles/normal = SubResource("StyleBoxTexture_3evvp")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_snu2i")
+theme_override_styles/hover = SubResource("StyleBoxTexture_nq1ju")
+text = "Close"
+icon_alignment = 1
+expand_icon = true
+
+[node name="Panel" type="PanelContainer" parent="Control/PauseMenu" unique_id=1725359063]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -323.0
+offset_top = -311.0
+offset_right = 323.0
+offset_bottom = 260.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="Control/PauseMenu/Panel" unique_id=1464710912]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Title" type="Label" parent="Control/PauseMenu/Panel/VBox" unique_id=1779677577]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("6_kwc50")
+theme_override_font_sizes/font_size = 50
+text = "PAUSED"
+horizontal_alignment = 1
+
+[node name="Buttons" type="VBoxContainer" parent="Control/PauseMenu/Panel/VBox" unique_id=1245834855]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Resume" type="Button" parent="Control/PauseMenu/Panel/VBox/Buttons" unique_id=1374195880]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_pressed_color = Color(0.15487596, 0.154876, 0.15487596, 1)
+theme_override_colors/font_hover_pressed_color = Color(0.16745102, 0.16745102, 0.16745102, 1)
+theme_override_fonts/font = ExtResource("1_4d6w6")
+theme_override_font_sizes/font_size = 83
+theme_override_styles/normal = SubResource("StyleBoxTexture_3evvp")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_snu2i")
+theme_override_styles/hover = SubResource("StyleBoxTexture_nq1ju")
+text = "Resume"
+
+[node name="Restart" type="Button" parent="Control/PauseMenu/Panel/VBox/Buttons" unique_id=438342978]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_pressed_color = Color(0.15487596, 0.154876, 0.15487596, 1)
+theme_override_colors/font_hover_pressed_color = Color(0.16745102, 0.16745102, 0.16745102, 1)
+theme_override_fonts/font = ExtResource("1_4d6w6")
+theme_override_font_sizes/font_size = 83
+theme_override_styles/normal = SubResource("StyleBoxTexture_3evvp")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_snu2i")
+theme_override_styles/hover = SubResource("StyleBoxTexture_nq1ju")
+text = "Restart"
+
+[node name="CharacterDetails" type="Button" parent="Control/PauseMenu/Panel/VBox/Buttons" unique_id=86233831]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_pressed_color = Color(0.15487596, 0.154876, 0.15487596, 1)
+theme_override_colors/font_hover_pressed_color = Color(0.16745102, 0.16745102, 0.16745102, 1)
+theme_override_fonts/font = ExtResource("1_4d6w6")
+theme_override_font_sizes/font_size = 83
+theme_override_styles/normal = SubResource("StyleBoxTexture_3evvp")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_snu2i")
+theme_override_styles/hover = SubResource("StyleBoxTexture_nq1ju")
+text = "Character Details
+"
+
+[node name="Quit" type="Button" parent="Control/PauseMenu/Panel/VBox/Buttons" unique_id=606097602]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_pressed_color = Color(0.15487596, 0.154876, 0.15487596, 1)
+theme_override_colors/font_hover_pressed_color = Color(0.16745102, 0.16745102, 0.16745102, 1)
+theme_override_fonts/font = ExtResource("1_4d6w6")
+theme_override_font_sizes/font_size = 83
+theme_override_styles/normal = SubResource("StyleBoxTexture_3evvp")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_snu2i")
+theme_override_styles/hover = SubResource("StyleBoxTexture_nq1ju")
+text = "Quit to Menu"
+
+[node name="TutorialPause" type="Control" parent="Control" unique_id=323438929]
+process_mode = 2
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TutorialPanel" type="Panel" parent="Control/TutorialPause" unique_id=1683347662]
+z_index = 1
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -379.0
+offset_top = -331.0
+offset_right = 265.5
+offset_bottom = 120.0
+grow_horizontal = 2
+grow_vertical = 2
+pivot_offset_ratio = Vector2(0.5, 0.5)
+theme_override_styles/panel = SubResource("StyleBoxFlat_iwjhm")
+
+[node name="Label" type="Label" parent="Control/TutorialPause/TutorialPanel" unique_id=256294576]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -314.25
+offset_top = -157.5
+offset_right = 316.75
+offset_bottom = 218.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 25
+text = "a
+s
+d
+"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="TutorialMan" type="TextureRect" parent="Control/TutorialPause/TutorialPanel" unique_id=975794500]
+layout_mode = 0
+offset_left = -229.00002
+offset_top = -70.00001
+offset_right = -163.00002
+offset_bottom = -21.000008
+scale = Vector2(5, 5)
+texture = ExtResource("31_bx7c4")
+
+[node name="StatHighlight" type="Panel" parent="Control/TutorialPause" unique_id=1885868929]
+layout_mode = 0
+offset_top = 61.0
+offset_right = 229.0
+offset_bottom = 211.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_vcaa5")
+
+[node name="AdvanceCatcher" type="Button" parent="Control/TutorialPause" unique_id=1885868931]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -44.0
+offset_top = -30.0
+offset_right = -44.0
+offset_bottom = -30.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_default_cursor_shape = 2

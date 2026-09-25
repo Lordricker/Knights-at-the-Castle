@@ -26,6 +26,10 @@ _data = [Vector2(0, 0.03486798), 0.0, -0.002548457, 0, 0, Vector2(2.397, 0.005),
 point_count = 2
 metadata/_snap_count = 100
 
+[sub_resource type="AtlasTexture" id="AtlasTexture_swrhu"]
+atlas = ExtResource("2_6qwqa")
+region = Rect2(400, 280, 100, 70)
+
 [sub_resource type="AtlasTexture" id="AtlasTexture_j5lh5"]
 atlas = ExtResource("2_6qwqa")
 region = Rect2(0, 70, 100, 70)
@@ -136,6 +140,14 @@ region = Rect2(0, 70, 100, 70)
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_rvc6b"]
 animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_swrhu")
+}],
+"loop": 1,
+"name": &"heal",
+"speed": 5.0
+}, {
 "frames": [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_j5lh5")
@@ -314,7 +326,7 @@ hit_sound_fireball = ExtResource("9_u36f3")
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="CharacterBody2D/Pivot" unique_id=1262161212]
 position = Vector2(0, 13.785)
 sprite_frames = SubResource("SpriteFrames_rvc6b")
-animation = &"shoot"
+animation = &"heal"
 
 [node name="FlowBar" parent="CharacterBody2D/Pivot" unique_id=1635173476 instance=ExtResource("4_p72ps")]
 visible = false
