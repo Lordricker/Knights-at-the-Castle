@@ -304,10 +304,17 @@ func _is_touching_slash_hitbox(body: Node2D) -> bool:
 	query.transform = shape_node.global_transform
 	query.collision_mask = slash_hitbox.collision_mask
 	query.collide_with_bodies = true
-	query.collide_with_areas = false
+	query.collide_with_areas = true
 	query.exclude = [self]
 	for result in get_world_2d().direct_space_state.intersect_shape(query, 8):
-		if result.get("collider") == body:
+		var collider = result.get("collider")
+		if collider == body:
+			return true
+		# Hurtbox-only entities (green_dragon, red_dragon, skeleton_knight) have
+		# no body shape of their own — their physical extent for this query is
+		# the HurtBox area itself, so resolve it back to the owning entity.
+		var hurtbox := collider as HurtBox
+		if hurtbox != null and hurtbox.get_entity() == body:
 			return true
 	return false
 
@@ -319,6 +326,16 @@ func _get_enemies_in_range() -> Array:
 	for body in detection_zone.get_overlapping_bodies():
 		if body is EnemyBase and not body.is_dead:
 			results.append(body)
+	# Some elites (green_dragon, red_dragon, skeleton_knight) have no body
+	# shape of their own — all their hitboxes live on HurtBox areas — so they
+	# only ever show up here as an overlapping area, not an overlapping body.
+	for area in detection_zone.get_overlapping_areas():
+		var hurtbox := area as HurtBox
+		if hurtbox == null:
+			continue
+		var entity: Node = hurtbox.get_entity()
+		if entity is EnemyBase and not entity.is_dead and not results.has(entity):
+			results.append(entity)
 	return results
 
 

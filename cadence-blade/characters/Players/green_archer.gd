@@ -179,11 +179,16 @@ var _combo_hits: int = 0
 
 ## Current aim angle in degrees. Updated each frame during a shoot action.
 var _aim_angle_deg: float = 0.0
-## True once the mouse has moved during the current attack's windup — switches aim to
-## tracking the mouse cursor instead of W/S, so idle mouse drift never steals control.
+## True once the mouse has moved during the current attack's windup (or from the first
+## frame, if the last shot was mouse-aimed) — switches aim to tracking the mouse cursor
+## instead of W/S, so idle mouse drift never steals control.
 var _aim_mouse_active: bool = false
 ## Screen-space mouse position captured when the current windup began.
 var _aim_mouse_start_pos: Vector2 = Vector2.ZERO
+## True once the player has mouse-aimed a shot. The next shot then starts tracking the
+## cursor from its first frame, without waiting for the mouse to move. A fresh W/S press
+## before the mouse moves hands aim back to the keys and clears it.
+var _aim_mouse_used_last_shot: bool = false
 
 var _shoot_audio: AudioStreamPlayer2D = null
 var _pierce_audio: AudioStreamPlayer2D = null
@@ -386,7 +391,7 @@ func _begin_shoot(is_pierce: bool, as_interrupt: bool) -> void:
 	_current_attack_is_pierce = is_pierce
 	_current_attack_damage_multiplier = 1.0
 	_aim_angle_deg = 0.0
-	_aim_mouse_active = false
+	_aim_mouse_active = _aim_mouse_used_last_shot and not GameManager.is_touch_device()
 	_aim_mouse_start_pos = get_viewport().get_mouse_position()
 	if aim_pointer != null:
 		aim_pointer.rotation = 0.0
@@ -582,10 +587,16 @@ func _update_aim_pointer(delta: float) -> void:
 	# this keeps a stationary mouse from ever overriding a player using W/S. Never arm it
 	# on a touchscreen: dragging the virtual joystick also emulates mouse motion at the
 	# touch position, which would otherwise hijack aim away from the joystick's y-axis.
+	var mouse_moved: bool = get_viewport().get_mouse_position() != _aim_mouse_start_pos
 	if _is_windup_state() and not _aim_mouse_active \
-			and not GameManager.is_touch_device() \
-			and get_viewport().get_mouse_position() != _aim_mouse_start_pos:
+			and not GameManager.is_touch_device() and mouse_moved:
 		_aim_mouse_active = true
+		_aim_mouse_used_last_shot = true
+	# Carried-over mouse aim yields to a fresh W/S press until the mouse actually moves.
+	if _aim_mouse_active and not mouse_moved \
+			and (_action_just_pressed("move_up") or _action_just_pressed("move_down")):
+		_aim_mouse_active = false
+		_aim_mouse_used_last_shot = false
 	var target_deg: float
 	if _aim_mouse_active:
 		var to_mouse: Vector2 = get_global_mouse_position() - aim_pointer.global_position

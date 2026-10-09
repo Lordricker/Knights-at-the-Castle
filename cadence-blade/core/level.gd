@@ -72,12 +72,16 @@ func on_entity_died(world_position: Vector2, spawn_coin: bool = true, coin_tier:
 				_next_coin_id += 1
 				coin.name = "Coin%d" % coin_id
 				coin.set_meta(&"coin_id", coin_id)
+				# Pick the pop direction here so it can be sent to the joiner.
+				var pop_angle: float = randf_range(0.0, TAU)
+				coin.set(&"pop_angle", pop_angle)
 				add_child(coin)
 				coin.global_position = world_position
 				# Broadcast to joiner so they see the coin animation.
 				if GameManager.session_id != "" and GameManager.is_host:
 					WebRTCManager.send_reliable({"t": "coin_spawn",
-						"id": coin_id, "x": world_position.x, "y": world_position.y, "tier": coin_tier})
+						"id": coin_id, "x": world_position.x, "y": world_position.y, "tier": coin_tier,
+						"a": pop_angle})
 
 
 ## Joiner: spawn a visual coin from a "coin_spawn" packet.
@@ -97,6 +101,8 @@ func spawn_display_coin(data: Dictionary) -> void:
 	var coin_id: int = int(data.get("id", -1))
 	if coin_id >= 0:
 		coin.name = "Coin%d" % coin_id
+	# Fly the same way as the host's coin (missing "a" falls back to random).
+	coin.set(&"pop_angle", float(data.get("a", NAN)))
 	add_child(coin)
 	coin.global_position = Vector2(float(data.get("x", 0.0)), float(data.get("y", 0.0)))
 

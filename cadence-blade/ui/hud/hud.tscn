@@ -121,7 +121,7 @@ corner_radius_top_right = 20
 corner_radius_bottom_right = 20
 corner_radius_bottom_left = 20
 
-[node name="HUD" type="CanvasLayer" unique_id=263715054 node_paths=PackedStringArray("hud_timer_label", "hud_coins_label", "hud_best_time_label", "session_id_label", "castle_hp_bar", "game_over_control", "game_over_label", "game_over_time_label", "restart_button", "quit_button", "in_game_quit_button", "podium_first", "podium_second", "podium_third", "pause_button", "pause_control", "pause_resume_button", "pause_restart_button", "pause_quit_button", "pause_details_button", "pause_details_panel", "pause_details_close_button", "pause_knight_container", "pause_archer_container", "pause_rogue_container", "tutorial_pause_control", "tutorial_panel_label", "tutorial_advance_button", "tutorial_stat_highlight", "settings_control", "settings_button", "music_slider", "sfx_slider", "close_settings_button")]
+[node name="HUD" type="CanvasLayer" unique_id=263715054 node_paths=PackedStringArray("hud_timer_label", "hud_coins_label", "hud_best_time_label", "session_id_label", "castle_hp_bar", "game_over_control", "game_over_label", "game_over_time_label", "restart_button", "quit_button", "in_game_quit_button", "podium_first", "podium_second", "podium_third", "pause_button", "pause_control", "pause_menu_panel", "pause_resume_button", "pause_restart_button", "pause_quit_button", "pause_details_button", "pause_details_panel", "pause_details_close_button", "pause_knight_container", "pause_archer_container", "pause_rogue_container", "tutorial_pause_control", "tutorial_panel_label", "tutorial_advance_button", "tutorial_stat_highlight", "settings_control", "settings_button", "music_slider", "sfx_slider", "close_settings_button")]
 script = ExtResource("1_imuuq")
 hud_timer_label = NodePath("Control/Time")
 hud_coins_label = NodePath("Control/Coins")
@@ -139,6 +139,7 @@ podium_second = NodePath("Control/gameoverscreen/Podium/SecondPlace")
 podium_third = NodePath("Control/gameoverscreen/Podium/ThirdPlace")
 pause_button = NodePath("Control/Pause")
 pause_control = NodePath("Control/PauseMenu")
+pause_menu_panel = NodePath("Control/PauseMenu/Panel")
 pause_resume_button = NodePath("Control/PauseMenu/Panel/VBox/Buttons/Resume")
 pause_restart_button = NodePath("Control/PauseMenu/Panel/VBox/Buttons/Restart")
 pause_quit_button = NodePath("Control/PauseMenu/Panel/VBox/Buttons/Quit")
@@ -388,65 +389,68 @@ texture = ExtResource("11_iwjhm")
 
 [node name="FirstPlace" type="Control" parent="Control/gameoverscreen/Podium" unique_id=899999344 node_paths=PackedStringArray("kills_label", "character_sprite")]
 anchors_preset = 0
-offset_left = 213.0
-offset_top = 126.0
-offset_right = 253.0
-offset_bottom = 166.0
+offset_left = 219.0
+offset_top = 128.0
+offset_right = 259.0
+offset_bottom = 168.0
 script = ExtResource("32_podplace")
 kills_label = NodePath("Label")
 character_sprite = NodePath("Character")
 
 [node name="Character" type="AnimatedSprite2D" parent="Control/gameoverscreen/Podium/FirstPlace" unique_id=1100000001]
-position = Vector2(20, 20)
+position = Vector2(26, -29.999977)
 scale = Vector2(2, 2)
 
 [node name="Label" type="Label" parent="Control/gameoverscreen/Podium/FirstPlace" unique_id=436744063]
 layout_mode = 0
-offset_top = -71.905
-offset_right = 40.0
-offset_bottom = -48.905
+offset_top = -94.999985
+offset_right = 88.0
+offset_bottom = -58.999985
+theme_override_font_sizes/font_size = 26
 text = "Kills - 0"
 
 [node name="SecondPlace" type="Control" parent="Control/gameoverscreen/Podium" unique_id=1431204648 node_paths=PackedStringArray("kills_label", "character_sprite")]
 anchors_preset = 0
-offset_left = 99.0
-offset_top = 174.0
-offset_right = 139.0
-offset_bottom = 214.0
+offset_left = 105.0
+offset_top = 176.0
+offset_right = 145.0
+offset_bottom = 216.0
 script = ExtResource("32_podplace")
 kills_label = NodePath("Label")
 character_sprite = NodePath("Character")
 
 [node name="Character" type="AnimatedSprite2D" parent="Control/gameoverscreen/Podium/SecondPlace" unique_id=1100000002]
-position = Vector2(20, 20)
+position = Vector2(26, -29.999977)
 scale = Vector2(2, 2)
 
 [node name="Label" type="Label" parent="Control/gameoverscreen/Podium/SecondPlace" unique_id=1133147577]
 layout_mode = 0
-offset_top = -71.905
-offset_right = 40.0
-offset_bottom = -48.905
+offset_top = -94.999985
+offset_right = 88.0
+offset_bottom = -58.999985
+theme_override_font_sizes/font_size = 26
 text = "Kills - 0"
 
 [node name="ThirdPlace" type="Control" parent="Control/gameoverscreen/Podium" unique_id=1296999080 node_paths=PackedStringArray("kills_label", "character_sprite")]
 anchors_preset = 0
-offset_left = 329.0
-offset_top = 221.0
-offset_right = 369.0
-offset_bottom = 261.0
+offset_left = 335.0
+offset_top = 223.0
+offset_right = 375.0
+offset_bottom = 263.0
 script = ExtResource("32_podplace")
 kills_label = NodePath("Label")
 character_sprite = NodePath("Character")
 
 [node name="Character" type="AnimatedSprite2D" parent="Control/gameoverscreen/Podium/ThirdPlace" unique_id=1100000003]
-position = Vector2(20, 20)
+position = Vector2(26, -29.999977)
 scale = Vector2(2, 2)
 
 [node name="Label" type="Label" parent="Control/gameoverscreen/Podium/ThirdPlace" unique_id=525098045]
 layout_mode = 0
-offset_top = -71.905
-offset_right = 40.0
-offset_bottom = -48.905
+offset_top = -94.999985
+offset_right = 88.0
+offset_bottom = -58.999985
+theme_override_font_sizes/font_size = 26
 text = "Kills - 0"
 
 [node name="Virtual joystick left" parent="Control" unique_id=255085118 instance=ExtResource("13_gv4gi")]

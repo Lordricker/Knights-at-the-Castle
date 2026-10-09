@@ -28,6 +28,10 @@ const SHOOT_FRAME: int = 5
 @export var arrow_lifetime: float = 2.5
 ## Fixed angle offset added to the shot direction in degrees (negative = upward).
 @export_range(-90.0, 90.0, 1.0, "degrees") var arrow_angle: float = 0.0
+## Downward acceleration (px/s^2) applied to fired arrows. Defaults to half of
+## arrow.tscn's own drop_gravity (500) — this enemy doesn't lead a moving target,
+## so full gravity made its shots undershoot noticeably more than a player's.
+@export var arrow_gravity: float = 250.0
 ## Sound played when an arrow fires.
 @export var shoot_sound: AudioStream
 @export_range(-40.0, 6.0, 0.1) var shoot_sound_volume_db: float = 0.0
@@ -162,6 +166,7 @@ func _fire_arrow() -> void:
 	# enemy's own HurtBox (e.g. the dragon's head/body) — friendly fire. Layer 1
 	# matches the "enemy attack" layer every other enemy hitbox defaults to.
 	arrow.collision_layer = 1
+	arrow.drop_gravity = arrow_gravity
 	arrow.configure(global_position, shoot_dir, arrow_speed, arrow_damage, 0.0)
 	arrow.lifetime = arrow_lifetime
 	# Lambda: handle Area2D hits (e.g. castle's Kill area).
@@ -187,4 +192,5 @@ func _fire_arrow() -> void:
 			"dy": shoot_dir.y,
 			"sp": arrow_speed,
 			"lt": arrow_lifetime,
+			"gr": arrow_gravity,
 		})

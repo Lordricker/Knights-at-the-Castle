@@ -1,7 +1,7 @@
 class_name VerticalHealthBar
 extends Node2D
 
-# vertical_health_bar.gd — Masked vertical health bar using clip_children.
+# vertical_health_bar.gd — Masked vertical health bar.
 #
 # HOW TO USE:
 #   1. Add a Node2D to the character. Name it "HealthBar". Attach this script.
@@ -11,9 +11,10 @@ extends Node2D
 #   3. In the Inspector on HealthBar, drag that Sprite2D into the "Fill Window" slot.
 #   4. Place your decorative container frame art separately however you like.
 #
-# The script sets clip_children = CLIP_CHILDREN_ONLY on the fill_window sprite.
-# Godot clips all fill drawing to the PNG's non-transparent pixels, giving the
-# correct curved/custom shape. The white PNG itself is not visible.
+# The script gives the fill_window sprite the masked_bar shader, which paints the
+# fill only on the PNG's non-transparent pixels, giving the correct curved/custom
+# shape. The white PNG itself is not visible. (clip_children used to do this, but
+# Safari ignores it and drew the fill as one big rectangle.)
 
 @export_group("Fill Window")
 ## Drag your white fill-area mask Sprite2D here.
@@ -44,13 +45,14 @@ enum Team { AUTO, ALLY, ENEMY }
 
 const GHOST_HOLD_TIME := 1.0
 const GHOST_DRAIN_TIME := 0.35
+const MASKED_BAR_SHADER := preload("res://ui/shaders/masked_bar.gdshader")
 
 var _ratio: float = 1.0
 var _ghost_ratio: float = 1.0
 var _ghost_ratio_start: float = 1.0
 var _ghost_hold_timer: float = 0.0
 var _ghost_drain_timer: float = 0.0
-var _draw_node: Node2D
+var _mat: ShaderMaterial
 
 
 func _ready() -> void:
@@ -58,11 +60,10 @@ func _ready() -> void:
 	if fill_window == null:
 		push_error(name + ": fill_window is not assigned in the Inspector.")
 		return
-	fill_window.clip_children = CanvasItem.CLIP_CHILDREN_ONLY
-	_draw_node = Node2D.new()
-	fill_window.add_child(_draw_node)
-	_draw_node.draw.connect(_on_draw_fill)
-	_draw_node.queue_redraw()
+	_mat = ShaderMaterial.new()
+	_mat.shader = MASKED_BAR_SHADER
+	fill_window.material = _mat
+	_redraw()
 
 
 func set_health(current_health: float, max_health: float) -> void:
@@ -105,9 +106,27 @@ func _process(delta: float) -> void:
 		_redraw()
 
 
+## Pushes the current fill/ghost extents to the mask's shader.
 func _redraw() -> void:
-	if _draw_node != null:
-		_draw_node.queue_redraw()
+	if _mat == null:
+		return
+	var b := _get_local_bounds()
+	_mat.set_shader_parameter(&"vertical", true)
+	_mat.set_shader_parameter(&"background_color", background_color)
+	_mat.set_shader_parameter(&"band0_color", Color.WHITE)
+	_mat.set_shader_parameter(&"band1_color", fill_color)
+
+	var ghost := Vector2.ZERO
+	var fill := Vector2.ZERO
+	var total_h := fill_bottom_y - fill_top_y
+	var filled_h := total_h * _ratio
+	if total_h > 0.0 and filled_h > 0.0:
+		# Ghost (white) shows the recently lost portion for GHOST_HOLD_TIME seconds.
+		if _ghost_ratio > _ratio:
+			ghost = Vector2(_to_v(b, fill_bottom_y - _ghost_ratio * total_h), _to_v(b, fill_bottom_y - _ratio * total_h))
+		fill = Vector2(_to_v(b, fill_bottom_y - filled_h), _to_v(b, fill_bottom_y))
+	_mat.set_shader_parameter(&"band0", ghost)
+	_mat.set_shader_parameter(&"band1", fill)
 
 
 ## Picks the fill color from `team`, auto-detecting the owning unit's side by
@@ -145,24 +164,6 @@ func _get_local_bounds() -> Rect2:
 	return Rect2(off, sz)
 
 
-func _on_draw_fill() -> void:
-	var b := _get_local_bounds()
-
-	# Background fills the entire window area.
-	_draw_node.draw_rect(b, background_color)
-
-	var total_h := fill_bottom_y - fill_top_y
-	if total_h <= 0.0:
-		return
-	var filled_h := total_h * _ratio
-	if filled_h <= 0.0:
-		return
-
-	# Ghost (white) shows the recently lost portion for GHOST_HOLD_TIME seconds.
-	if _ghost_ratio > _ratio:
-		var ghost_h := (_ghost_ratio - _ratio) * total_h
-		var ghost_top_y := fill_bottom_y - _ghost_ratio * total_h
-		_draw_node.draw_rect(Rect2(Vector2(b.position.x, ghost_top_y), Vector2(b.size.x, ghost_h)), Color.WHITE)
-
-	var top_y := fill_bottom_y - filled_h
-	_draw_node.draw_rect(Rect2(Vector2(b.position.x, top_y), Vector2(b.size.x, filled_h)), fill_color)
+# Local Y inside the fill_window sprite -> its texture's V coordinate.
+func _to_v(b: Rect2, y: float) -> float:
+	return (y - b.position.y) / maxf(b.size.y, 0.001)

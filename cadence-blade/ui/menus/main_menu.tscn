@@ -679,6 +679,7 @@ details_button = NodePath("../DetailsButton")
 detailed_stats_panel = NodePath("../DetailedStatsPanel")
 
 [node name="DebugLabel" type="Label" parent="sessionscreen" unique_id=1909427171]
+z_index = 2
 layout_mode = 1
 anchors_preset = 7
 anchor_left = 0.5

@@ -1410,6 +1410,9 @@ func _spawn_display_enemy_arrow(data: Dictionary) -> void:
 	var dir := Vector2(float(data.get("dx", 1.0)), float(data.get("dy", 0.0)))
 	var spd: float = float(data.get("sp", 400.0))
 	var lt: float = float(data.get("lt", 2.5))
+	# Match the host's drop_gravity (enemy archers now shoot flatter than the arrow
+	# scene's own default) so the joiner's cosmetic copy falls the same way.
+	arrow.drop_gravity = float(data.get("gr", 250.0))
 	arrow.configure(pos, dir, spd, 0.0, 0.0)
 	arrow.lifetime = lt
 	# Keep detection mask so the arrow stops when it hits a player or the castle,

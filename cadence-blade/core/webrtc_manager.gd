@@ -73,12 +73,18 @@ var _emitted_connected: bool = false
 
 ## remote_slot -> PeerLink. Host: entries for joiner slots. Joiner: single entry keyed 1.
 var _links: Dictionary = {}
+## Host: slot -> SDP of the last offer answered there. A failed link leaves its
+## offer in Firebase, and the re-armed link must not answer that dead offer again.
+var _answered_offers: Dictionary = {}
 
 
 ## Per-connection signaling + channel state.
 class PeerLink:
 	## Host: the joiner's slot. Joiner: 1 (the host).
 	var slot: int = 0
+	## Id of the join attempt this link belongs to. Joiner: generated per
+	## join_session(). Host: copied from the offer it answered.
+	var attempt: String = ""
 	var conn: WebRTCPeerConnection = null
 	var ch_reliable: WebRTCDataChannel = null
 	var ch_unreliable: WebRTCDataChannel = null
@@ -172,6 +178,7 @@ func join_session(session_id: String, my_slot: int = 2) -> void:
 		if not _joining:
 			return  # Player backed out while we waited.
 	var link := _create_link(1)
+	link.attempt = "%x%x" % [randi(), Time.get_ticks_usec()]
 	var offer_err: int = link.conn.create_offer()
 	if offer_err != OK:
 		push_error("WebRTCManager: create_offer() failed: %d" % offer_err)
@@ -383,6 +390,8 @@ func _do_signal_poll(link: PeerLink) -> void:
 	var ns: int = _signal_slot(link)
 	if _is_host and not link.offer_received:
 		FirebaseClient.read_signal_data(_session_id, "%d/offer" % ns, _on_received_offer.bind(link))
+	elif _is_host:
+		FirebaseClient.read_signal_data(_session_id, "%d/offer" % ns, _on_offer_recheck.bind(link))
 	elif not _is_host and not link.answer_received:
 		FirebaseClient.read_signal_data(_session_id, "%d/answer" % ns, _on_received_answer.bind(link))
 
@@ -401,16 +410,20 @@ func _on_sdp_created(type: String, sdp: String, link: PeerLink) -> void:
 	if not _is_host and not link.offer_sent:
 		link.offer_sent = true
 		_dbg("[slot %d] JOINER: offer ready (%d chars) — writing to Firebase" % [link.slot, sdp.length()])
-		FirebaseClient.write_signal_data(_session_id, "%d/offer" % ns, {"type": type, "sdp": sdp}, func(_c, _d): pass)
+		FirebaseClient.write_signal_data(_session_id, "%d/offer" % ns, {"type": type, "sdp": sdp, "attempt": link.attempt}, func(_c, _d): pass)
 	elif _is_host and not link.answer_sent:
 		link.answer_sent = true
 		_dbg("[slot %d] HOST: answer ready (%d chars) — writing to Firebase" % [link.slot, sdp.length()])
-		FirebaseClient.write_signal_data(_session_id, "%d/answer" % ns, {"type": type, "sdp": sdp}, func(_c, _d): pass)
+		FirebaseClient.write_signal_data(_session_id, "%d/answer" % ns, {"type": type, "sdp": sdp, "attempt": link.attempt}, func(_c, _d): pass)
 
 
 func _on_received_offer(_code: int, data: Variant, link: PeerLink) -> void:
 	if link.conn == null or link.offer_received or not (data is Dictionary) or not data.has("sdp"):
 		return
+	if _answered_offers.get(link.slot, "") == data["sdp"]:
+		return  # Answered on an earlier link that failed — that joiner is gone.
+	_answered_offers[link.slot] = data["sdp"]
+	link.attempt = str(data.get("attempt", ""))
 	link.offer_received = true
 	_dbg("[slot %d] HOST: received joiner offer — setting remote description" % link.slot)
 	var set_err: int = link.conn.set_remote_description(data.get("type", "offer"), data["sdp"])
@@ -422,9 +435,21 @@ func _on_received_offer(_code: int, data: Variant, link: PeerLink) -> void:
 	_do_signal_poll(link)
 
 
+## Host, mid-handshake: a joiner that gave up and retried in this lobby has
+## replaced the offer. Drop this half-finished link now (re-arming the slot for
+## the new offer) instead of waiting for its ICE to time out.
+func _on_offer_recheck(_code: int, data: Variant, link: PeerLink) -> void:
+	if link.conn == null or link.is_open or not (data is Dictionary) or not data.has("sdp"):
+		return
+	if data["sdp"] != _answered_offers.get(link.slot, ""):
+		_fail_link(link, "joiner retried with a new offer")
+
+
 func _on_received_answer(_code: int, data: Variant, link: PeerLink) -> void:
 	if link.conn == null or link.answer_received or not (data is Dictionary) or not data.has("sdp"):
 		return
+	if not _same_attempt(data, link):
+		return  # The host's answer to an earlier attempt in this lobby.
 	link.answer_received = true
 	_dbg("[slot %d] JOINER: received host answer — setting remote description" % link.slot)
 	var set_err: int = link.conn.set_remote_description(data.get("type", "answer"), data["sdp"])
@@ -451,12 +476,14 @@ func _flush_local_ice(link: PeerLink) -> void:
 	var ns: int = _signal_slot(link)
 	var my_ice_key: String = "ice_host" if _is_host else "ice_joiner"
 	FirebaseClient.write_signal_data(_session_id, "%d/%s" % [ns, my_ice_key],
-		{"candidates": link.all_local_ice}, func(_c, _d): pass)
+		{"candidates": link.all_local_ice, "attempt": link.attempt}, func(_c, _d): pass)
 
 
 func _on_received_ice_batch(_code: int, data: Variant, link: PeerLink) -> void:
 	if link.conn == null or not (data is Dictionary) or not data.has("candidates"):
 		return
+	if not _same_attempt(data, link):
+		return  # Leftover candidates from an earlier attempt in this lobby.
 	var candidates: Array = data["candidates"]
 	if not link.remote_sdp_set:
 		for i in range(link.buffered_remote_ice.size(), candidates.size()):
@@ -469,6 +496,13 @@ func _on_received_ice_batch(_code: int, data: Variant, link: PeerLink) -> void:
 		if c is Dictionary and c.has("media") and c.has("index") and c.has("name"):
 			link.conn.add_ice_candidate(c["media"], int(c["index"]), c["name"])
 	link.remote_ice_applied = candidates.size()
+
+
+## Every signaling payload carries the joiner's attempt id, so a retry in the same
+## lobby ignores whatever the previous attempt left in Firebase. Payloads from
+## builds older than the id are accepted as-is.
+func _same_attempt(data: Dictionary, link: PeerLink) -> bool:
+	return not data.has("attempt") or str(data["attempt"]) == link.attempt
 
 
 func _apply_buffered_ice(link: PeerLink) -> void:
@@ -536,6 +570,7 @@ func _cleanup(emit_disc: bool) -> void:
 	for slot in _links.keys():
 		_destroy_link(_links[slot])
 	_links.clear()
+	_answered_offers.clear()
 	_is_host = false
 	_hosting = false
 	_joining = false

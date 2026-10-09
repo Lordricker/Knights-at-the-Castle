@@ -28,6 +28,10 @@ const SHOOT_FRAME: int = 5
 @export var arrow_speed: float = 400.0
 @export var arrow_lifetime: float = 2.5
 @export_range(-90.0, 90.0, 1.0, "degrees") var arrow_angle: float = 0.0
+## Downward acceleration (px/s^2) applied to fired arrows. Defaults to half of
+## arrow.tscn's own drop_gravity (500) — this unit doesn't lead a moving target,
+## so full gravity made its shots undershoot noticeably more than a player's.
+@export var arrow_gravity: float = 250.0
 @export var shoot_sound: AudioStream
 @export_range(-40.0, 6.0, 0.1) var shoot_sound_volume_db: float = 0.0
 @export var shoot_sound_frames: Array[int] = []
@@ -265,6 +269,16 @@ func _get_enemies_in_range() -> Array:
 	for body in detection_zone.get_overlapping_bodies():
 		if body is EnemyBase and not body.is_dead:
 			results.append(body)
+	# Some elites (green_dragon, red_dragon, skeleton_knight) have no body
+	# shape of their own — all their hitboxes live on HurtBox areas — so they
+	# only ever show up here as an overlapping area, not an overlapping body.
+	for area in detection_zone.get_overlapping_areas():
+		var hurtbox := area as HurtBox
+		if hurtbox == null:
+			continue
+		var entity: Node = hurtbox.get_entity()
+		if entity is EnemyBase and not entity.is_dead and not results.has(entity):
+			results.append(entity)
 	return results
 
 
@@ -320,7 +334,13 @@ func _on_frame_changed() -> void:
 
 func _on_animation_finished() -> void:
 	if shoot_state == ShootState.ATTACKING:
-		if _get_enemies_in_range().size() > 0:
+		# Re-acquire target here, not just re-check "something is in range" — otherwise
+		# a target that wandered off (while a different enemy is still nearby) keeps
+		# getting aimed at via its last known position, which reads as the archer
+		# firing at nothing since the original target is no longer visible in range.
+		var enemies := _get_enemies_in_range()
+		if enemies.size() > 0:
+			target = _find_closest(enemies)
 			_begin_shoot()
 		else:
 			_stop_attack()
@@ -342,21 +362,25 @@ func _check_footstep_sound() -> void:
 func _fire_arrow() -> void:
 	if arrow_scene == null:
 		return
+	# Bail if the target died or left mid-windup instead of falling back to firing
+	# toward its last known position — that fallback is what made this unit look
+	# like it was shooting at nothing.
+	if target == null or not is_instance_valid(target):
+		return
+	if target is EnemyBase and target.is_dead:
+		return
 	var arrow := arrow_scene.instantiate() as Arrow
 	if arrow == null:
 		return
 
-	var shoot_dir: Vector2
-	if target != null and is_instance_valid(target):
-		shoot_dir = (target.global_position - global_position).normalized()
-	else:
-		shoot_dir = Vector2(facing, 0.0)
+	var shoot_dir: Vector2 = (target.global_position - global_position).normalized()
 
 	if arrow_angle != 0.0:
 		shoot_dir = shoot_dir.rotated(deg_to_rad(arrow_angle * -facing))
 
 	# collision_mask = 2 so the arrow only hits real enemies, never the player/castle.
 	arrow.collision_mask = 2
+	arrow.drop_gravity = arrow_gravity
 	arrow.configure(global_position, shoot_dir, arrow_speed, arrow_damage, 0.0)
 	arrow.lifetime = arrow_lifetime
 	if poison_enabled:

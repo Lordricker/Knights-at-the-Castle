@@ -27,6 +27,12 @@ const PLAYER_ATTACK_LAYERS: int = (1 << 4) | (1 << 5)
 ## Resolved in _ready(). The CharacterBody2D (or other node) that owns this hitbox.
 var _entity: Node = null
 
+## Public accessor for _entity — used by anything that scans overlapping areas
+## looking for an EnemyBase presence (unit-hut warrior/archer, tower archer)
+## since hurtbox-only enemies never show up as an overlapping body.
+func get_entity() -> Node:
+	return _entity
+
 ## Meta key on the owning entity: { attack_area_instance_id: true } for attacks
 ## currently claimed by one of its hurtboxes. Shared by every hurtbox on the
 ## entity so a single swing/projectile damages only the first box it overlaps.
@@ -35,8 +41,6 @@ const _CLAIMS_META := &"_hurtbox_attack_claims"
 
 func _ready() -> void:
 	monitoring = true
-	monitorable = false   # hurtboxes are passive — nothing needs to detect them outwardly
-	collision_layer = 0   # not on any outward layer
 
 	# Walk up the tree to find the entity this box belongs to.
 	var p: Node = get_parent()
@@ -56,6 +60,21 @@ func _ready() -> void:
 	else:
 		# Players: detect every incoming area (enemy melee zones, arrows, fireballs).
 		collision_mask = 0xFFFF_FFFF
+
+	# Outward visibility: entities that route ALL their damage through hurtboxes
+	# (no CollisionShape2D of their own on the CharacterBody2D — e.g. green_dragon,
+	# red_dragon, skeleton_knight) are otherwise invisible to anything that scans
+	# for an EnemyBase presence via physics overlap, such as a unit-hut warrior/
+	# archer's DetectionZone. Layer 2 matches the layer every EnemyBase
+	# CharacterBody2D already sits on, so the same zones that find normal enemies
+	# find these too. Player hurtboxes stay invisible — nothing needs to detect
+	# a player outwardly through this box today.
+	if _entity is EnemyBase:
+		monitorable = true
+		collision_layer = 2
+	else:
+		monitorable = false
+		collision_layer = 0
 
 	area_entered.connect(_on_area_entered)
 	area_exited.connect(_on_area_exited)

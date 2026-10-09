@@ -11,9 +11,10 @@ extends Node2D
 #   4. Place your container frame art separately however you like.
 #
 # HOW MASKING WORKS:
-#   The script sets clip_children = CLIP_CHILDREN_ONLY on the fill_window sprite.
-#   All fill drawing is clipped to the non-transparent pixels of your PNG shape.
-#   The white PNG itself is invisible — only the color fill shows through.
+#   The script gives the fill_window sprite the masked_bar shader, which paints the
+#   fill only on the non-transparent pixels of your PNG shape. The white PNG itself
+#   is invisible — only the color fill shows through. (clip_children used to do
+#   this, but Safari ignores it and drew the fill as one big rectangle.)
 #
 # FLOW LIFECYCLE:
 #   start_flow()        → show fill, reset, yellow fill begins rising
@@ -56,11 +57,13 @@ enum AttemptResult {
 ## Hide the fill visuals when no attack is in the pause state.
 @export var hide_when_inactive: bool = true
 
+const MASKED_BAR_SHADER := preload("res://ui/shaders/masked_bar.gdshader")
+
 var _active: bool = false
 var _progress: float = 0.0
 var _attempt_used: bool = false
 var _current_fill_color: Color
-var _draw_node: Node2D
+var _mat: ShaderMaterial
 
 
 func _ready() -> void:
@@ -68,10 +71,9 @@ func _ready() -> void:
 	if fill_window == null:
 		push_error(name + ": fill_window is not assigned in the Inspector.")
 		return
-	fill_window.clip_children = CanvasItem.CLIP_CHILDREN_ONLY
-	_draw_node = Node2D.new()
-	fill_window.add_child(_draw_node)
-	_draw_node.draw.connect(_on_draw_fill)
+	_mat = ShaderMaterial.new()
+	_mat.shader = MASKED_BAR_SHADER
+	fill_window.material = _mat
 	if hide_when_inactive:
 		fill_window.hide()
 	_redraw()
@@ -172,48 +174,24 @@ func display_sync(progress: float, ws: float = -1.0, we: float = -1.0, missed: b
 
 # ── Internal ───────────────────────────────────────────────────────────────────
 
+## Pushes the success zone and fill to the mask's shader. Normalized heights
+## (0 = bottom, 1 = top) map to the texture's V as 1 - value.
 func _redraw() -> void:
-	if _draw_node != null:
-		_draw_node.queue_redraw()
-
-
-# Returns the fill_window sprite's bounds in its own local space,
-# accounting for the centered flag and offset property.
-func _get_local_bounds() -> Rect2:
-	if fill_window == null or fill_window.texture == null:
-		return Rect2(Vector2(-10.0, -30.0), Vector2(20.0, 30.0))
-	var sz := fill_window.texture.get_size()
-	var off := fill_window.offset
-	if fill_window.centered:
-		return Rect2(-sz * 0.5 + off, sz)
-	return Rect2(off, sz)
-
-
-func _on_draw_fill() -> void:
-	var b := _get_local_bounds()
-	var left := b.position.x
-	var top_y := b.position.y   # visually highest point (lowest Y in 2D)
-	var bot_y := b.end.y        # visually lowest point (highest Y in 2D)
-	var tw := b.size.x
-	var th := b.size.y
-
-	# Background — fills the entire window area.
-	_draw_node.draw_rect(b, background_color)
+	if _mat == null:
+		return
+	_mat.set_shader_parameter(&"vertical", true)
+	_mat.set_shader_parameter(&"background_color", background_color)
 
 	# Success zone — fixed band at the configured normalized height.
-	# Value v (0=bottom, 1=top) maps to local y: bot_y - v * th
+	var zone := Vector2.ZERO
 	if success_window_end > success_window_start:
-		var zone_top_y := bot_y - success_window_end * th
-		var zone_h := (success_window_end - success_window_start) * th
-		_draw_node.draw_rect(
-			Rect2(Vector2(left, zone_top_y), Vector2(tw, zone_h)),
-			success_zone_color
-		)
+		zone = Vector2(1.0 - success_window_end, 1.0 - success_window_start)
+	_mat.set_shader_parameter(&"band0", zone)
+	_mat.set_shader_parameter(&"band0_color", success_zone_color)
 
 	# Fill — rises from the visual bottom upward.
-	var filled_h := th * _progress
-	if filled_h > 0.0:
-		_draw_node.draw_rect(
-			Rect2(Vector2(left, bot_y - filled_h), Vector2(tw, filled_h)),
-			_current_fill_color
-		)
+	var fill := Vector2.ZERO
+	if _progress > 0.0:
+		fill = Vector2(1.0 - _progress, 1.0)
+	_mat.set_shader_parameter(&"band1", fill)
+	_mat.set_shader_parameter(&"band1_color", _current_fill_color)
