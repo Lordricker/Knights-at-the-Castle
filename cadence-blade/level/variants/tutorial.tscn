@@ -1038,12 +1038,12 @@ position = Vector2(-3, 83)
 [node name="Area2D" type="Area2D" parent="enemy spawners/EnemyTower" unique_id=466675758]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="enemy spawners/EnemyTower/Area2D" unique_id=1843651473]
-position = Vector2(0, 15.46)
+position = Vector2(2, -5.999999)
 shape = SubResource("RectangleShape2D_62wvd")
 
 [node name="unitHut2" parent="enemy spawners" unique_id=983588684 node_paths=PackedStringArray("coins_display") instance=ExtResource("51_7e23b")]
 z_index = -1
-position = Vector2(928, 15.46)
+position = Vector2(930, -5.999999)
 hut_id = 2
 build_cost = 5
 warrior_cost = 7
@@ -1053,7 +1053,7 @@ coins_display = NodePath("../../HUD")
 
 [node name="EnemyTower2" type="Sprite2D" parent="enemy spawners" unique_id=1830992759 node_paths=PackedStringArray("unit_hut", "next_towers", "tower_sprite", "interaction_area", "spawn_point", "walk_path")]
 z_index = -1
-position = Vector2(978, 15.46)
+position = Vector2(976, 72)
 texture = ExtResource("52_72ry3")
 script = ExtResource("53_vfx6l")
 unit_hut = NodePath("../unitHut2")

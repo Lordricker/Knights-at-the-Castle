@@ -30,6 +30,9 @@ extends Area2D
 @export_range(-40.0, 6.0, 0.1) var pickup_sound_volume_db: float = 0.0
 ## Speed the coin pops away from its drop point at, in a random direction.
 @export var pop_speed: float = 20.0
+## Pop direction in radians. Set before add_child so the host's coin and the
+## joiner's display coin fly the same way; NAN picks a random direction.
+var pop_angle: float = NAN
 
 @onready var animated_sprite: AnimatedSprite2D = get_node_or_null("AnimatedSprite2D") as AnimatedSprite2D
 var _pickup_audio: AudioStreamPlayer2D = null
@@ -51,7 +54,9 @@ func _ready() -> void:
 		add_child(_pickup_audio)
 	add_to_group(&"coins")  # so hut priests can find coins to fetch
 	body_entered.connect(_on_body_entered)
-	_velocity = Vector2.RIGHT.rotated(randf_range(0.0, TAU)) * pop_speed
+	if is_nan(pop_angle):
+		pop_angle = randf_range(0.0, TAU)
+	_velocity = Vector2.RIGHT.rotated(pop_angle) * pop_speed
 	if animated_sprite != null:
 		animated_sprite.animation_finished.connect(_on_animation_finished)
 		if not animated_sprite.is_playing():

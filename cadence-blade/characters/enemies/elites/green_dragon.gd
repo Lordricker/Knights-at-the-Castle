@@ -298,20 +298,48 @@ func _on_frame_changed() -> void:
 func _on_animation_finished() -> void:
 	match attack_state:
 		AttackState.SLASHING:
-			if _get_targets_in_range().size() > 0:
+			var slash_targets := _get_targets_in_range()
+			if slash_targets.size() > 0:
+				# Refresh target every re-attack (not just on the very first
+				# trigger) so a closer target that entered range mid-combo —
+				# or a target that left — gets picked up on the next swing
+				# instead of continuing to hit a stale reference.
+				target = slash_targets[0]
 				_begin_slash()
 			else:
 				_stop_slash()
 		AttackState.CASTING_FIREBALL:
-			if _get_fireball_targets().size() > 0:
+			# A target closing to slash range takes priority over continuing
+			# to lob fireballs — break out of the fireball loop so
+			# _handle_ai() picks the close-range attack on the next tick.
+			if _get_targets_in_range().size() > 0:
+				_stop_fireball()
+				return
+			var fireball_targets := _get_fireball_targets()
+			if fireball_targets.size() > 0:
+				target = fireball_targets[0]
 				_begin_fireball()
 			else:
 				_stop_fireball()
 
 
+# ── Detection zone target query ─────────────────────────────────────────────────
+
+## Returns Kill-group targets from the close-range detection zone, closest
+## first. Overrides EnemyBase's version — which returns targets in whatever
+## order the physics engine lists them — so the dragon always locks onto the
+## nearest threat instead of getting stuck on whichever body entered the zone
+## first (e.g. a stationary hut unit, while a player who's actually closer
+## gets ignored).
+func _get_targets_in_range() -> Array:
+	var results := super()
+	_sort_by_distance(results)
+	return results
+
+
 # ── Fireball zone target query ─────────────────────────────────────────────────
 
-## Returns Kill-group targets from the fireball detection zone.
+## Returns Kill-group targets from the fireball detection zone, closest first.
 func _get_fireball_targets() -> Array:
 	if fireball_zone == null:
 		return []
@@ -322,7 +350,13 @@ func _get_fireball_targets() -> Array:
 	for area in fireball_zone.get_overlapping_areas():
 		if area.is_in_group(&"Kill"):
 			results.append(area)
+	_sort_by_distance(results)
 	return results
+
+
+## Sorts Kill-group targets by distance to this dragon, closest first.
+func _sort_by_distance(targets: Array) -> void:
+	targets.sort_custom(func(a, b): return global_position.distance_squared_to(a.global_position) < global_position.distance_squared_to(b.global_position))
 
 
 # ── Facing helpers ─────────────────────────────────────────────────────────────

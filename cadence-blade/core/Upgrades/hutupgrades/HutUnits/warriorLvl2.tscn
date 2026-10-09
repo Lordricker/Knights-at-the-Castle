@@ -119,7 +119,7 @@ animations = [{
 size = Vector2(28, 32)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_0vpwa"]
-size = Vector2(300, 200)
+size = Vector2(800, 400)
 
 [sub_resource type="Curve" id="Curve_0kexb"]
 _data = [Vector2(0, 1), 0.0, -0.46075952, 0, 1, Vector2(1, 0.5392405), -0.46075952, 0.0, 1, 0]
@@ -157,7 +157,7 @@ hit_sound_arrow_flow = ExtResource("7_f17cl")
 position = Vector2(0, 4)
 shape = SubResource("RectangleShape2D_xsjc2")
 
-[node name="NavigationAgent2D" type="NavigationAgent2D" parent="CharacterBody2D"]
+[node name="NavigationAgent2D" type="NavigationAgent2D" parent="CharacterBody2D" unique_id=1034743454]
 path_desired_distance = 8.0
 target_desired_distance = 8.0
 
@@ -188,7 +188,6 @@ collision_mask = 2
 monitorable = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D/Pivot/DetectionZone" unique_id=2137898029]
-visible = false
 position = Vector2(-14, 9)
 shape = SubResource("RectangleShape2D_0vpwa")
 debug_color = Color(0.6837786, 0.5034512, 0, 0.41960785)

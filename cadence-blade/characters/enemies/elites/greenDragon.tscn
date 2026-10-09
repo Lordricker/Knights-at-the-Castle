@@ -224,7 +224,6 @@ slash_swing_sound_frames = Array[int]([2])
 fireball_scene = ExtResource("2_7wkot")
 fireball_splash_damage = 22.0
 fireball_lifetime = 1.0
-fireball_angle = -10.0
 fireball_marker = NodePath("Pivot/FireballZone/Marker2D")
 fireball_zone = NodePath("Pivot/FireballZone")
 fireball_windup_particles = NodePath("Pivot/lifetimeParticles")

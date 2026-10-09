@@ -34,6 +34,10 @@ const SHOOT_FRAME: int = 5
 @export var arrow_lifetime: float = 2.5
 ## Fixed angle offset added to the shot direction in degrees (negative = upward).
 @export_range(-90.0, 90.0, 1.0, "degrees") var arrow_angle: float = 0.0
+## Downward acceleration (px/s^2) applied to fired arrows. Defaults to half of
+## arrow.tscn's own drop_gravity (500) — this unit doesn't lead a moving target,
+## so full gravity made its shots undershoot noticeably more than a player's.
+@export var arrow_gravity: float = 250.0
 
 @export_group("Stats")
 ## Max HP of the tower archer.
@@ -394,6 +398,7 @@ func _fire_arrow() -> void:
 
 	# collision_mask = 2 so the arrow only hits enemy bodies (layer 2).
 	arrow.collision_mask = 2
+	arrow.drop_gravity = arrow_gravity
 	arrow.configure(global_position, shoot_dir, arrow_speed, arrow_damage, 0.0)
 	arrow.lifetime = arrow_lifetime
 	get_tree().current_scene.call_deferred("add_child", arrow)
@@ -408,6 +413,16 @@ func _get_enemies_in_range() -> Array:
 	for body in detection_zone.get_overlapping_bodies():
 		if body is EnemyBase and not body.is_dead:
 			results.append(body)
+	# Some elites (green_dragon, red_dragon, skeleton_knight) have no body
+	# shape of their own — all their hitboxes live on HurtBox areas — so they
+	# only ever show up here as an overlapping area, not an overlapping body.
+	for area in detection_zone.get_overlapping_areas():
+		var hurtbox := area as HurtBox
+		if hurtbox == null:
+			continue
+		var entity: Node = hurtbox.get_entity()
+		if entity is EnemyBase and not entity.is_dead and not results.has(entity):
+			results.append(entity)
 	return results
 
 

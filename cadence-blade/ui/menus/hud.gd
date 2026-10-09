@@ -61,6 +61,10 @@ extends CanvasLayer
 ## Root Control for the pause overlay. Hidden by default. Set its process_mode to
 ## "When Paused" in the Inspector so its buttons still respond while the tree is frozen.
 @export var pause_control: Control
+## The Resume/Restart/Details/Quit button panel inside pause_control. Shown on
+## pause, swapped out while the details panel is open. Its editor visibility is
+## ignored — the code drives it, so hiding it in the editor can't soft-lock pause.
+@export var pause_menu_panel: Control
 ## Resume button inside pause_control.
 @export var pause_resume_button: Button
 ## Restart button inside pause_control (reuses the game-over restart path).
@@ -445,15 +449,16 @@ func _set_paused(want_paused: bool) -> void:
 	if pause_control != null:
 		pause_control.visible = want_paused
 	# Always return to the pause menu proper — details panel opens on demand.
-	if not want_paused:
-		_close_pause_details()
-	elif pause_details_panel != null:
-		pause_details_panel.hide()
+	_close_pause_details()
 
 
 ## Opens the character-details panel showing only the player's character.
+## The button panel is hidden meanwhile — it's a later sibling, so it would
+## otherwise draw on top of the details.
 func _open_pause_details() -> void:
 	_show_pause_character(GameManager.my_character)
+	if pause_menu_panel != null:
+		pause_menu_panel.hide()
 	if pause_details_panel != null:
 		pause_details_panel.show()
 
@@ -461,6 +466,8 @@ func _open_pause_details() -> void:
 func _close_pause_details() -> void:
 	if pause_details_panel != null:
 		pause_details_panel.hide()
+	if pause_menu_panel != null:
+		pause_menu_panel.show()
 
 
 ## Shows only the details container matching the player's chosen character.

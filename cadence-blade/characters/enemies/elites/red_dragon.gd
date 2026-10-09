@@ -582,9 +582,9 @@ func _on_animation_finished() -> void:
 			var close_targets := _get_targets_in_range()
 			if close_targets.size() > 0:
 				# Refresh target every re-attack (not just on the very first
-				# trigger) — bodies sort before areas in _get_targets_in_range,
-				# so this is also what makes a player take priority over the
-				# castle the moment they're both in range.
+				# trigger) — _get_targets_in_range() is sorted closest-first,
+				# so this also re-locks onto a player the moment they're
+				# nearer than whatever was being hit before (e.g. the castle).
 				target = close_targets[0]
 				# Chaining straight into the next close-range attack — if we
 				# were breathing, tear its hitbox/flame down first (see
@@ -607,17 +607,30 @@ func _on_animation_finished() -> void:
 				return
 			var fireball_targets := _get_fireball_targets()
 			if fireball_targets.size() > 0:
-				# Same refresh as above: a player in fireball range also sorts
-				# ahead of the castle, so re-picking here re-targets onto them.
+				# Same refresh as above: closest-first sorting re-targets onto
+				# a player the moment they're nearer than the castle.
 				target = fireball_targets[0]
 				_begin_fireball()
 			else:
 				_stop_fireball()
 
 
+# ── Detection zone target query ─────────────────────────────────────────────────
+
+## Returns Kill-group targets from the close-range detection zone, closest
+## first. Overrides EnemyBase's version — which returns targets in whatever
+## order the physics engine lists them — so close_targets[0] above and in
+## _on_animation_finished() is always the nearest threat, not just whichever
+## body happened to enter the zone first.
+func _get_targets_in_range() -> Array:
+	var results := super()
+	_sort_by_distance(results)
+	return results
+
+
 # ── Fireball zone target query ─────────────────────────────────────────────────
 
-## Returns Kill-group targets from the fireball detection zone.
+## Returns Kill-group targets from the fireball detection zone, closest first.
 func _get_fireball_targets() -> Array:
 	if fireball_zone == null:
 		return []
@@ -628,7 +641,13 @@ func _get_fireball_targets() -> Array:
 	for area in fireball_zone.get_overlapping_areas():
 		if area.is_in_group(&"Kill"):
 			results.append(area)
+	_sort_by_distance(results)
 	return results
+
+
+## Sorts Kill-group targets by distance to this dragon, closest first.
+func _sort_by_distance(targets: Array) -> void:
+	targets.sort_custom(func(a, b): return global_position.distance_squared_to(a.global_position) < global_position.distance_squared_to(b.global_position))
 
 
 # ── Approach zone target query ──────────────────────────────────────────────────

@@ -28,6 +28,9 @@ var _current_cb: Callable = Callable()
 
 func _ready() -> void:
 	_http = HTTPRequest.new()
+	# Requests run one at a time, so a single request stuck on a network blip would
+	# stall all signaling after it. Give up instead; callers treat it as "no data".
+	_http.timeout = 10.0
 	_http.request_completed.connect(_on_completed)
 	add_child(_http)
 

@@ -16,6 +16,11 @@ extends Node2D
 ## Assigned by CastleInside before the node enters the scene tree.
 var owner_player: Node = null
 
+## How long after a tower dies it still counts as a valid match — covers the
+## joiner's cosmetic TNT copy (see the loop below) without leaving a tower's
+## old footprint as a permanent TNT sink long after it fell.
+const DESTROYED_GRACE_MSEC: int = 3000
+
 @onready var _area:       Area2D          = $Area2D
 @onready var _sprite:     TextureRect     = $TextureRect
 @onready var _particles1: CPUParticles2D  = $CPUParticles2D
@@ -38,21 +43,27 @@ func _process(delta: float) -> void:
 	global_position = global_position.lerp(target, lerp_speed * delta)
 
 	# Check if our Area2D is overlapping any relevant enemy tower's interaction area.
-	# "Relevant" = active OR already destroyed (not "never activated"). The plain
-	# is_active check used to skip an already-destroyed tower — which breaks the
-	# joiner's cosmetic TNT copy: it lerps toward the buyer's position over real
-	# time, and the host's authoritative "tower_destroyed" packet (sent the instant
-	# the host's own TNT reaches the tower) routinely arrives before this copy
-	# finishes its travel, flipping is_active false first. Matching is_destroyed
-	# too means a tower the host just blew up (or a chained tower the joiner never
-	# locally activated) still gets matched, so this TNT explodes instead of
-	# hovering forever. A tower that was never activated on this peer still has
+	# "Relevant" = active, OR destroyed within the last DESTROYED_GRACE_MSEC (not
+	# "never activated" and not "destroyed ages ago"). The plain is_active check
+	# used to skip an already-destroyed tower — which breaks the joiner's cosmetic
+	# TNT copy: it lerps toward the buyer's position over real time, and the host's
+	# authoritative "tower_destroyed" packet (sent the instant the host's own TNT
+	# reaches the tower) routinely arrives before this copy finishes its travel,
+	# flipping is_active false first. Matching a *freshly* destroyed tower too
+	# means it still gets matched, so this TNT explodes instead of hovering
+	# forever. The grace window keeps that fix from turning every tower's old,
+	# long-dead footprint into a permanent trap that silently consumes real TNT
+	# wandering nearby. A tower that was never activated on this peer still has
 	# both flags false and is correctly skipped.
 	for tower in get_tree().get_nodes_in_group(&"enemy_towers"):
 		if not tower.has_method(&"destroy"):
 			continue
-		if not tower.get("is_active") and not tower.get("is_destroyed"):
-			continue
+		if not tower.get("is_active"):
+			if not tower.get("is_destroyed"):
+				continue
+			var destroyed_at: int = int(tower.get("destroyed_at_msec"))
+			if destroyed_at < 0 or Time.get_ticks_msec() - destroyed_at > DESTROYED_GRACE_MSEC:
+				continue
 		var t_area: Area2D = tower.get("interaction_area") as Area2D
 		if t_area == null:
 			continue

@@ -1,7 +1,7 @@
 class_name HorizontalHealthBar
 extends Node2D
 
-# horizontal_health_bar.gd — Masked horizontal health bar using clip_children.
+# horizontal_health_bar.gd — Masked horizontal health bar.
 # Fills left-to-right, otherwise identical to VerticalHealthBar.
 #
 # HOW TO USE:
@@ -11,8 +11,9 @@ extends Node2D
 #   3. In the Inspector on HPBar, drag that Sprite2D into the "Fill Window" slot.
 #   4. Place your decorative frame art separately however you like.
 #
-# The script sets clip_children = CLIP_CHILDREN_ONLY on the fill_window sprite,
-# clipping all fill drawing to the PNG's opaque pixels.
+# The script gives the fill_window sprite the masked_bar shader, which paints the
+# fill only on the PNG's opaque pixels. (clip_children used to do this, but
+# Safari ignores it and drew the fill as one big rectangle.)
 
 @export_group("Fill Window")
 ## Drag your white fill-area mask Sprite2D here.
@@ -43,13 +44,14 @@ enum Team { AUTO, ALLY, ENEMY }
 
 const GHOST_HOLD_TIME := 1.0
 const GHOST_DRAIN_TIME := 0.35
+const MASKED_BAR_SHADER := preload("res://ui/shaders/masked_bar.gdshader")
 
 var _ratio: float = 1.0
 var _ghost_ratio: float = 1.0
 var _ghost_ratio_start: float = 1.0
 var _ghost_hold_timer: float = 0.0
 var _ghost_drain_timer: float = 0.0
-var _draw_node: Node2D
+var _mat: ShaderMaterial
 
 
 func _ready() -> void:
@@ -57,11 +59,10 @@ func _ready() -> void:
 	if fill_window == null:
 		push_error(name + ": fill_window is not assigned in the Inspector.")
 		return
-	fill_window.clip_children = CanvasItem.CLIP_CHILDREN_ONLY
-	_draw_node = Node2D.new()
-	fill_window.add_child(_draw_node)
-	_draw_node.draw.connect(_on_draw_fill)
-	_draw_node.queue_redraw()
+	_mat = ShaderMaterial.new()
+	_mat.shader = MASKED_BAR_SHADER
+	fill_window.material = _mat
+	_redraw()
 
 
 func set_health(current_health: float, max_health: float) -> void:
@@ -104,9 +105,27 @@ func _process(delta: float) -> void:
 		_redraw()
 
 
+## Pushes the current fill/ghost extents to the mask's shader.
 func _redraw() -> void:
-	if _draw_node != null:
-		_draw_node.queue_redraw()
+	if _mat == null:
+		return
+	var b := _get_local_bounds()
+	_mat.set_shader_parameter(&"vertical", false)
+	_mat.set_shader_parameter(&"background_color", background_color)
+	_mat.set_shader_parameter(&"band0_color", Color.WHITE)
+	_mat.set_shader_parameter(&"band1_color", fill_color)
+
+	var ghost := Vector2.ZERO
+	var fill := Vector2.ZERO
+	var total_w := fill_right_x - fill_left_x
+	var filled_w := total_w * _ratio
+	if total_w > 0.0 and filled_w > 0.0:
+		# Ghost (white) shows the recently lost portion for GHOST_HOLD_TIME seconds.
+		if _ghost_ratio > _ratio:
+			ghost = Vector2(_to_u(b, fill_left_x + _ratio * total_w), _to_u(b, fill_left_x + _ghost_ratio * total_w))
+		fill = Vector2(_to_u(b, fill_left_x), _to_u(b, fill_left_x + filled_w))
+	_mat.set_shader_parameter(&"band0", ghost)
+	_mat.set_shader_parameter(&"band1", fill)
 
 
 ## Picks the fill color from `team`, auto-detecting the owning unit's side by
@@ -142,23 +161,6 @@ func _get_local_bounds() -> Rect2:
 	return Rect2(off, sz)
 
 
-func _on_draw_fill() -> void:
-	var b := _get_local_bounds()
-
-	# Background fills the entire window area.
-	_draw_node.draw_rect(b, background_color)
-
-	var total_w := fill_right_x - fill_left_x
-	if total_w <= 0.0:
-		return
-	var filled_w := total_w * _ratio
-	if filled_w <= 0.0:
-		return
-
-	# Ghost (white) shows the recently lost portion for GHOST_HOLD_TIME seconds.
-	if _ghost_ratio > _ratio:
-		var ghost_start_x := fill_left_x + _ratio * total_w
-		var ghost_w := (_ghost_ratio - _ratio) * total_w
-		_draw_node.draw_rect(Rect2(Vector2(ghost_start_x, b.position.y), Vector2(ghost_w, b.size.y)), Color.WHITE)
-
-	_draw_node.draw_rect(Rect2(Vector2(fill_left_x, b.position.y), Vector2(filled_w, b.size.y)), fill_color)
+# Local X inside the fill_window sprite -> its texture's U coordinate.
+func _to_u(b: Rect2, x: float) -> float:
+	return (x - b.position.x) / maxf(b.size.x, 0.001)

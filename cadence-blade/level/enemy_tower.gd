@@ -64,6 +64,10 @@ extends Node2D
 
 var is_active:    bool = false
 var is_destroyed: bool = false
+## Time.get_ticks_msec() at the moment is_destroyed flipped true. Lets TNT give
+## a short grace window to a tower that just died instead of matching any
+## already-destroyed tower's leftover footprint forever — see tnt.gd.
+var destroyed_at_msec: int = -1
 
 signal tower_destroyed(tower: EnemyTower)
 
@@ -102,8 +106,9 @@ func activate() -> void:
 func destroy() -> void:
 	if not is_active or is_destroyed:
 		return
-	is_destroyed = true
-	is_active    = false
+	is_destroyed      = true
+	is_active         = false
+	destroyed_at_msec = Time.get_ticks_msec()
 
 	# Disable interaction.
 	if interaction_area != null:
@@ -157,8 +162,9 @@ func destroy() -> void:
 func apply_destroyed_snapshot() -> void:
 	if GameManager.is_host or is_destroyed:
 		return
-	is_destroyed = true
-	is_active    = false
+	is_destroyed      = true
+	is_active         = false
+	destroyed_at_msec = Time.get_ticks_msec()
 	if interaction_area != null:
 		interaction_area.monitoring  = false
 		interaction_area.monitorable = false
@@ -180,8 +186,9 @@ func _on_packet_received(data: Dictionary) -> void:
 		return
 	if is_destroyed:
 		return
-	is_destroyed = true
-	is_active    = false
+	is_destroyed      = true
+	is_active         = false
+	destroyed_at_msec = Time.get_ticks_msec()
 	if interaction_area != null:
 		interaction_area.monitoring  = false
 		interaction_area.monitorable = false
